@@ -19,6 +19,7 @@ in
       darwin.claude-code
       darwin.secrets
       darwin.autologin
+      darwin.tailscale
 
       # ─── User features ────────────────────────────────────────────────
       {
