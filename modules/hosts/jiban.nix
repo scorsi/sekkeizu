@@ -1,5 +1,5 @@
-# jiban (地盤, le sol porteur) — Mac Mini M4, macOS géré par nix-darwin.
-# Un host = son identité + la liste des fonctionnalités qu'il importe. Rien d'autre.
+# jiban (地盤, the bedrock) — Mac Mini M4, macOS managed by nix-darwin.
+# A host = its identity + the list of features it imports. Nothing else.
 { config, inputs, ... }:
 let
   inherit (config.flake.modules) darwin homeManager;
@@ -9,7 +9,7 @@ in
 {
   flake.darwinConfigurations.${hostName} = inputs.nix-darwin.lib.darwinSystem {
     modules = [
-      # ─── Fonctionnalités système ─────────────────────────────────────
+      # ─── System features ──────────────────────────────────────────────
       darwin.nix
       darwin.owner
       darwin.home-manager
@@ -17,7 +17,7 @@ in
       darwin.homebrew
       darwin.defaults
 
-      # ─── Fonctionnalités utilisateur ─────────────────────────────────
+      # ─── User features ────────────────────────────────────────────────
       {
         home-manager.users.${owner.name}.imports = [
           homeManager.fish
@@ -28,21 +28,21 @@ in
           homeManager.tmux
           homeManager.theme
           homeManager.neovim
-          # Outils de dev complets tant que le Mac est ta seule machine ;
-          # à retirer quand le laptop arrive (jiban redevient un pur serveur).
+          # Full dev tooling while the Mac is the only machine;
+          # remove once the laptop arrives (jiban goes back to being a pure server).
           homeManager.neovim-dev
         ];
       }
 
-      # ─── Identité de la machine ──────────────────────────────────────
+      # ─── Machine identity ─────────────────────────────────────────────
       {
         nixpkgs.hostPlatform = "aarch64-darwin";
         networking = {
           inherit hostName;
           computerName = hostName;
-          localHostName = hostName; # joignable en jiban.local (Bonjour)
+          localHostName = hostName; # reachable as jiban.local (Bonjour)
         };
-        # Garde une trace de la révision du repo dans `darwin-version`.
+        # Keeps track of the repo revision in `darwin-version`.
         system.configurationRevision = inputs.self.rev or inputs.self.dirtyRev or null;
         system.stateVersion = stateVersions.darwin;
       }

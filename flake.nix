@@ -1,8 +1,8 @@
 {
-  description = "sekkeizu — jiban (macOS, nix-darwin) et ishizue (NixOS), pattern dendritique";
+  description = "sekkeizu — jiban (macOS, nix-darwin) and ishizue (NixOS), dendritic pattern";
 
   inputs = {
-    # Un seul nixpkgs pour tout le repo : la branche -darwin a un cache binaire macOS à jour.
+    # Single nixpkgs for the whole repo: the -darwin branch has an up-to-date macOS binary cache.
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-26.05-darwin";
 
     flake-parts = {
@@ -10,7 +10,7 @@
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
 
-    # Charge automatiquement chaque fichier .nix de ./modules comme module flake-parts.
+    # Auto-loads every .nix file under ./modules as a flake-parts module.
     import-tree.url = "github:vic/import-tree";
 
     nix-darwin = {
@@ -23,16 +23,16 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Installe et épingle Homebrew lui-même (les casks restent gérés par nix-darwin).
+    # Installs and pins Homebrew itself (casks stay managed by nix-darwin).
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
 
-    # Thème Catppuccin appliqué à tous les outils supportés (bat, delta, fish, tmux…).
+    # Catppuccin theme applied to every supported tool (bat, delta, fish, tmux…).
     catppuccin = {
       url = "github:catppuccin/nix/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  # Tout le reste vit dans ./modules : ce fichier ne devrait quasiment plus bouger.
+  # Everything else lives in ./modules: this file should barely ever change.
   outputs = inputs: inputs.flake-parts.lib.mkFlake { inherit inputs; } (inputs.import-tree ./modules);
 }

@@ -1,11 +1,11 @@
-# Neovim avec ta config Lua (lazy.nvim), reprise de dev-configs dans files/nvim.
+# Neovim with the Lua config (lazy.nvim), carried over from dev-configs into files/nvim.
 #
-# ~/.config/nvim pointe directement vers files/nvim dans le repo (lien « hors store ») :
-# tu modifies la config sans rebuild, et lazy.nvim écrit son lazy-lock.json dans le repo,
-# ce qui épingle les versions des plugins avec git.
+# ~/.config/nvim links straight to files/nvim in the repo (an "out of store" symlink):
+# edits apply without a rebuild, and lazy.nvim writes its lazy-lock.json into the repo,
+# pinning plugin versions with git.
 #
-# Les LSP et formateurs viennent de Nix (feature `neovim-dev`), plus de mason :
-# la config Lua n'active un serveur que si son binaire est présent.
+# LSPs and formatters come from Nix (the `neovim-dev` feature), no more mason:
+# the Lua config only enables a server if its binary is present.
 { config, ... }:
 let
   inherit (config.sekkeizu) repoDir;
@@ -22,11 +22,11 @@ in
       home.packages = [
         pkgs.neovim
         pkgs.tree-sitter
-        # blink.cmp compile son matcher flou en Rust au premier démarrage.
+        # blink.cmp compiles its fuzzy matcher in Rust on first start.
         pkgs.cargo
         pkgs.rustc
       ]
-      # nvim-treesitter compile ses parseurs : macOS a clang via les Command Line Tools.
+      # nvim-treesitter compiles its parsers: macOS has clang via the Command Line Tools.
       ++ lib.optionals pkgs.stdenv.isLinux [ pkgs.gcc ];
 
       home.sessionVariables.EDITOR = "nvim";
@@ -35,8 +35,8 @@ in
         config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/${repoDir}/files/nvim";
     };
 
-  # Outils de dev pour Neovim : à importer sur les machines où tu codes (laptop),
-  # pas forcément sur le serveur.
+  # Dev tools for Neovim: import on machines where you code (laptop),
+  # not necessarily on the server.
   flake.modules.homeManager.neovim-dev =
     { pkgs, ... }:
     {
@@ -48,7 +48,7 @@ in
         taplo
         bash-language-server
         vscode-langservers-extracted # jsonls
-        # Formateurs et linters
+        # Formatters and linters
         stylua
         nixfmt
         shfmt

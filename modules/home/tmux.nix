@@ -1,5 +1,5 @@
-# tmux, repris de dev-configs. Sur le serveur, c'est ce qui garde les sessions
-# vivantes quand la connexion SSH tombe : `tmux new -A -s main` pour (re)joindre.
+# tmux, carried over from dev-configs. On the server, this is what keeps sessions
+# alive when the SSH connection drops: `tmux new -A -s main` to (re)join.
 {
   flake.modules.homeManager.tmux =
     { pkgs, ... }:
@@ -9,11 +9,11 @@
         prefix = "C-Space";
         mouse = true;
         keyMode = "vi";
-        baseIndex = 1; # fenêtres et panneaux numérotés à partir de 1
+        baseIndex = 1; # windows and panes numbered from 1
         terminal = "tmux-256color";
         escapeTime = 10;
 
-        # Plugins depuis nixpkgs (plus de TPM) ; le thème vient de catppuccin.
+        # Plugins from nixpkgs (no more TPM); theme comes from catppuccin.
         plugins = with pkgs.tmuxPlugins; [
           sensible
           vim-tmux-navigator

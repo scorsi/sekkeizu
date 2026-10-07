@@ -1,16 +1,15 @@
-# Compte de l'utilisateur principal sur chaque machine.
+# Primary user account on each machine.
 { config, ... }:
 let
   inherit (config.sekkeizu) owner;
 in
 {
   flake.modules.darwin.owner = {
-    # Utilisateur visé par les réglages « par utilisateur » de nix-darwin
-    # (system.defaults, homebrew, launchd.user.agents…).
+    # Target user for nix-darwin's per-user settings (system.defaults, homebrew, launchd.user.agents…).
     system.primaryUser = owner.name;
 
-    # Le compte macOS existe déjà (créé par l'assistant de configuration) :
-    # on le décrit sans le gérer (pas de `users.knownUsers`), nix-darwin ne le recrée donc pas.
+    # The macOS account already exists (created by the setup assistant):
+    # described here without being managed (no `users.knownUsers`), so nix-darwin never recreates it.
     users.users.${owner.name} = {
       inherit (owner) name;
       home = "/Users/${owner.name}";

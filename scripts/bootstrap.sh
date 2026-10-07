@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Bootstrap d'un Mac (Apple Silicon) vers sa configuration nix-darwin.
+# Bootstrap a Mac (Apple Silicon) into its nix-darwin configuration.
 #
-# Idempotent : relancé sur une machine déjà configurée, il saute les étapes faites
-# et termine par un `darwin-rebuild switch`.
+# Idempotent: re-run on an already configured machine, it skips completed steps
+# and finishes with a `darwin-rebuild switch`.
 #
-# Usage :
-#   ./scripts/bootstrap.sh                         # host jiban, repo dans ~/sekkeizu
-#   ./scripts/bootstrap.sh --host jiban --dir ~/sekkeizu --repo git@github.com:<toi>/sekkeizu.git
-#   curl -fsSL <url brute>/scripts/bootstrap.sh | bash -s -- --repo <url>
+# Usage:
+#   ./scripts/bootstrap.sh                         # host jiban, repo in ~/sekkeizu
+#   ./scripts/bootstrap.sh --host jiban --dir ~/sekkeizu --repo git@github.com:<you>/sekkeizu.git
+#   curl -fsSL <raw url>/scripts/bootstrap.sh | bash -s -- --repo <url>
 #
-# Étapes : Command Line Tools → Nix (installeur officiel) → repo → submodules → vérifications
-#          → mise de côté des fichiers /etc que nix-darwin refuse d'écraser → premier switch.
+# Steps: Command Line Tools → Nix (official installer) → repo → submodules → checks
+#          → move aside /etc files that nix-darwin refuses to overwrite → first switch.
 
 set -euo pipefail
 
@@ -54,15 +54,15 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# ─── 0. Préconditions ────────────────────────────────────────────────
+# ─── 0. Preconditions ────────────────────────────────────────────────
 [[ "$(uname -s)" == "Darwin" ]] || die "ce script ne tourne que sur macOS"
 [[ "$(uname -m)" == "arm64" ]] || die "ce script vise Apple Silicon (arm64)"
 [[ "$EUID" -ne 0 ]] || die "lance-le avec ton utilisateur, pas en root (sudo est demandé quand il faut)"
 
 log "host: ${HOST} · repo: ${DIR}"
-sudo -v # demande le mot de passe une fois, au début
+sudo -v # asks for the password once, up front
 
-# ─── 1. Command Line Tools (git, compilateurs) ───────────────────────
+# ─── 1. Command Line Tools (git, compilers) ──────────────────────────
 if xcode-select -p >/dev/null 2>&1; then
   log "Command Line Tools : déjà installés"
 else
@@ -80,7 +80,7 @@ else
   rm -f "$marker"
 fi
 
-# ─── 2. Nix (installeur officiel, multi-utilisateur) ─────────────────
+# ─── 2. Nix (official installer, multi-user) ─────────────────────────
 if [[ -x "$NIX_BIN" ]]; then
   log "Nix : déjà installé ($("$NIX_BIN" --version))"
 else
@@ -90,12 +90,12 @@ else
   sh "$installer" --daemon --yes --no-channel-add
   rm -f "$installer"
 fi
-# Rend `nix` disponible dans ce shell sans le rouvrir.
+# Makes `nix` available in this shell without reopening it.
 # shellcheck disable=SC1091
 [[ -r /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]] &&
   . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 
-# ─── 3. Le repo ──────────────────────────────────────────────────────
+# ─── 3. The repo ──────────────────────────────────────────────────────
 if [[ -f "${DIR}/flake.nix" ]]; then
   log "repo : présent dans ${DIR}"
 elif [[ -n "$REPO" ]]; then
@@ -105,22 +105,21 @@ else
   die "pas de flake dans ${DIR} : passe --repo <url> ou copie le repo (ex. scp -r depuis le laptop)"
 fi
 
-# files/nvim est un submodule git (config Neovim séparée) : sans cette étape,
-# ~/.config/nvim pointerait vers un dossier vide. Idempotent, donc sûr à
-# relancer même si le submodule est déjà initialisé.
+# files/nvim is a git submodule (separate Neovim config): skip this step and
+# ~/.config/nvim would point to an empty directory. Idempotent, safe to rerun.
 log "submodules : initialisation (nvim)"
 git -C "$DIR" submodule update --init --recursive
 
-# Certaines configs (Neovim) pointent en direct vers ~/sekkeizu (option sekkeizu.repoDir).
+# Some configs (Neovim) point straight at ~/sekkeizu (option sekkeizu.repoDir).
 [[ "$DIR" == "${HOME}/sekkeizu" ]] ||
   warn "repo hors de ~/sekkeizu : adapte sekkeizu.repoDir, sinon ~/.config/nvim pointera dans le vide"
 
-# Nix ne voit que les fichiers suivis par git : un fichier non ajouté = « n'existe pas ».
+# Nix only sees files tracked by git: an unadded file = "doesn't exist".
 if git -C "$DIR" status --porcelain 2>/dev/null | grep -q '^??'; then
   warn "fichiers non suivis par git dans ${DIR} : ils seront ignorés par Nix (git add ?)"
 fi
 
-# ─── 4. Vérifications avant switch ───────────────────────────────────
+# ─── 4. Checks before switching ───────────────────────────────────────
 flake="${DIR}#darwinConfigurations.${HOST}"
 log "évaluation de ${HOST}"
 configured_user="$("$NIX_BIN" "${NIX_FLAGS[@]}" eval --raw "${flake}.config.system.primaryUser")" ||
@@ -128,8 +127,8 @@ configured_user="$("$NIX_BIN" "${NIX_FLAGS[@]}" eval --raw "${flake}.config.syst
 [[ "$configured_user" == "$(whoami)" ]] ||
   die "sekkeizu.owner.name = '${configured_user}' mais tu es '$(whoami)' : corrige modules/meta/owner.nix"
 
-# ─── 5. Fichiers /etc que nix-darwin refuse d'écraser ────────────────
-# nix-darwin s'arrête s'il trouve ces fichiers non gérés par lui : on les renomme une fois.
+# ─── 5. /etc files nix-darwin refuses to overwrite ───────────────────
+# nix-darwin aborts if it finds these files unmanaged by it: rename them once.
 for f in /etc/bashrc /etc/zshrc /etc/zprofile /etc/shells /etc/nix/nix.conf /etc/nix/nix.custom.conf; do
   if [[ -f "$f" && ! -L "$f" ]]; then
     log "mise de côté : $f -> ${f}.before-nix-darwin"
@@ -137,12 +136,12 @@ for f in /etc/bashrc /etc/zshrc /etc/zprofile /etc/shells /etc/nix/nix.conf /etc
   fi
 done
 
-# ─── 6. Switch ───────────────────────────────────────────────────────
+# ─── 6. Switch ─────────────────────────────────────────────────────────
 if command -v darwin-rebuild >/dev/null 2>&1; then
   log "switch (darwin-rebuild déjà installé)"
   sudo darwin-rebuild switch --flake "${DIR}#${HOST}"
 else
-  # Premier switch : darwin-rebuild vient du flake, à la version épinglée dans flake.lock.
+  # First switch: darwin-rebuild comes from the flake, at the version pinned in flake.lock.
   log "premier switch"
   sudo -H "$NIX_BIN" "${NIX_FLAGS[@]}" run "${DIR}#darwin-rebuild" -- switch --flake "${DIR}#${HOST}"
 fi

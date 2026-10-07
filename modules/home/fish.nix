@@ -1,5 +1,5 @@
-# fish : shell de login (niveau système) + configuration (niveau home-manager).
-# Exemple type du pattern dendritique : une fonctionnalité, trois classes, un seul fichier.
+# fish: login shell (system level) + configuration (home-manager level).
+# Typical example of the dendritic pattern: one feature, three classes, one file.
 { config, ... }:
 let
   owner = config.sekkeizu.owner.name;
@@ -8,12 +8,11 @@ in
   flake.modules.darwin.fish =
     { pkgs, ... }:
     {
-      # Installe fish au niveau système et l'ajoute à /etc/shells.
       programs.fish.enable = true;
       environment.shells = [ pkgs.fish ];
 
-      # nix-darwin ne change pas le shell d'un compte qu'il ne gère pas :
-      # on le fait à l'activation, de façon idempotente.
+      # nix-darwin won't change the shell of an account it doesn't manage:
+      # done here at activation instead, idempotently.
       system.activationScripts.postActivation.text = ''
         target=/run/current-system/sw/bin/fish
         current=$(dscl . -read /Users/${owner} UserShell | awk '{print $2}')
@@ -37,13 +36,13 @@ in
       programs.fish = {
         enable = true;
 
-        # Plugins repris de dev-configs (ex-fisher), désormais fournis par nixpkgs.
+        # Plugins carried over from dev-configs (ex-fisher), now provided by nixpkgs.
         plugins = map (p: { inherit (p) name src; }) (
           with pkgs.fishPlugins;
           [
-            fzf-fish # Ctrl+R historique, Ctrl+Alt+F fichiers, Ctrl+Alt+L git log…
-            autopair # ferme automatiquement () [] {} "" ''
-            sponge # retire les commandes en échec de l'historique
+            fzf-fish # Ctrl+R history, Ctrl+Alt+F files, Ctrl+Alt+L git log…
+            autopair # auto-closes () [] {} "" ''
+            sponge # removes failed commands from history
           ]
         );
 
@@ -67,17 +66,16 @@ in
           g = "git";
           gs = "git status -sb";
           zz = "z -";
-          # Rebuild du Mac depuis le repo (chemin par défaut du bootstrap).
+          # Rebuild the Mac from the repo (bootstrap's default path).
           drs = "sudo darwin-rebuild switch --flake ~/sekkeizu";
         };
       };
 
-      # fzf.fish fournit ses propres raccourcis : on coupe ceux de fzf pour éviter les doublons.
+      # fzf.fish ships its own shortcuts: disable fzf's to avoid duplicates.
       programs.fzf.enableFishIntegration = false;
-      # Les alias ls/ll/lt ci-dessus remplacent ceux générés par home-manager.
+      # The ls/ll/lt aliases above replace the ones home-manager generates.
       programs.eza.enableFishIntegration = false;
 
-      # Prompt : rapide, informatif (git, nix shell), thème via catppuccin.
       programs.starship.enable = true;
     };
 }

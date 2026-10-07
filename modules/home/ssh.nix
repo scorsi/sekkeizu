@@ -1,9 +1,9 @@
-# Client SSH + agent, compatibles clés FIDO2 (ed25519-sk).
+# SSH client + agent, with FIDO2 key support (ed25519-sk).
 #
-# macOS fournit son propre ssh/ssh-agent, compilés SANS support des clés matérielles :
-# on les remplace par ceux de nixpkgs. L'agent tourne en LaunchAgent (macOS) ou en
-# service systemd utilisateur (NixOS). Une session SSH entrante avec un agent transféré
-# (`ssh -A`) garde l'agent du laptop : home-manager ne l'écrase pas.
+# macOS ships its own ssh/ssh-agent, built WITHOUT hardware key support:
+# replaced here by nixpkgs'. The agent runs as a LaunchAgent (macOS) or a
+# systemd user service (NixOS). An incoming SSH session with a forwarded agent
+# (`ssh -A`) keeps the laptop's agent: home-manager doesn't override it.
 {
   flake.modules.homeManager.ssh =
     { pkgs, ... }:
@@ -17,17 +17,17 @@
         enable = true;
         package = pkgs.openssh;
         enableDefaultConfig = false;
-        # Directives OpenSSH telles quelles (ssh_config(5)), un bloc par motif d'hôte.
+        # Raw OpenSSH directives (ssh_config(5)), one block per host pattern.
         settings = {
           "*" = {
-            # La clé utilisée (handle de la clé matérielle) est ajoutée à l'agent :
-            # git peut ensuite signer avec, et `ssh -A` la transfère.
+            # The key used (hardware key handle) is added to the agent:
+            # git can then sign with it, and `ssh -A` forwards it.
             AddKeysToAgent = "yes";
-            # Évite le bruit "agent refused operation" quand l'agent essaie l'identité
-            # FIDO2 dont le device est absent avant de basculer sur celle qui est branchée.
+            # Avoids the "agent refused operation" noise when the agent tries the
+            # FIDO2 identity whose device is absent before falling back to the plugged-in one.
             LogLevel = "ERROR";
           };
-          # Machines de sekkeizu : agent transféré pour signer les commits depuis le serveur.
+          # sekkeizu machines: forwarded agent to sign commits from the server.
           "jiban jiban.local ishizue" = {
             ForwardAgent = true;
           };

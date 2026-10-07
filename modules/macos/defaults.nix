@@ -1,18 +1,18 @@
-# Réglages macOS (équivalents de System Settings), appliqués à chaque switch.
-# Ce que nix-darwin ne couvre pas : `system.defaults.CustomUserPreferences`.
+# macOS settings (System Settings equivalents), applied on every switch.
+# What nix-darwin doesn't cover: `system.defaults.CustomUserPreferences`.
 {
   flake.modules.darwin.defaults = {
     system.defaults = {
       NSGlobalDomain = {
         AppleShowAllExtensions = true;
-        ApplePressAndHoldEnabled = false; # répétition de touche au lieu des accents
+        ApplePressAndHoldEnabled = false; # key repeat instead of accent picker
         NSDocumentSaveNewDocumentsToCloud = false;
       };
 
       finder = {
         AppleShowAllFiles = true;
         ShowPathbar = true;
-        FXPreferredViewStyle = "Nlsv"; # vue liste
+        FXPreferredViewStyle = "Nlsv"; # list view
         FXEnableExtensionChangeWarning = false;
       };
 
@@ -21,10 +21,10 @@
         show-recents = false;
       };
 
-      # Serveur : les mises à jour de macOS se font à la main, après un switch de test.
+      # Server: macOS updates are done by hand, after a test switch.
       SoftwareUpdate.AutomaticallyInstallMacOSUpdates = false;
 
-      # Pas de fichiers .DS_Store sur les volumes réseau et USB (disque externe).
+      # No .DS_Store files on network and USB volumes (external drive).
       CustomUserPreferences."com.apple.desktopservices" = {
         DSDontWriteNetworkStores = true;
         DSDontWriteUSBStores = true;
