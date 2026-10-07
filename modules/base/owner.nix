@@ -15,7 +15,7 @@ in
       inherit (owner) name;
       home = "/Users/${owner.name}";
       description = owner.fullName;
-      openssh.authorizedKeys.keys = owner.sshKeys;
+      openssh.authorizedKeys.keys = map (k: k.key) owner.sshKeys;
     };
   };
 
@@ -24,7 +24,7 @@ in
       isNormalUser = true;
       description = owner.fullName;
       extraGroups = [ "wheel" ];
-      openssh.authorizedKeys.keys = owner.sshKeys;
+      openssh.authorizedKeys.keys = map (k: k.key) owner.sshKeys;
     };
   };
 }

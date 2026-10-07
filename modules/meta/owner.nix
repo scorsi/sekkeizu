@@ -11,9 +11,17 @@
     # Pas de -O verify-required : ssh-agent (LaunchAgent, pas de terminal) ne peut
     # pas demander le PIN à la signature ("agent refused operation"). Juste le toucher ;
     # le PIN du device reste utile pour gérer les credentials résidents (fido2-token -L -r/-D).
+    # aaguid : identifiant de modèle FIDO2 (`fido2-token -I`), sert à choisir la clé de
+    # signature selon le device réellement branché (modules/home/git.nix).
     sshKeys = [
-      "sk-ssh-ed25519@openssh.com REDACTED scorsi@yubikey"
-      "sk-ssh-ed25519@openssh.com REDACTED scorsi@thetis"
+      {
+        aaguid = "d7781e5de35346aaafe23ca49f13332a";
+        key = "sk-ssh-ed25519@openssh.com REDACTED scorsi@yubikey";
+      }
+      {
+        aaguid = "a3975549b191fd67b8fb017e2917fdb3";
+        key = "sk-ssh-ed25519@openssh.com REDACTED scorsi@thetis";
+      }
     ];
   };
 
