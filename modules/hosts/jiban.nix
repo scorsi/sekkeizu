@@ -17,6 +17,8 @@ in
       darwin.homebrew
       darwin.defaults
       darwin.claude-code
+      darwin.secrets
+      darwin.autologin
 
       # ─── User features ────────────────────────────────────────────────
       {
@@ -48,6 +50,8 @@ in
         # Keeps track of the repo revision in `darwin-version`.
         system.configurationRevision = inputs.self.rev or inputs.self.dirtyRev or null;
         system.stateVersion = stateVersions.darwin;
+
+        sops.secrets.kcpassword.sopsFile = ../../secrets/${hostName}/kcpassword;
       }
     ];
   };
