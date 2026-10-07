@@ -5,7 +5,7 @@
 #    avec ses fichiers de config. Supprimer une app = retirer sa ligne.
 { config, inputs, ... }:
 let
-  owner = config.homelab.owner.name;
+  owner = config.sekkeizu.owner.name;
 in
 {
   flake.modules.darwin.homebrew = {

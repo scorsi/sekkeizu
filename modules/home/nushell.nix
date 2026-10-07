@@ -14,7 +14,7 @@
       };
       shellAliases = {
         g = "git";
-        drs = "sudo darwin-rebuild switch --flake ~/homelab";
+        drs = "sudo darwin-rebuild switch --flake ~/sekkeizu";
       };
     };
 

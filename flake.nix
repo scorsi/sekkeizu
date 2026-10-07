@@ -1,5 +1,5 @@
 {
-  description = "homelab — jiban (macOS, nix-darwin) et ishizue (NixOS), pattern dendritique";
+  description = "sekkeizu — jiban (macOS, nix-darwin) et ishizue (NixOS), pattern dendritique";
 
   inputs = {
     # Un seul nixpkgs pour tout le repo : la branche -darwin a un cache binaire macOS à jour.

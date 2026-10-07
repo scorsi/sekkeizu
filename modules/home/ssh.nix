@@ -24,7 +24,7 @@
             # git peut ensuite signer avec, et `ssh -A` la transfère.
             AddKeysToAgent = "yes";
           };
-          # Machines du homelab : agent transféré pour signer les commits depuis le serveur.
+          # Machines de sekkeizu : agent transféré pour signer les commits depuis le serveur.
           "jiban jiban.local ishizue" = {
             ForwardAgent = true;
           };

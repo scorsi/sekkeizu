@@ -1,12 +1,12 @@
 # Options de niveau flake, partagées par toutes les fonctionnalités et tous les hosts.
-# Chaque fichier de modules/ lit `config.homelab.*` dans sa fermeture, puis l'injecte
+# Chaque fichier de modules/ lit `config.sekkeizu.*` dans sa fermeture, puis l'injecte
 # dans ses morceaux darwin / nixos / homeManager.
 { lib, ... }:
 let
   inherit (lib) mkOption types;
 in
 {
-  options.homelab = {
+  options.sekkeizu = {
     owner = mkOption {
       description = "Utilisateur principal, identique sur toutes les machines.";
       type = types.submodule {
@@ -34,7 +34,7 @@ in
 
     repoDir = mkOption {
       type = types.str;
-      default = "homelab";
+      default = "sekkeizu";
       description = ''
         Emplacement du repo, relatif au home de l'utilisateur (là où le bootstrap le clone).
         Sert aux configs liées « en direct » au repo, comme celle de Neovim.

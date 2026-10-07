@@ -2,7 +2,7 @@
 # Exemple type du pattern dendritique : une fonctionnalité, trois classes, un seul fichier.
 { config, ... }:
 let
-  owner = config.homelab.owner.name;
+  owner = config.sekkeizu.owner.name;
 in
 {
   flake.modules.darwin.fish =
@@ -18,7 +18,7 @@ in
         target=/run/current-system/sw/bin/fish
         current=$(dscl . -read /Users/${owner} UserShell | awk '{print $2}')
         if [ "$current" != "$target" ]; then
-          echo "homelab: shell de ${owner} -> $target"
+          echo "sekkeizu: shell de ${owner} -> $target"
           dscl . -create /Users/${owner} UserShell "$target"
         fi
       '';
@@ -68,7 +68,7 @@ in
           gs = "git status -sb";
           zz = "z -";
           # Rebuild du Mac depuis le repo (chemin par défaut du bootstrap).
-          drs = "sudo darwin-rebuild switch --flake ~/homelab";
+          drs = "sudo darwin-rebuild switch --flake ~/sekkeizu";
         };
       };
 

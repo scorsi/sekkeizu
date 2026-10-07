@@ -2,8 +2,8 @@
 # Le host choisit ensuite ses fonctionnalités home via `home-manager.users.<owner>.imports`.
 { config, inputs, ... }:
 let
-  owner = config.homelab.owner.name;
-  hmStateVersion = config.homelab.stateVersions.homeManager;
+  owner = config.sekkeizu.owner.name;
+  hmStateVersion = config.sekkeizu.stateVersions.homeManager;
 
   common = {
     home-manager = {
