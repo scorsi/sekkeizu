@@ -13,7 +13,7 @@
     # le PIN du device reste utile pour gérer les credentials résidents (fido2-token -L -r/-D).
     sshKeys = [
       "sk-ssh-ed25519@openssh.com REDACTED scorsi@yubikey"
-      # TODO: "sk-ssh-ed25519@openssh.com AAAA... scorsi@thetis"
+      "sk-ssh-ed25519@openssh.com REDACTED scorsi@thetis"
     ];
   };
 
