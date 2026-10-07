@@ -23,6 +23,9 @@
             # La clé utilisée (handle de la clé matérielle) est ajoutée à l'agent :
             # git peut ensuite signer avec, et `ssh -A` la transfère.
             AddKeysToAgent = "yes";
+            # Évite le bruit "agent refused operation" quand l'agent essaie l'identité
+            # FIDO2 dont le device est absent avant de basculer sur celle qui est branchée.
+            LogLevel = "ERROR";
           };
           # Machines de sekkeizu : agent transféré pour signer les commits depuis le serveur.
           "jiban jiban.local ishizue" = {
