@@ -7,7 +7,10 @@
 
     # Clés FIDO2 (YubiKey, Thetis) : connexion SSH aux machines ET signature des commits.
     # Une clé par appareil, générée avec :
-    #   ssh-keygen -t ed25519-sk -O resident -O verify-required -C "scorsi@<appareil>"
+    #   ssh-keygen -t ed25519-sk -O resident -C "scorsi@<appareil>"
+    # Pas de -O verify-required : ssh-agent (LaunchAgent, pas de terminal) ne peut
+    # pas demander le PIN à la signature ("agent refused operation"). Juste le toucher ;
+    # le PIN du device reste utile pour gérer les credentials résidents (fido2-token -L -r/-D).
     sshKeys = [
       "sk-ssh-ed25519@openssh.com REDACTED scorsi@yubikey"
       # TODO: "sk-ssh-ed25519@openssh.com AAAA... scorsi@thetis"
