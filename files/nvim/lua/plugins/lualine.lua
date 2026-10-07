@@ -43,10 +43,7 @@ return {
                     inactive = { c = { fg = colors.fg, bg = colors.bg } },
                 },
                 disabled_filetypes = {
-                    "alpha",
                     "neo-tree",
-                    "TelescopePrompt",
-                    "lazygit",
                 },
                 globalstatus = true,
             },

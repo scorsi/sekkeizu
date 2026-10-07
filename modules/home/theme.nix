@@ -1,5 +1,5 @@
 # Catppuccin Mocha partout : chaque outil activé et supporté par catppuccin/nix
-# (bat, delta, fish, starship, tmux, lazygit, btop, fzf…) reçoit le thème.
+# (bat, delta, fish, starship, tmux, btop, fzf…) reçoit le thème.
 { inputs, ... }:
 {
   flake.modules.homeManager.theme = {

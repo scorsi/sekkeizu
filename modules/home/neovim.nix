@@ -22,6 +22,9 @@ in
       home.packages = [
         pkgs.neovim
         pkgs.tree-sitter
+        # blink.cmp compile son matcher flou en Rust au premier démarrage.
+        pkgs.cargo
+        pkgs.rustc
       ]
       # nvim-treesitter compile ses parseurs : macOS a clang via les Command Line Tools.
       ++ lib.optionals pkgs.stdenv.isLinux [ pkgs.gcc ];
@@ -41,28 +44,16 @@ in
         # LSP
         lua-language-server
         nil
-        rust-analyzer
-        gopls
-        zls
-        pyright
-        terraform-ls
         yaml-language-server
         taplo
-        dockerfile-language-server
-        docker-compose-language-service
         bash-language-server
         vscode-langservers-extracted # jsonls
         # Formateurs et linters
         stylua
         nixfmt
         shfmt
-        black
-        isort
-        pylint
         yamlfmt
         yamllint
-        hclfmt
-        tflint
         prettier
       ];
     };
