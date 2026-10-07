@@ -34,6 +34,5 @@
   };
 
   # Tout le reste vit dans ./modules : ce fichier ne devrait quasiment plus bouger.
-  outputs =
-    inputs: inputs.flake-parts.lib.mkFlake { inherit inputs; } (inputs.import-tree ./modules);
+  outputs = inputs: inputs.flake-parts.lib.mkFlake { inherit inputs; } (inputs.import-tree ./modules);
 }
