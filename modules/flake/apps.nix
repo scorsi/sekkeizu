@@ -2,6 +2,7 @@
 #   switch → rebuild + diff generations (sudo asked by darwin-rebuild)
 #   check  → nix flake check
 #   fmt    → nix fmt
+#   set-autologin-password [host] → encrypt the login password as a kcpassword secret (see modules/macos/autologin.nix)
 { lib, inputs, ... }:
 {
   perSystem =
@@ -42,6 +43,21 @@
               set -euo pipefail
               repo=$(${pkgs.git}/bin/git rev-parse --show-toplevel)
               exec nix flake check "$repo"
+            ''
+          );
+        };
+
+        set-autologin-password = {
+          type = "app";
+          program = toString (
+            pkgs.writeShellScript "set-autologin-password" ''
+              set -euo pipefail
+              repo=$(${pkgs.git}/bin/git rev-parse --show-toplevel)
+              host=''${1:-$(/bin/hostname -s)}
+              cd "$repo"
+              mkdir -p "secrets/$host"
+              exec ${pkgs.python3}/bin/python3 -I ${./set-autologin-password.py} \
+                ${pkgs.sops}/bin/sops "secrets/$host/kcpassword"
             ''
           );
         };
