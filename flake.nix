@@ -31,6 +31,12 @@
       url = "github:catppuccin/nix/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Encrypted secrets, decrypted at activation with the host's SSH key (see modules/base/secrets.nix).
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   # Everything else lives in ./modules: this file should barely ever change.

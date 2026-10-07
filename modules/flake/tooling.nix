@@ -27,7 +27,14 @@ in
           just
           nix-output-monitor # `nom`, for more readable builds
           nvd # diff between two generations (used by `nix run .#switch`)
+          sops # secrets/ editing (see .sops.yaml)
+          age
+          ssh-to-age # host SSH key -> age recipient
         ];
+        # sops on macOS looks in ~/Library/Application Support by default.
+        shellHook = ''
+          export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
+        '';
       };
 
       # On macOS, `nix flake check` builds every darwin host.
