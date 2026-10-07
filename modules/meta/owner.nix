@@ -9,7 +9,7 @@
     # Une clé par appareil, générée avec :
     #   ssh-keygen -t ed25519-sk -O resident -O verify-required -C "scorsi@<appareil>"
     sshKeys = [
-      # TODO: "sk-ssh-ed25519@openssh.com AAAA... scorsi@yubikey"
+      "sk-ssh-ed25519@openssh.com REDACTED scorsi@yubikey"
       # TODO: "sk-ssh-ed25519@openssh.com AAAA... scorsi@thetis"
     ];
   };
