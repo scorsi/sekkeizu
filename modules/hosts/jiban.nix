@@ -20,6 +20,7 @@ in
       darwin.secrets
       darwin.autologin
       darwin.tailscale
+      darwin.server
 
       # ─── User features ────────────────────────────────────────────────
       {
