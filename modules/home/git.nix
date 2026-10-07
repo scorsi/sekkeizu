@@ -1,7 +1,7 @@
 # git : identité depuis sekkeizu.owner, commits signés en SSH, diffs avec delta.
 #
-# Signature : git signe avec la clé FIDO2 présente dans l'agent SSH (YubiKey ou Thetis,
-# celle qui est branchée ; agent et OpenSSH compatible : feature `ssh`).
+# Signature : git signe avec la clé FIDO2 du device réellement branché (YubiKey ou Thetis),
+# détecté via fido2-token (aaguid) et non l'ordre de l'agent SSH.
 # Sur le serveur, l'agent du laptop arrive par `ssh -A`.
 # Les deux clés publiques sont à ajouter sur GitHub comme « Signing keys ».
 { config, ... }:
@@ -10,21 +10,39 @@ let
 in
 {
   flake.modules.homeManager.git =
-    { pkgs, ... }:
+    { pkgs, lib, ... }:
     let
       # OpenSSH de nixpkgs : celui de macOS ne gère pas les clés FIDO2 (ed25519-sk).
       ssh = pkgs.openssh;
+      # fido2-token : identifie le modèle (aaguid) des devices FIDO2 branchés.
+      fido2 = pkgs.libfido2;
 
       # Clés dont la signature est reconnue (`git log --show-signature`).
       allowedSigners = pkgs.writeText "allowed_signers" (
-        builtins.concatStringsSep "\n" (map (key: "${owner.email} ${key}") owner.sshKeys) + "\n"
+        builtins.concatStringsSep "\n" (map (k: "${owner.email} ${k.key}") owner.sshKeys) + "\n"
       );
 
-      # Première clé matérielle (sk-) chargée dans l'agent, au format attendu par git.
+      # Clé du device FIDO2 réellement branché (matché par aaguid), au format attendu par git.
+      # L'id de device (DevSrvsID:<n> sur macOS) change à chaque branchement : toujours relister,
+      # jamais le mettre en cache.
       signingKeyCommand = pkgs.writeShellScript "git-ssh-signing-key" ''
-        key=$(${ssh}/bin/ssh-add -L 2>/dev/null | grep -m1 '^sk-')
-        [ -n "$key" ] || { echo "aucune clé FIDO2 dans l'agent SSH" >&2; exit 1; }
-        echo "key::$key"
+        while IFS= read -r line; do
+          [ -n "$line" ] || continue
+          dev=''${line%%: *}
+          aaguid=""
+          while IFS= read -r info; do
+            case "$info" in
+              aaguid:*) aaguid=''${info#aaguid: } ;;
+            esac
+          done <<< "$(${fido2}/bin/fido2-token -I "$dev" 2>/dev/null)"
+          case "$aaguid" in
+            ${lib.concatMapStringsSep "\n            " (
+              k: ''"${k.aaguid}") echo "key::${k.key}"; exit 0 ;;''
+            ) owner.sshKeys}
+          esac
+        done <<< "$(${fido2}/bin/fido2-token -L 2>/dev/null)"
+        echo "aucun device FIDO2 reconnu branché" >&2
+        exit 1
       '';
     in
     {

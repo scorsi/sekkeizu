@@ -24,9 +24,22 @@ in
             description = "Email des commits git.";
           };
           sshKeys = mkOption {
-            type = types.listOf types.str;
+            type = types.listOf (
+              types.submodule {
+                options = {
+                  aaguid = mkOption {
+                    type = types.str;
+                    description = "Identifiant de modèle FIDO2 (`fido2-token -I`), pour retrouver le device branché à la signature.";
+                  };
+                  key = mkOption {
+                    type = types.str;
+                    description = "Clé publique SSH (sk-ssh-ed25519@openssh.com ...).";
+                  };
+                };
+              }
+            );
             default = [ ];
-            description = "Clés publiques SSH autorisées à se connecter sur chaque machine.";
+            description = "Clés FIDO2 autorisées à se connecter sur chaque machine.";
           };
         };
       };
