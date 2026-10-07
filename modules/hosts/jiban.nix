@@ -3,7 +3,7 @@
 { config, inputs, ... }:
 let
   inherit (config.flake.modules) darwin homeManager;
-  inherit (config.homelab) owner stateVersions;
+  inherit (config.sekkeizu) owner stateVersions;
   hostName = "jiban";
 in
 {

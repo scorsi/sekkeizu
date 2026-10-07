@@ -3,7 +3,7 @@
 # rend `nix.gc`, `nix.optimise` et plus tard `nix.linux-builder` disponibles.
 { config, ... }:
 let
-  owner = config.homelab.owner.name;
+  owner = config.sekkeizu.owner.name;
 
   settings = {
     experimental-features = [

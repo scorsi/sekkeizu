@@ -1,6 +1,6 @@
 # Seul fichier d'identité du repo : à adapter avant le premier switch.
 {
-  homelab.owner = {
+  sekkeizu.owner = {
     name = "scorsi"; # TODO: doit correspondre à `whoami` sur le Mac (le bootstrap vérifie)
     fullName = "scorsi";
     email = "8389441+scorsi@users.noreply.github.com";
@@ -17,7 +17,7 @@
     ];
   };
 
-  homelab.stateVersions = {
+  sekkeizu.stateVersions = {
     darwin = 6;
     homeManager = "26.05";
   };

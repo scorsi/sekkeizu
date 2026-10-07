@@ -5,8 +5,8 @@
 # et termine par un `darwin-rebuild switch`.
 #
 # Usage :
-#   ./scripts/bootstrap.sh                         # host jiban, repo dans ~/homelab
-#   ./scripts/bootstrap.sh --host jiban --dir ~/homelab --repo git@github.com:<toi>/homelab.git
+#   ./scripts/bootstrap.sh                         # host jiban, repo dans ~/sekkeizu
+#   ./scripts/bootstrap.sh --host jiban --dir ~/sekkeizu --repo git@github.com:<toi>/sekkeizu.git
 #   curl -fsSL <url brute>/scripts/bootstrap.sh | bash -s -- --repo <url>
 #
 # Étapes : Command Line Tools → Nix (installeur officiel) → repo → vérifications
@@ -15,7 +15,7 @@
 set -euo pipefail
 
 HOST="jiban"
-DIR="${HOME}/homelab"
+DIR="${HOME}/sekkeizu"
 REPO=""
 NIX_BIN="/nix/var/nix/profiles/default/bin/nix"
 NIX_FLAGS=(--extra-experimental-features "nix-command flakes")
@@ -105,9 +105,9 @@ else
   die "pas de flake dans ${DIR} : passe --repo <url> ou copie le repo (ex. scp -r depuis le laptop)"
 fi
 
-# Certaines configs (Neovim) pointent en direct vers ~/homelab (option homelab.repoDir).
-[[ "$DIR" == "${HOME}/homelab" ]] ||
-  warn "repo hors de ~/homelab : adapte homelab.repoDir, sinon ~/.config/nvim pointera dans le vide"
+# Certaines configs (Neovim) pointent en direct vers ~/sekkeizu (option sekkeizu.repoDir).
+[[ "$DIR" == "${HOME}/sekkeizu" ]] ||
+  warn "repo hors de ~/sekkeizu : adapte sekkeizu.repoDir, sinon ~/.config/nvim pointera dans le vide"
 
 # Nix ne voit que les fichiers suivis par git : un fichier non ajouté = « n'existe pas ».
 if git -C "$DIR" status --porcelain 2>/dev/null | grep -q '^??'; then
@@ -120,7 +120,7 @@ log "évaluation de ${HOST}"
 configured_user="$("$NIX_BIN" "${NIX_FLAGS[@]}" eval --raw "${flake}.config.system.primaryUser")" ||
   die "évaluation impossible : host '${HOST}' inexistant ou erreur Nix (voir ci-dessus)"
 [[ "$configured_user" == "$(whoami)" ]] ||
-  die "homelab.owner.name = '${configured_user}' mais tu es '$(whoami)' : corrige modules/meta/owner.nix"
+  die "sekkeizu.owner.name = '${configured_user}' mais tu es '$(whoami)' : corrige modules/meta/owner.nix"
 
 # ─── 5. Fichiers /etc que nix-darwin refuse d'écraser ────────────────
 # nix-darwin s'arrête s'il trouve ces fichiers non gérés par lui : on les renomme une fois.

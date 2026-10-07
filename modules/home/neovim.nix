@@ -8,7 +8,7 @@
 # la config Lua n'active un serveur que si son binaire est présent.
 { config, ... }:
 let
-  inherit (config.homelab) repoDir;
+  inherit (config.sekkeizu) repoDir;
 in
 {
   flake.modules.homeManager.neovim =

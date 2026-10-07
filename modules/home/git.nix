@@ -1,4 +1,4 @@
-# git : identité depuis homelab.owner, commits signés en SSH, diffs avec delta.
+# git : identité depuis sekkeizu.owner, commits signés en SSH, diffs avec delta.
 #
 # Signature : git signe avec la clé FIDO2 présente dans l'agent SSH (YubiKey ou Thetis,
 # celle qui est branchée ; agent et OpenSSH compatible : feature `ssh`).
@@ -6,7 +6,7 @@
 # Les deux clés publiques sont à ajouter sur GitHub comme « Signing keys ».
 { config, ... }:
 let
-  inherit (config.homelab) owner;
+  inherit (config.sekkeizu) owner;
 in
 {
   flake.modules.homeManager.git =

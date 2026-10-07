@@ -1,7 +1,7 @@
 # Compte de l'utilisateur principal sur chaque machine.
 { config, ... }:
 let
-  inherit (config.homelab) owner;
+  inherit (config.sekkeizu) owner;
 in
 {
   flake.modules.darwin.owner = {
