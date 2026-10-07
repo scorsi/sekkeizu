@@ -9,13 +9,7 @@ return {
             formatters_by_ft = {
                 lua = { "stylua" },
                 nix = { "nixfmt" },
-                go = { "gofmt" },
-                zig = { "zigfmt" },
-                rust = { "rustfmt" },
-                python = { "isort", "black" },
                 yaml = { "yamlfmt" },
-                hcl = { "hclfmt" },
-                terraform = { "hclfmt" },
                 bash = { "shfmt" },
                 json = { "prettier" },
             },

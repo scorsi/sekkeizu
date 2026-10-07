@@ -90,7 +90,5 @@ in
           navigate = true;
         };
       };
-
-      programs.lazygit.enable = true;
     };
 }
