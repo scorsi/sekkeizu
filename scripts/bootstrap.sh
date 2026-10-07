@@ -124,7 +124,7 @@ configured_user="$("$NIX_BIN" "${NIX_FLAGS[@]}" eval --raw "${flake}.config.syst
 
 # ─── 5. Fichiers /etc que nix-darwin refuse d'écraser ────────────────
 # nix-darwin s'arrête s'il trouve ces fichiers non gérés par lui : on les renomme une fois.
-for f in /etc/bashrc /etc/zshrc /etc/zprofile /etc/nix/nix.conf /etc/nix/nix.custom.conf; do
+for f in /etc/bashrc /etc/zshrc /etc/zprofile /etc/shells /etc/nix/nix.conf /etc/nix/nix.custom.conf; do
   if [[ -f "$f" && ! -L "$f" ]]; then
     log "mise de côté : $f -> ${f}.before-nix-darwin"
     sudo mv "$f" "${f}.before-nix-darwin"
