@@ -16,6 +16,7 @@ in
       darwin.fish
       darwin.homebrew
       darwin.defaults
+      darwin.claude-code
 
       # ─── User features ────────────────────────────────────────────────
       {
@@ -25,6 +26,8 @@ in
           homeManager.ssh
           homeManager.git
           homeManager.cli
+          homeManager.github
+          homeManager.claude-code
           homeManager.tmux
           homeManager.theme
           homeManager.neovim
