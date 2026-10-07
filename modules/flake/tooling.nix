@@ -25,6 +25,8 @@ in
           deadnix # code mort
           shellcheck # scripts/bootstrap.sh
           just
+          nix-output-monitor # nom via `nom`, pour des builds plus lisibles
+          nvd # diff entre deux generations (utilisé par `nix run .#switch`)
         ];
       };
 
