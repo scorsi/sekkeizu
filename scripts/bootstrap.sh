@@ -9,7 +9,7 @@
 #   ./scripts/bootstrap.sh --host jiban --dir ~/sekkeizu --repo git@github.com:<toi>/sekkeizu.git
 #   curl -fsSL <url brute>/scripts/bootstrap.sh | bash -s -- --repo <url>
 #
-# Étapes : Command Line Tools → Nix (installeur officiel) → repo → vérifications
+# Étapes : Command Line Tools → Nix (installeur officiel) → repo → submodules → vérifications
 #          → mise de côté des fichiers /etc que nix-darwin refuse d'écraser → premier switch.
 
 set -euo pipefail
@@ -104,6 +104,12 @@ elif [[ -n "$REPO" ]]; then
 else
   die "pas de flake dans ${DIR} : passe --repo <url> ou copie le repo (ex. scp -r depuis le laptop)"
 fi
+
+# files/nvim est un submodule git (config Neovim séparée) : sans cette étape,
+# ~/.config/nvim pointerait vers un dossier vide. Idempotent, donc sûr à
+# relancer même si le submodule est déjà initialisé.
+log "submodules : initialisation (nvim)"
+git -C "$DIR" submodule update --init --recursive
 
 # Certaines configs (Neovim) pointent en direct vers ~/sekkeizu (option sekkeizu.repoDir).
 [[ "$DIR" == "${HOME}/sekkeizu" ]] ||
