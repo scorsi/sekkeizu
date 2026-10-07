@@ -7,6 +7,18 @@
 {
   perSystem =
     { pkgs, system, ... }:
+    let
+      # Compiled, so no interpreter is needed at runtime.
+      setAutologinPassword = pkgs.stdenv.mkDerivation {
+        name = "set-autologin-password";
+        src = ./set-autologin-password.nim;
+        dontUnpack = true;
+        nativeBuildInputs = [ pkgs.nim ];
+        # The store file name isn't a valid Nim module name.
+        buildPhase = "cp $src main.nim && nim c -d:release --nimcache:$TMPDIR/nimcache -o:set-autologin-password main.nim";
+        installPhase = "install -D set-autologin-password $out/bin/set-autologin-password";
+      };
+    in
     lib.optionalAttrs (lib.hasSuffix "darwin" system) {
       apps = {
         switch = {
@@ -56,7 +68,7 @@
               host=''${1:-$(/bin/hostname -s)}
               cd "$repo"
               mkdir -p "secrets/$host"
-              exec ${pkgs.python3}/bin/python3 -I ${./set-autologin-password.py} \
+              exec ${setAutologinPassword}/bin/set-autologin-password \
                 ${pkgs.sops}/bin/sops "secrets/$host/kcpassword"
             ''
           );
