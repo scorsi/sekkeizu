@@ -1,4 +1,4 @@
-# Boîte à outils en ligne de commande, identique sur le Mac, la VM et le futur laptop.
+# Command-line toolbox, identical on the Mac, the VM, and the future laptop.
 {
   flake.modules.homeManager.cli =
     { pkgs, ... }:
@@ -8,8 +8,8 @@
         fd
         jq
         yq-go
-        dust # du lisible
-        duf # df lisible
+        dust # readable du
+        duf # readable df
         tree
         just
         curl
@@ -17,8 +17,8 @@
       ];
 
       programs = {
-        # fish active le cache des pages man par défaut ; sur macOS home-manager ne fournit
-        # pas `man` (celui du système est utilisé), le cache n'a donc aucun effet.
+        # fish enables man-page caching by default; on macOS home-manager doesn't
+        # provide `man` (the system one is used), so the cache has no effect.
         man.generateCaches = false;
 
         eza.enable = true;
@@ -27,7 +27,7 @@
         fzf.enable = true;
         zoxide.enable = true;
 
-        # `use flake` dans un .envrc : environnement de dev par projet, mis en cache.
+        # `use flake` in a .envrc: per-project dev environment, cached.
         direnv = {
           enable = true;
           nix-direnv.enable = true;

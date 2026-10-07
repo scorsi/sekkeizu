@@ -1,7 +1,7 @@
-# Outillage du repo, disponible sur chaque système :
-#   nix fmt              → formate tout le repo
-#   nix develop          → shell avec les linters Nix
-#   nix flake check      → évalue tout + construit les hosts du système courant
+# Repo tooling, available on every system:
+#   nix fmt              → format the whole repo
+#   nix develop          → shell with the Nix linters
+#   nix flake check      → evaluate everything + build the hosts for the current system
 {
   config,
   lib,
@@ -9,7 +9,7 @@
   ...
 }:
 let
-  # Configurations nix-darwin déclarées par les fichiers de modules/hosts/.
+  # nix-darwin configurations declared by files under modules/hosts/.
   darwinHosts = config.flake.darwinConfigurations or { };
 in
 {
@@ -21,22 +21,22 @@ in
       devShells.default = pkgs.mkShellNoCC {
         packages = with pkgs; [
           nixfmt
-          statix # anti-patterns Nix
-          deadnix # code mort
+          statix # Nix anti-patterns
+          deadnix # dead code
           shellcheck # scripts/bootstrap.sh
           just
-          nix-output-monitor # nom via `nom`, pour des builds plus lisibles
-          nvd # diff entre deux generations (utilisé par `nix run .#switch`)
+          nix-output-monitor # `nom`, for more readable builds
+          nvd # diff between two generations (used by `nix run .#switch`)
         ];
       };
 
-      # Sur macOS, `nix flake check` construit chaque host darwin.
+      # On macOS, `nix flake check` builds every darwin host.
       checks = lib.optionalAttrs (system == "aarch64-darwin") (
         lib.mapAttrs' (name: host: lib.nameValuePair "darwin-${name}" host.system) darwinHosts
       );
 
-      # darwin-rebuild épinglé sur la version de nix-darwin du flake.lock :
-      # le bootstrap l'utilise pour le tout premier switch.
+      # darwin-rebuild pinned to the flake's nix-darwin version:
+      # the bootstrap script uses it for the very first switch.
       packages = lib.optionalAttrs (lib.hasSuffix "darwin" system) {
         inherit (inputs.nix-darwin.packages.${system}) darwin-rebuild;
       };

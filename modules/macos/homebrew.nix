@@ -1,8 +1,8 @@
-# Homebrew 100 % déclaratif.
-#  - nix-homebrew installe et épingle Homebrew lui-même.
-#  - nix-darwin (`homebrew.*`) gère ce qu'il installe.
-#  - `cleanup = "zap"` : tout cask/formule absent de la liste est désinstallé au switch,
-#    avec ses fichiers de config. Supprimer une app = retirer sa ligne.
+# Homebrew, fully declarative.
+#  - nix-homebrew installs and pins Homebrew itself.
+#  - nix-darwin (`homebrew.*`) manages what it installs.
+#  - `cleanup = "zap"`: any cask/formula absent from the list is uninstalled on switch,
+#    including its config files. Removing an app = removing its line.
 { config, inputs, ... }:
 let
   owner = config.sekkeizu.owner.name;
@@ -14,10 +14,10 @@ in
     nix-homebrew = {
       enable = true;
       user = owner;
-      # Reprend une installation Homebrew existante au lieu d'échouer.
+      # Adopts an existing Homebrew install instead of failing.
       autoMigrate = true;
-      # Taps déclarés uniquement (`brew tap` à la main est refusé).
-      # homebrew/core et homebrew/cask passent par l'API JSON de Homebrew : pas besoin de les cloner.
+      # Only declared taps (`brew tap` by hand is rejected).
+      # homebrew/core and homebrew/cask go through Homebrew's JSON API: no need to clone them.
       mutableTaps = false;
       taps = { };
     };
@@ -26,19 +26,19 @@ in
       enable = true;
       onActivation = {
         cleanup = "zap";
-        # Pas de mise à jour implicite : les versions bougent quand on le décide.
+        # No implicit updates: versions move when decided explicitly.
         autoUpdate = false;
         upgrade = false;
       };
 
       # ─── Applications ────────────────────────────────────────────────
-      # Ajouter ici les apps graphiques (casks), ex. : "tailscale-app" "utm"
+      # Add GUI apps (casks) here, e.g.: "tailscale-app" "utm"
       casks = [ ];
 
-      # Formules sans équivalent dans nixpkgs (à éviter : préférer nixpkgs).
+      # Formulas with no nixpkgs equivalent (avoid: prefer nixpkgs).
       brews = [ ];
 
-      # Apps du Mac App Store : { "Xcode" = 497799835; } (nécessite d'être connecté à l'App Store).
+      # Mac App Store apps: { "Xcode" = 497799835; } (requires being signed into the App Store).
       masApps = { };
     };
   };

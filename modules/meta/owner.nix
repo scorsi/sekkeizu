@@ -1,18 +1,18 @@
-# Seul fichier d'identité du repo : à adapter avant le premier switch.
+# The repo's only identity file: adapt before the first switch.
 {
   sekkeizu.owner = {
-    name = "scorsi"; # TODO: doit correspondre à `whoami` sur le Mac (le bootstrap vérifie)
+    name = "scorsi"; # TODO: must match `whoami` on the Mac (checked by the bootstrap script)
     fullName = "scorsi";
     email = "8389441+scorsi@users.noreply.github.com";
 
-    # Clés FIDO2 (YubiKey, Thetis) : connexion SSH aux machines ET signature des commits.
-    # Une clé par appareil, générée avec :
-    #   ssh-keygen -t ed25519-sk -O resident -C "scorsi@<appareil>"
-    # Pas de -O verify-required : ssh-agent (LaunchAgent, pas de terminal) ne peut
-    # pas demander le PIN à la signature ("agent refused operation"). Juste le toucher ;
-    # le PIN du device reste utile pour gérer les credentials résidents (fido2-token -L -r/-D).
-    # aaguid : identifiant de modèle FIDO2 (`fido2-token -I`), sert à choisir la clé de
-    # signature selon le device réellement branché (modules/home/git.nix).
+    # FIDO2 keys (YubiKey, Thetis): SSH login to the machines AND commit signing.
+    # One key per device, generated with:
+    #   ssh-keygen -t ed25519-sk -O resident -C "scorsi@<device>"
+    # No -O verify-required: ssh-agent (a LaunchAgent, no terminal) can't prompt
+    # for the PIN at signing time ("agent refused operation"). Touch only is required;
+    # the device PIN is still useful for managing resident credentials (fido2-token -L -r/-D).
+    # aaguid: FIDO2 model identifier (`fido2-token -I`), used to pick the signing key
+    # based on the device actually plugged in (modules/home/git.nix).
     sshKeys = [
       {
         aaguid = "d7781e5de35346aaafe23ca49f13332a";

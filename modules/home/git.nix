@@ -1,9 +1,9 @@
-# git : identité depuis sekkeizu.owner, commits signés en SSH, diffs avec delta.
+# git: identity from sekkeizu.owner, SSH-signed commits, delta diffs.
 #
-# Signature : git signe avec la clé FIDO2 du device réellement branché (YubiKey ou Thetis),
-# détecté via fido2-token (aaguid) et non l'ordre de l'agent SSH.
-# Sur le serveur, l'agent du laptop arrive par `ssh -A`.
-# Les deux clés publiques sont à ajouter sur GitHub comme « Signing keys ».
+# Signing: git signs with the FIDO2 key of the device actually plugged in (YubiKey or
+# Thetis), detected via fido2-token (aaguid) rather than SSH agent order.
+# On the server, the laptop's agent arrives via `ssh -A`.
+# Both public keys must be added on GitHub as "Signing keys".
 { config, ... }:
 let
   inherit (config.sekkeizu) owner;
@@ -12,19 +12,19 @@ in
   flake.modules.homeManager.git =
     { pkgs, lib, ... }:
     let
-      # OpenSSH de nixpkgs : celui de macOS ne gère pas les clés FIDO2 (ed25519-sk).
+      # nixpkgs' OpenSSH: macOS's own doesn't support FIDO2 keys (ed25519-sk).
       ssh = pkgs.openssh;
-      # fido2-token : identifie le modèle (aaguid) des devices FIDO2 branchés.
+      # fido2-token: identifies the model (aaguid) of plugged-in FIDO2 devices.
       fido2 = pkgs.libfido2;
 
-      # Clés dont la signature est reconnue (`git log --show-signature`).
+      # Keys whose signature is recognized (`git log --show-signature`).
       allowedSigners = pkgs.writeText "allowed_signers" (
         builtins.concatStringsSep "\n" (map (k: "${owner.email} ${k.key}") owner.sshKeys) + "\n"
       );
 
-      # Clé du device FIDO2 réellement branché (matché par aaguid), au format attendu par git.
-      # L'id de device (DevSrvsID:<n> sur macOS) change à chaque branchement : toujours relister,
-      # jamais le mettre en cache.
+      # Key of the FIDO2 device actually plugged in (matched by aaguid), in the format git expects.
+      # The device id (DevSrvsID:<n> on macOS) changes on every plug-in: always re-list it,
+      # never cache it.
       signingKeyCommand = pkgs.writeShellScript "git-ssh-signing-key" ''
         while IFS= read -r line; do
           [ -n "$line" ] || continue
@@ -81,7 +81,7 @@ in
         ];
       };
 
-      # delta : diffs colorés avec numéros de ligne (thème via catppuccin).
+      # delta: colored diffs with line numbers (theme via catppuccin).
       programs.delta = {
         enable = true;
         enableGitIntegration = true;

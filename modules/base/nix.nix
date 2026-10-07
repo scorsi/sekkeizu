@@ -1,6 +1,6 @@
-# Réglages Nix communs à toutes les machines.
-# nix-darwin gère Nix lui-même (`nix.enable = true`, valeur par défaut) : c'est ce qui
-# rend `nix.gc`, `nix.optimise` et plus tard `nix.linux-builder` disponibles.
+# Nix settings common to all machines.
+# nix-darwin manages Nix itself (`nix.enable = true`, the default): that's what
+# makes `nix.gc`, `nix.optimise`, and later `nix.linux-builder` available.
 { config, ... }:
 let
   owner = config.sekkeizu.owner.name;
@@ -10,12 +10,12 @@ let
       "nix-command"
       "flakes"
     ];
-    # Permet à l'utilisateur de pousser des closures (nixos-rebuild --target-host, builders).
+    # Lets the user push closures (nixos-rebuild --target-host, builders).
     trusted-users = [
       "root"
       owner
     ];
-    # Un build qui échoue n'arrête pas les autres : plus d'erreurs remontées par switch.
+    # A failing build doesn't stop the others: more errors surfaced per switch.
     keep-going = true;
     warn-dirty = false;
   };
@@ -24,7 +24,7 @@ in
   flake.modules.darwin.nix = {
     nix = {
       inherit settings;
-      # GC hebdomadaire (dimanche 03:15) : indispensable avec 256 Go.
+      # Weekly GC (Sunday 03:15): a must with 256 GB.
       gc = {
         automatic = true;
         interval = {

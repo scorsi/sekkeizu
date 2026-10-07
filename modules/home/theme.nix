@@ -1,5 +1,5 @@
-# Catppuccin Mocha partout : chaque outil activé et supporté par catppuccin/nix
-# (bat, delta, fish, starship, tmux, btop, fzf…) reçoit le thème.
+# Catppuccin Mocha everywhere: every tool enabled and supported by catppuccin/nix
+# (bat, delta, fish, starship, tmux, btop, fzf…) gets the theme.
 { inputs, ... }:
 {
   flake.modules.homeManager.theme = {
@@ -8,7 +8,7 @@
     catppuccin = {
       enable = true;
       flavor = "mocha";
-      # Neovim garde son propre plugin catppuccin (files/nvim/lua/plugins/catppuccin.lua).
+      # Neovim keeps its own catppuccin plugin (files/nvim/lua/plugins/catppuccin.lua).
       nvim.enable = false;
     };
   };

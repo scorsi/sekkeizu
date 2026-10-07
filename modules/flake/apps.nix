@@ -1,5 +1,5 @@
-# Apps du flake, via `nix run .#<nom>` :
-#   switch → rebuild + diff des générations (sudo demandé par darwin-rebuild)
+# Flake apps, via `nix run .#<name>`:
+#   switch → rebuild + diff generations (sudo asked by darwin-rebuild)
 #   check  → nix flake check
 #   fmt    → nix fmt
 { lib, inputs, ... }:
