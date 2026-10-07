@@ -2,7 +2,12 @@
 #   nix fmt              → formate tout le repo
 #   nix develop          → shell avec les linters Nix
 #   nix flake check      → évalue tout + construit les hosts du système courant
-{ config, lib, inputs, ... }:
+{
+  config,
+  lib,
+  inputs,
+  ...
+}:
 let
   # Configurations nix-darwin déclarées par les fichiers de modules/hosts/.
   darwinHosts = config.flake.darwinConfigurations or { };
