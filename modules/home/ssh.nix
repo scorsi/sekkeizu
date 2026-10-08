@@ -31,9 +31,10 @@
           "jiban jiban.local ishizue ishizue.local" = {
             ForwardAgent = true;
           };
-          # A deploy opens several connections (probe, switch, then the user's own `ssh ishizue`):
-          # one master connection means a single FIDO2 touch. %C is a hash, keeping the socket
-          # path under macOS's 104-byte limit.
+          # A deploy opens several connections (build host, target host, switch): one master
+          # connection means a single FIDO2 touch. %C hashes local host, host, port and user, so
+          # root@ and the owner get separate masters; it also keeps the socket path under macOS's
+          # 104-byte limit.
           "ishizue ishizue.local" = {
             ControlMaster = "auto";
             ControlPath = "~/.ssh/cm-%C";
