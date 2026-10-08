@@ -91,7 +91,8 @@
               if [ "$host" = "$(/bin/hostname -s)" ]; then
                 pub=$(cut -d' ' -f1,2 /etc/ssh/ssh_host_ed25519_key.pub)
               else
-                pub=$(${pkgs.openssh}/bin/ssh-keyscan -t ed25519 "$host" 2>/dev/null | cut -d' ' -f2,3)
+                # Recent ssh-keyscan also prints a "# host:22 SSH-2.0-…" comment line on stdout.
+                pub=$(${pkgs.openssh}/bin/ssh-keyscan -t ed25519 "$host" 2>/dev/null | grep -v '^#' | cut -d' ' -f2,3)
               fi
               [ -n "$pub" ] || { echo "clé hôte ed25519 introuvable pour $host" >&2; exit 1; }
 
