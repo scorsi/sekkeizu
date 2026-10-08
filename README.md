@@ -162,7 +162,7 @@ that file (and swapping Tailscale certificates for ACME in Caddy).
   them at 05:15 into `~/Backups/ishizue/forgejo/` (30 days kept) as the `backup` account, which
   can only run `rrsync -ro /persist/backups` and only from the NAT bridge (`modules/backup/pull.nix`).
   One line per run in `~/Library/Logs/backup-ishizue.log`, a notification on failure. Run it now:
-  `launchctl kickstart gui/$(id -u)/org.nixos.backup-ishizue`. External disk and off-site (restic)
+  `sudo launchctl kickstart system/org.nixos.backup-ishizue`. External disk and off-site (restic)
   come next, from `~/Backups`.
 - **Runners** (host executor, no containers): `linux` on ishizue (Nix, git, node, zola, rsync;
   systemd sandbox, writes only to its state directory and `/var/lib/site`), `macos` on jiban (LaunchDaemon, hidden

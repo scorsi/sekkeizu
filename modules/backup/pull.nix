@@ -5,8 +5,8 @@
 # unattended job cannot touch a hardware key) is forced into `rrsync -ro /persist/backups`, and which
 # sshd accepts only from the Mac's end of the vfkit NAT bridge.
 #
-# jiban (`backup-pull`): a daily LaunchAgent rsyncs into `sekkeizu.backups.dir`/ishizue/forgejo,
-# keeps 30 days, logs one line per run with the exit code and raises a notification on failure.
+# jiban (`backup-pull`): a daily launchd job rsyncs into `sekkeizu.backups.dir`/ishizue/forgejo,
+# keeps 30 days, logs one line per run with the exit code; a failure also raises a notification.
 # The private key is in sops (secrets/jiban/secrets.yaml, `backup-pull-key`) rather than generated
 # on the Mac: it survives a reinstall through `rekey-host`, so the public key below never changes
 # and ishizue needs no redeploy after jiban is rebuilt.
@@ -59,6 +59,8 @@ in
       dir = config.sekkeizu.backups.dir;
       dest = "${dir}/ishizue/forgejo";
       log = "/Users/${owner.name}/Library/Logs/backup-ishizue.log";
+      # Last result, one line; its change wakes the notifier agent below.
+      status = "${log}.status";
       key = config.sops.secrets.backup-pull-key.path;
     in
     {
@@ -71,7 +73,10 @@ in
       config = {
         sops.secrets.backup-pull-key.owner = owner.name;
 
-        launchd.user.agents.backup-ishizue.serviceConfig = {
+        # A daemon running as the owner, not a LaunchAgent: macOS's Local Network privacy silently
+        # blocks agents from reaching the NAT bridge ("No route to host"); daemons are exempt.
+        launchd.daemons.backup-ishizue.serviceConfig = {
+          UserName = owner.name;
           ProgramArguments = [
             "${pkgs.writeShellScript "backup-ishizue" ''
               set -uo pipefail
@@ -98,11 +103,12 @@ in
 
               n=$(find ${lib.escapeShellArg dest} -type f | wc -l | tr -d ' ')
               if [ "$code" -eq 0 ]; then
-                echo "$(date '+%F %T') ok exit=0 ($n archives)" >&2
+                line="$(date '+%F %T') ok exit=0 ($n archives)"
               else
-                echo "$(date '+%F %T') ÉCHEC exit=$code ($n archives)" >&2
-                /usr/bin/osascript -e "display notification \"exit=$code, voir ${log}\" with title \"Sauvegarde ishizue en échec\"" || true
+                line="$(date '+%F %T') ÉCHEC exit=$code ($n archives)"
               fi
+              echo "$line" >&2
+              echo "$line" > ${lib.escapeShellArg status}
               exit "$code"
             ''}"
           ];
@@ -112,6 +118,19 @@ in
               Minute = 15;
             }
           ];
+        };
+
+        # A daemon can't post to the owner's session: this agent does, whenever the status changes.
+        launchd.user.agents.backup-ishizue-notify.serviceConfig = {
+          ProgramArguments = [
+            "${pkgs.writeShellScript "backup-ishizue-notify" ''
+              line=$(cat ${lib.escapeShellArg status} 2>/dev/null) || exit 0
+              case "$line" in
+                *ÉCHEC*) /usr/bin/osascript -e "display notification \"$line — voir ${log}\" with title \"Sauvegarde ishizue en échec\"" ;;
+              esac
+            ''}"
+          ];
+          WatchPaths = [ status ];
         };
       };
     };
