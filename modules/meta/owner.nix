@@ -27,7 +27,7 @@
   };
 
   # Where the bootstrap script clones this repo (`drs` rebuilds from there).
-  kiso.configDir = "sekkeizu";
+  kiso.configDir = "repositories/sekkeizu";
 
   kiso.stateVersions = {
     darwin = 6;
