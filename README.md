@@ -25,7 +25,7 @@ modules/
   meta/    the values of kiso's options (owner.nix), this repo's options (services, expiring secrets) and where services live (endpoints.nix)
   home/    home-manager features of this repo (ssh-hosts, gh, Claude Code); the generic ones are kiso's
   macos/   nix-darwin-only features (headless server, auto-login, VM host, linux builder, reminders)
-  nixos/   NixOS-only features (server, Caddy, Forgejo, site)
+  nixos/   NixOS-only features (server, Caddy, Forgejo, site, rirekisho)
   ci/      Forgejo Actions runners (NixOS and macOS)
   backup/  off-VM copies (jiban pulls ishizue's backups)
   network/ Tailscale
@@ -161,6 +161,7 @@ One name per machine, `ishizue.<tailnet>.ts.net`, services told apart by port:
 | Forgejo   | `https://ishizue.<tailnet>.ts.net`       | Caddy → 127.0.0.1:3000     |
 | Git (SSH) | `ssh://git@ishizue.<tailnet>.ts.net:2222` | Forgejo's built-in SSH server |
 | Site      | `https://ishizue.<tailnet>.ts.net:8443`  | Caddy, static files        |
+| Résumé    | `https://ishizue.<tailnet>.ts.net:8444`  | Caddy, static files        |
 
 Addresses are declared once, in `modules/meta/endpoints.nix` (`sekkeizu.services.*`); Caddy,
 Forgejo's `ROOT_URL` and the runners read them from there. Moving to `git.lab.<domain>` means editing
@@ -176,11 +177,14 @@ that file (and swapping Tailscale certificates for ACME in Caddy).
   `sudo launchctl kickstart system/org.nixos.backup-ishizue`. External disk and off-site (restic)
   come next, from `~/Backups`.
 - **Runners** (host executor, no containers): `linux` on ishizue (Nix, git, node, zola, rsync;
-  systemd sandbox, writes only to its state directory and `/var/lib/site`), `macos` on jiban (LaunchDaemon, hidden
+  systemd sandbox, writes only to its state directory, `/var/lib/site` and `/var/lib/rirekisho`), `macos` on jiban (LaunchDaemon, hidden
   non-admin `_forgejo-runner` account). Rationale in `modules/ci/forgejo-runner.nix`.
   Registration is declarative: a shared secret per runner in sops, pre-registered by Forgejo.
 - **Site**: Zola repository `site` on Forgejo; a push to `main` runs `.forgejo/workflows/deploy.yml`
   (`runs-on: linux`): `zola build`, then `rsync` into `/var/lib/site`, served by Caddy on 8443.
+- **Résumé**: repository `rirekisho` (Astro, its own flake); a push to `main` runs
+  `.forgejo/workflows/build.yml`: build and PDFs in its dev shell, then `rsync` into
+  `/var/lib/rirekisho`, served by Caddy on 8444. Tailnet only until it gets a public front.
 
 ### Manual steps, in order
 

@@ -27,6 +27,10 @@ in
       inherit host;
       port = 8443;
     };
+    rirekisho = {
+      inherit host;
+      port = 8444;
+    };
   };
 
   # Private flakes on Forgejo that CI fetches (the `scorsi-*` inputs of flake.nix).

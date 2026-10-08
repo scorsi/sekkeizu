@@ -26,6 +26,7 @@ in
       nixos.forgejo-mirrors
       nixos.forgejo-runner
       nixos.site
+      nixos.rirekisho
       nixos.backup-source
 
       # ─── User features ────────────────────────────────────────────────
