@@ -22,6 +22,7 @@ in
       darwin.tailscale
       darwin.server
       darwin.vfkit-host
+      darwin.forgejo-runner
       # Only needed to build a VM image (`nix run .#install-<vm>`): QEMU VM, 3 GB RAM, 20 GB disk.
       # darwin.linux-builder
 
@@ -58,6 +59,7 @@ in
         system.configurationRevision = inputs.self.rev or inputs.self.dirtyRev or null;
         system.stateVersion = stateVersions.darwin;
 
+        sops.defaultSopsFile = ../../secrets/${hostName}/secrets.yaml;
         sops.secrets.kcpassword.sopsFile = ../../secrets/${hostName}/kcpassword;
 
         sekkeizu.vms.ishizue = {

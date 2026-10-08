@@ -15,11 +15,13 @@ under `modules/`, and contributes to as many of `darwin` / `nixos` / `homeManage
 
 ```
 modules/
-  meta/    flake-level options (config.sekkeizu.*) and the one identity file to edit (owner.nix)
+  meta/    flake-level options (config.sekkeizu.*), the identity file (owner.nix) and where services live (endpoints.nix)
   base/    cross-cutting system setup: Nix itself, home-manager wiring, the primary user account
   home/    home-manager features (fish, git, ssh, tmux, neovim, theme, cli tools…)
   macos/   nix-darwin-only features (macOS defaults, Homebrew, VM host)
-  nixos/   NixOS-only features (server)
+  nixos/   NixOS-only features (server, Caddy, Forgejo, site)
+  ci/      Forgejo Actions runners (NixOS and macOS)
+  network/ Tailscale
   vm/      NixOS guest base for VMs on a Mac (vfkit, EFI)
   flake/   flake plumbing (supported systems, dev shell, apps, the darwinConfigurations option)
   hosts/   one file per machine: its identity + the features it imports
@@ -137,6 +139,55 @@ Day to day:
 6. **Deploy**: `nix run .#deploy-ishizue`, built inside the VM.
 7. **Drop the linux builder**: comment `darwin.linux-builder` again, `nix run .#switch`
    (nix-darwin deletes its disk).
+
+## Forge and web (ishizue)
+
+Everything is reachable only over Tailscale (the firewall trusts `tailscale0` and nothing else).
+One name per machine, `ishizue.<tailnet>.ts.net`, services told apart by port:
+
+| Service   | Address                                  | Behind                     |
+| --------- | ---------------------------------------- | -------------------------- |
+| Forgejo   | `https://ishizue.<tailnet>.ts.net`       | Caddy → 127.0.0.1:3000     |
+| Git (SSH) | `ssh://git@ishizue.<tailnet>.ts.net:2222` | Forgejo's built-in SSH server |
+| Site      | `https://ishizue.<tailnet>.ts.net:8443`  | Caddy, static files        |
+
+Addresses are declared once, in `modules/meta/endpoints.nix` (`sekkeizu.services.*`); Caddy,
+Forgejo's `ROOT_URL` and the runners read them from there. Moving to `git.lab.<domain>` means editing
+that file (and swapping Tailscale certificates for ACME in Caddy).
+
+- **Git over SSH on 2222**: Forgejo's own SSH server, not the system sshd, which stays key-only for
+  the owner. No shared `git` account on the system, no `AllowUsers` change; the server only speaks
+  git, with the keys stored in Forgejo (`owner.sshKeys`, added by the `forgejo-admin` unit).
+- **Backups**: `forgejo dump` daily (04:31) in `/persist/backups/forgejo`, 7 days kept. Same disk as
+  the rest: it protects against a mistake, not against losing the VM's disk.
+- **Runners** (host executor, no containers): `linux` on ishizue (Nix, git, node, zola, rsync;
+  systemd sandbox, writes only to its state directory and `/var/lib/site`), `macos` on jiban (LaunchDaemon, hidden
+  non-admin `_forgejo-runner` account). Rationale in `modules/ci/forgejo-runner.nix`.
+  Registration is declarative: a shared secret per runner in sops, pre-registered by Forgejo.
+- **Site**: Zola repository `site` on Forgejo; a push to `main` runs `.forgejo/workflows/deploy.yml`
+  (`runs-on: linux`): `zola build`, then `rsync` into `/var/lib/site`, served by Caddy on 8443.
+
+### Manual steps, in order
+
+1. **Tailscale admin console → DNS → HTTPS Certificates**: enable. Without it Caddy cannot get
+   its certificate (`tailscale cert` answers "does not support getting TLS certs"); it retries by
+   itself every minute once enabled.
+2. **Deploy ishizue**: `nix run .#deploy-ishizue`. On the very first deploy the persistent
+   `/var/lib/forgejo` is mounted after tmpfiles ran, so `forgejo-secrets` can fail: on ishizue,
+   `sudo systemd-tmpfiles --create && sudo systemctl restart forgejo-secrets forgejo forgejo-admin forgejo-runners`.
+   A reboot also fixes it.
+3. **Switch jiban**: `nix run .#switch` (creates the `_forgejo-runner` account and the daemon).
+   Check in Forgejo → Site administration → Actions → Runners that `ishizue` and `jiban` are idle.
+4. **Log in**: user = `owner.name`, password:
+   `sops -d --extract '["forgejo-admin-password"]' secrets/ishizue/secrets.yaml`
+   (the `forgejo-admin` unit resets the account to that password at each Forgejo start).
+5. **Create the site**: from the `site` checkout,
+   `git remote add origin ssh://git@ishizue.<tailnet>.ts.net:2222/<owner>/site.git && git push -u origin main`
+   (push-to-create makes the private repository). The workflow runs by itself.
+6. **Rotate a runner secret**: new `openssl rand -hex 20` in `secrets/ishizue/secrets.yaml` (and
+   `secrets/jiban/secrets.yaml` for jiban's), deploy/switch.
+
+Test the macOS runner with a workflow containing `runs-on: macos` and `run: sw_vers`.
 
 ## Bootstrap
 
