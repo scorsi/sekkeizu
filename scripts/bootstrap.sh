@@ -5,8 +5,8 @@
 # and finishes with a `darwin-rebuild switch`.
 #
 # Usage:
-#   ./scripts/bootstrap.sh                         # host jiban, repo in ~/sekkeizu
-#   ./scripts/bootstrap.sh --host jiban --dir ~/sekkeizu --repo git@github.com:<you>/sekkeizu.git
+#   ./scripts/bootstrap.sh                         # host jiban, repo in ~/repositories/sekkeizu
+#   ./scripts/bootstrap.sh --host jiban --dir ~/repositories/sekkeizu --repo git@github.com:<you>/sekkeizu.git
 #   curl -fsSL <raw url>/scripts/bootstrap.sh | bash -s -- --repo <url>
 #
 # Steps: Command Line Tools → Nix (official installer) → repo (nixpkgs ssh/git, FIDO2 key) → clones (kanna, kiso, sekkeizu-private)
@@ -16,7 +16,7 @@
 set -euo pipefail
 
 HOST="jiban"
-DIR="${HOME}/sekkeizu"
+DIR="${HOME}/repositories/sekkeizu"
 REPO=""
 NIX_BIN="/nix/var/nix/profiles/default/bin/nix"
 NIX_FLAGS=(--extra-experimental-features "nix-command flakes")
