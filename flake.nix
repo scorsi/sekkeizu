@@ -40,6 +40,13 @@
 
     # Declarative state on an ephemeral root (systemd mounts/tmpfiles, no activation script).
     preservation.url = "github:nix-community/preservation";
+
+    # Neovim and its config, a repo of its own (modules/home/kanna.nix). Always fetched from GitHub,
+    # never from Forgejo: rebuilding a machine must not depend on the forge it hosts.
+    kanna = {
+      url = "github:scorsi/kanna";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   # Everything else lives in ./modules: this file should barely ever change.

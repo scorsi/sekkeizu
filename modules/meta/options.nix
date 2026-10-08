@@ -45,12 +45,12 @@ in
       };
     };
 
-    repoDir = mkOption {
+    reposDir = mkOption {
       type = types.str;
-      default = "sekkeizu";
+      default = "repositories";
       description = ''
-        Repo location, relative to the user's home (where the bootstrap script clones it).
-        Used by configs linked "live" to the repo, like Neovim's.
+        Where clones of the owner's other repos live, relative to the home directory (kanna's
+        live clone is <reposDir>/kanna). The bootstrap script clones kanna there.
       '';
     };
 

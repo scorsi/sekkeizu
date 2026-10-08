@@ -9,7 +9,7 @@
 #   ./scripts/bootstrap.sh --host jiban --dir ~/sekkeizu --repo git@github.com:<you>/sekkeizu.git
 #   curl -fsSL <raw url>/scripts/bootstrap.sh | bash -s -- --repo <url>
 #
-# Steps: Command Line Tools → Nix (official installer) → repo (nixpkgs ssh/git, FIDO2 key) → submodules → checks
+# Steps: Command Line Tools → Nix (official installer) → repo (nixpkgs ssh/git, FIDO2 key) → kanna clone → checks
 #          → move aside /etc files that nix-darwin refuses to overwrite → first switch.
 
 set -euo pipefail
@@ -129,20 +129,24 @@ fi
 if [[ -f "${DIR}/flake.nix" ]]; then
   log "repo : présent dans ${DIR}"
 elif [[ -n "$REPO" ]]; then
-  log "repo : clonage de ${REPO} (avec submodules)"
-  with_nix_ssh git clone --recurse-submodules "$REPO" "$DIR"
+  log "repo : clonage de ${REPO}"
+  with_nix_ssh git clone "$REPO" "$DIR"
 else
   die "pas de flake dans ${DIR} : passe --repo <url> ou copie le repo (ex. scp -r depuis le laptop)"
 fi
 
-# files/nvim is a git submodule (separate Neovim config): skip this step and
-# ~/.config/nvim would point to an empty directory. Idempotent, safe to rerun.
-log "submodules : initialisation (nvim)"
-with_nix_ssh git -C "$DIR" submodule update --init --recursive
-
-# Some configs (Neovim) point straight at ~/sekkeizu (option sekkeizu.repoDir).
-[[ "$DIR" == "${HOME}/sekkeizu" ]] ||
-  warn "repo hors de ~/sekkeizu : adapte sekkeizu.repoDir, sinon ~/.config/nvim pointera dans le vide"
+# The Neovim config (kanna) comes from the flake input, but on a dev machine ~/.config/nvim links to
+# a live clone (`kanna-dev` feature, sekkeizu.reposDir): fetch it next to where the repo came from.
+KANNA_DIR="${HOME}/repositories/kanna"
+if [[ -d "${KANNA_DIR}/.git" ]]; then
+  log "kanna : présent dans ${KANNA_DIR}"
+elif [[ -n "$REPO" ]]; then
+  log "kanna : clonage de ${REPO%/*}/kanna.git"
+  mkdir -p "${KANNA_DIR%/*}"
+  with_nix_ssh git clone "${REPO%/*}/kanna.git" "$KANNA_DIR"
+else
+  warn "kanna absent de ${KANNA_DIR} : ~/.config/nvim pointera dans le vide tant qu'il n'est pas cloné"
+fi
 
 # Nix only sees files tracked by git: an unadded file = "doesn't exist".
 if git -C "$DIR" status --porcelain 2>/dev/null | grep -q '^??'; then

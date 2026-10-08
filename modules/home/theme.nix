@@ -8,7 +8,7 @@
     catppuccin = {
       enable = true;
       flavor = "mocha";
-      # Neovim keeps its own catppuccin plugin (files/nvim/lua/plugins/catppuccin.lua).
+      # Neovim keeps its own catppuccin plugin (kanna, lua/plugins/catppuccin.lua).
       nvim.enable = false;
     };
   };

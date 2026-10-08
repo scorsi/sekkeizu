@@ -40,10 +40,10 @@ in
           homeManager.claude-code
           homeManager.tmux
           homeManager.theme
-          homeManager.neovim
+          homeManager.kanna
           # Full dev tooling while the Mac is the only machine;
           # remove once the laptop arrives (jiban goes back to being a pure server).
-          homeManager.neovim-dev
+          homeManager.kanna-dev
         ];
       }
 
