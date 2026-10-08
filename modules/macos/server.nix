@@ -1,4 +1,5 @@
 # Headless server behaviour: never sleeps, restarts by itself, Remote Login on, firewall up.
+{ config, ... }:
 {
   flake.modules.darwin.server = {
     power = {
@@ -20,6 +21,7 @@
         KbdInteractiveAuthentication no
         PermitRootLogin no
         AuthenticationMethods publickey
+        AllowUsers ${config.sekkeizu.owner.name}
       '';
     };
 
