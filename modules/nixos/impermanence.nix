@@ -15,7 +15,12 @@ let
 in
 {
   flake.modules.nixos.impermanence =
-    { config, lib, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     let
       cfg = config.sekkeizu.persist;
       entry = lib.types.either lib.types.str (lib.types.attrsOf lib.types.anything);
@@ -65,6 +70,35 @@ in
             depends = [ persistRoot ];
             neededForBoot = true;
           };
+        };
+
+        # boot.growPartition looks for the disk behind "/", which is a tmpfs now: same job on /persist.
+        boot.growPartition = lib.mkForce false;
+        systemd.services.growpart-persist = {
+          description = "Grow the /persist partition and its filesystem";
+          wantedBy = [ "local-fs.target" ];
+          unitConfig = {
+            RequiresMountsFor = persistRoot;
+            DefaultDependencies = false;
+          };
+          before = [ "local-fs.target" ];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+          };
+          path = [
+            pkgs.cloud-utils.guest
+            pkgs.util-linux
+            pkgs.e2fsprogs
+          ];
+          script = ''
+            part=$(readlink -f "$(findmnt -no SOURCE ${persistRoot})")
+            disk=/dev/$(lsblk -no PKNAME "$part")
+            num=$(cat "/sys/class/block/''${part##*/}/partition")
+            # Exit status 1 means "nothing to grow".
+            growpart "$disk" "$num" || [ $? -eq 1 ]
+            resize2fs "$part"
+          '';
         };
 
         # Builds happen in /tmp by default, which is a 1 GB tmpfs here.
