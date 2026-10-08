@@ -55,6 +55,17 @@
 
     # The common base (options `kiso.*`, generic features), a flake-parts module. Every input it
     # shares with this repo follows ours: one version of each.
+    # The private layer (sensitive services, their values and secrets), a flake-parts module whose
+    # files behave like the ones under ./modules.
+    scorsi-sekkeizu-private = {
+      url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/sekkeizu-private.git";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
+        import-tree.follows = "import-tree";
+      };
+    };
+
     scorsi-kiso = {
       url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kiso.git";
       inputs = {
@@ -77,6 +88,7 @@
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         inputs.scorsi-kiso.flakeModules.default
+        inputs.scorsi-sekkeizu-private.flakeModules.default
         (inputs.import-tree ./modules)
       ];
     };

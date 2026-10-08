@@ -35,6 +35,7 @@ in
     readRepos = [
       "kiso"
       "kanna"
+      "sekkeizu-private"
     ];
   };
 
