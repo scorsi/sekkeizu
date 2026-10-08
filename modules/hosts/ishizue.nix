@@ -21,6 +21,10 @@ in
       nixos.secrets
       nixos.tailscale
       nixos.server
+      nixos.caddy
+      nixos.forgejo
+      nixos.forgejo-runner
+      nixos.site
 
       # ─── User features ────────────────────────────────────────────────
       {
@@ -43,6 +47,8 @@ in
         time.timeZone = "Europe/Paris";
         system.configurationRevision = inputs.self.rev or inputs.self.dirtyRev or null;
         system.stateVersion = stateVersions.nixos;
+
+        sops.defaultSopsFile = ../../secrets/${hostName}/secrets.yaml;
       }
     ];
   };
