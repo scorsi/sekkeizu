@@ -23,6 +23,7 @@ in
       darwin.server
       darwin.vfkit-host
       darwin.forgejo-runner
+      darwin.backup-pull
       # Only needed to build a VM image (`nix run .#install-<vm>`): QEMU VM, 3 GB RAM, 20 GB disk.
       # darwin.linux-builder
 

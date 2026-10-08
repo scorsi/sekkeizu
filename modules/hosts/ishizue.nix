@@ -25,6 +25,7 @@ in
       nixos.forgejo
       nixos.forgejo-runner
       nixos.site
+      nixos.backup-source
 
       # ─── User features ────────────────────────────────────────────────
       {

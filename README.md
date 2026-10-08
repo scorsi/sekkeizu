@@ -158,8 +158,12 @@ that file (and swapping Tailscale certificates for ACME in Caddy).
 - **Git over SSH on 2222**: Forgejo's own SSH server, not the system sshd, which stays key-only for
   the owner. No shared `git` account on the system, no `AllowUsers` change; the server only speaks
   git, with the keys stored in Forgejo (`owner.sshKeys`, added by the `forgejo-admin` unit).
-- **Backups**: `forgejo dump` daily (04:31) in `/persist/backups/forgejo`, 7 days kept. Same disk as
-  the rest: it protects against a mistake, not against losing the VM's disk.
+- **Backups**: `forgejo dump` daily (04:31) in `/persist/backups/forgejo`, 7 days kept. jiban pulls
+  them at 05:15 into `~/Backups/ishizue/forgejo/` (30 days kept) as the `backup` account, which
+  can only run `rrsync -ro /persist/backups` and only from the NAT bridge (`modules/backup/pull.nix`).
+  One line per run in `~/Library/Logs/backup-ishizue.log`, a notification on failure. Run it now:
+  `launchctl kickstart gui/$(id -u)/org.nixos.backup-ishizue`. External disk and off-site (restic)
+  come next, from `~/Backups`.
 - **Runners** (host executor, no containers): `linux` on ishizue (Nix, git, node, zola, rsync;
   systemd sandbox, writes only to its state directory and `/var/lib/site`), `macos` on jiban (LaunchDaemon, hidden
   non-admin `_forgejo-runner` account). Rationale in `modules/ci/forgejo-runner.nix`.
