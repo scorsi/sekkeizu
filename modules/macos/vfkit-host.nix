@@ -69,9 +69,11 @@ in
 
                 # vfkit never reopens its files (and Virtualization.framework rewrites the console
                 # from the start), so newsyslog can't rotate them live: rotate at each start instead.
+                # Empty files are skipped, so a crash loop doesn't push the useful logs out.
                 for f in vfkit.log console.log; do
+                  [ -s "$f" ] || continue
                   for i in 2 1; do [ -f "$f.$i" ] && mv -f "$f.$i" "$f.$((i + 1))"; done
-                  [ -f "$f" ] && mv -f "$f" "$f.1"
+                  mv -f "$f" "$f.1"
                 done
                 exec >>vfkit.log 2>&1
 
@@ -80,6 +82,8 @@ in
                   exit 0
                 fi
 
+                # Left behind by a power cut: vfkit won't bind over it (launchd runs one instance).
+                rm -f vm.sock
                 create=
                 [ -e efi-vars ] || create=,create
                 exec ${pkgs.vfkit}/bin/vfkit \
