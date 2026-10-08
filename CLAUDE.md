@@ -37,7 +37,10 @@ repo is and how it's laid out.
 3. **Destructive tests.** First check that a recent backup exists (`~/Backups/ishizue/`,
    `/persist/backups/` on ishizue). Leave no temporary file behind (`.bak`, copies, decrypted
    secrets). Report any operation that touched real data, even when it turned out harmless.
-4. **Naming.** Components and repos take their names from Japanese construction: tools and
+4. **Sources.** Forgejo is the default source of the owner's flakes (inputs `scorsi-*` are
+   `git+ssh` on Forgejo); GitHub mirrors are the recovery path only (`scripts/via-github.nu`,
+   bootstrap). Never point an input back at GitHub to work around Forgejo being down.
+5. **Naming.** Components and repos take their names from Japanese construction: tools and
    building elements (jiban the bedrock, ishizue the foundation stone, kanna the plane, kiso the
    base…). As flake inputs, the owner's own flakes are prefixed `scorsi-` (`scorsi-kanna`,
    `scorsi-kiso`), external ones are not.

@@ -65,7 +65,9 @@ fetched with `curl` from GitHub: bring `scripts/bootstrap.sh` over (AirDrop, `sc
    bash bootstrap.sh --repo git@github.com:scorsi/sekkeizu.git
    ```
    It installs the Command Line Tools and Nix, pulls the key handle (`ssh-keygen -K`: PIN, then touch),
-   clones sekkeizu and kanna (`~/repositories/kanna`, the live Neovim config) and runs the first switch. That switch can complain that sops cannot
+   clones sekkeizu and kanna (`~/repositories/kanna`, the live Neovim config), fetches the flake
+   inputs from their GitHub mirrors (Forgejo isn't reachable yet) and runs the first switch. Until
+   Tailscale is up (step 6), run Nix commands through `nu scripts/via-github.nu …`. That switch can complain that sops cannot
    decrypt `kcpassword`: expected, the host key is new (step 8 fixes it).
 4. **One `ssh-keygen -K` per additional key**: plug the next FIDO2 key, then
    `cd ~/.ssh && ssh-keygen -K` (the bootstrap only handled the first one).
@@ -201,8 +203,20 @@ Test the macOS runner with a workflow containing `runs-on: macos` and `run: sw_v
 
 sekkeizu, kanna and kiso live on Forgejo (`origin`) and are push-mirrored to GitHub (`github` remote, the
 fallback) at every commit: `modules/nixos/forgejo-mirrors.nix`, a oneshot that sets the mirrors
-through the API. Rebuilding never depends on Forgejo: the bootstrap clones from GitHub, and the
-`scorsi-kanna` and `scorsi-kiso` inputs point at GitHub.
+through the API.
+
+- **Inputs come from Forgejo**: `scorsi-kiso` and `scorsi-kanna` are `git+ssh` URLs on Forgejo
+  (LAN, no dependence on GitHub). GitHub is the recovery path, for a fresh install or when Forgejo
+  is down: `nu scripts/via-github.nu <command>` (e.g. `nix run .#switch`) rewrites the Forgejo URLs
+  to the mirrors through git's environment; Nix still checks the revs and hashes of `flake.lock`
+  (identical either way: checked). The bootstrap clones sekkeizu from GitHub and fetches the
+  inputs that way by itself.
+- **CI reads them** with a read-only deploy key (`forgejo-ci-key` in sops, public half and repo
+  list in `sekkeizu.forgejoCi`, `modules/meta/endpoints.nix`), registered on each repo by the
+  `forgejo-runners` oneshot; Forgejo's SSH host key is pinned there too. A new private flake for
+  CI = add it to `forgejoCi.readRepos` and deploy.
+- **`switch` as root**: kiso's `switch` fetches the inputs as the user (SSH agent, a touch) before
+  `sudo darwin-rebuild`, which then finds them in the store.
 
 - **Mirror token**: fine-grained GitHub token, only `sekkeizu`, `kanna` and `kiso`, *Contents: read and
   write*, in `secrets/ishizue/secrets.yaml` (`forgejo-github-mirror-token`). Its expiry date is
@@ -237,7 +251,7 @@ machines goes there.
 ## Neovim: kanna
 
 The Neovim config is its own repo and flake, [kanna](https://github.com/scorsi/kanna), consumed as
-the input `scorsi-kanna` (always from GitHub). Feature `kanna`: the config from the store, frozen with
+the input `scorsi-kanna` (from Forgejo, GitHub mirror for recovery). Feature `kanna`: the config from the store, frozen with
 `flake.lock`. Feature `kanna-dev` (jiban): `~/.config/nvim` links to the clone in
 `~/repositories/kanna` (`sekkeizu.reposDir`), so Lua edits apply without a rebuild. Nix changes
 in kanna: see its README (`--override-input scorsi-kanna path:…`, then `nix flake update scorsi-kanna`).

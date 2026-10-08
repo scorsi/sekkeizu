@@ -20,11 +20,22 @@ in
       inherit host;
       scheme = "ssh";
       port = 2222;
+      # Forgejo's built-in SSH server (its key lives in Forgejo's state, it survives restarts).
+      hostKey = "ssh-rsa REDACTED";
     };
     site = {
       inherit host;
       port = 8443;
     };
+  };
+
+  # Private flakes on Forgejo that CI fetches (the `scorsi-*` inputs of flake.nix).
+  sekkeizu.forgejoCi = {
+    readKey = "ssh-ed25519 REDACTED forgejo-ci";
+    readRepos = [
+      "kiso"
+      "kanna"
+    ];
   };
 
   sekkeizu.forgejoRunners = {

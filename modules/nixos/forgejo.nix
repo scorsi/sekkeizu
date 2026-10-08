@@ -11,7 +11,7 @@
 { config, ... }:
 let
   inherit (config.kiso) owner;
-  inherit (config.sekkeizu) services forgejoRunners;
+  inherit (config.sekkeizu) services forgejoRunners forgejoCi;
   web = services.forgejo;
   ssh = services.forgejo-ssh;
   internalPort = 3000;
@@ -200,7 +200,7 @@ in
       };
 
       systemd.services.forgejo-runners = {
-        description = "Forgejo: pre-register the Actions runners";
+        description = "Forgejo: pre-register the Actions runners, give them read access to the private flakes";
         wantedBy = [
           "multi-user.target"
           "forgejo.service"
@@ -214,7 +214,10 @@ in
           RemainAfterExit = true;
           User = cfg.user;
           Group = cfg.group;
-          LoadCredential = map (n: "${n}:${config.sops.secrets."forgejo-runner-${n}".path}") (
+          LoadCredential = [
+            "admin-password:${config.sops.secrets.forgejo-admin-password.path}"
+          ]
+          ++ map (n: "${n}:${config.sops.secrets."forgejo-runner-${n}".path}") (
             builtins.attrNames forgejoRunners
           );
         };
@@ -236,6 +239,32 @@ in
                 || echo "runner ${name}: registration refused (already registered?)" >&2
             '') forgejoRunners
           )}
+
+          # CI fetches the private flakes this repo depends on over SSH: one read-only deploy key on
+          # each (forgejo-ci-key in sops, written for the runners in forgejo-runner.nix).
+          failed=0
+          for repo in ${lib.escapeShellArgs forgejoCi.readRepos}; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' \
+              --config <(printf 'user = "%s:%s"\n' ${lib.escapeShellArg adminUser} "$(< "$CREDENTIALS_DIRECTORY/admin-password")") \
+              -H 'Content-Type: application/json' \
+              -d ${
+                lib.escapeShellArg (
+                  builtins.toJSON {
+                    title = "forgejo-ci";
+                    key = forgejoCi.readKey;
+                    read_only = true;
+                  }
+                )
+              } \
+              ${api}/v1/repos/${adminUser}/"$repo"/keys)
+            # 422: the key is already there.
+            case $code in
+              201 | 422) ;;
+              404) echo "deploy key: $repo absent de Forgejo, ignoré" >&2 ;;
+              *) echo "deploy key: $repo, HTTP $code" >&2; failed=1 ;;
+            esac
+          done
+          exit "$failed"
         '';
       };
     };

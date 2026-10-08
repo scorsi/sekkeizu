@@ -26,6 +26,11 @@ let
             Tailscale's MagicDNS, which is not the system resolver there.
           '';
         };
+        hostKey = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "SSH host key (`<type> <base64>`), for clients that must not trust on first use.";
+        };
         port = mkOption {
           type = types.port;
           default = 443;
@@ -56,6 +61,21 @@ in
       type = types.attrsOf (types.submodule endpoint);
       default = { };
       description = "Addresses of the lab's services, by name.";
+    };
+
+    forgejoCi = {
+      readKey = mkOption {
+        type = types.str;
+        description = "Public half of the runners' read-only deploy key (private half: forgejo-ci-key in sops).";
+      };
+      readRepos = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+        description = ''
+          The owner's Forgejo repositories the runners may read with that key: the private flakes
+          this repo depends on, fetched over SSH by `nix flake check` and builds in CI.
+        '';
+      };
     };
 
     forgejoRunners = mkOption {
