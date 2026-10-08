@@ -202,7 +202,7 @@ Test the macOS runner with a workflow containing `runs-on: macos` and `run: sw_v
 sekkeizu, kanna and kiso live on Forgejo (`origin`) and are push-mirrored to GitHub (`github` remote, the
 fallback) at every commit: `modules/nixos/forgejo-mirrors.nix`, a oneshot that sets the mirrors
 through the API. Rebuilding never depends on Forgejo: the bootstrap clones from GitHub, and the
-`kanna` and `kiso` inputs point at GitHub.
+`scorsi-kanna` and `scorsi-kiso` inputs point at GitHub.
 
 - **Mirror token**: fine-grained GitHub token, only `sekkeizu`, `kanna` and `kiso`, *Contents: read and
   write*, in `secrets/ishizue/secrets.yaml` (`forgejo-github-mirror-token`). Its expiry date is
@@ -230,14 +230,14 @@ the values of kiso's options (account name, display name, email, the FIDO2 (Yubi
 keys used both to log in and to sign commits, where this repo is cloned, state versions).
 
 To change kiso itself: edit `~/repositories/kiso`, test with
-`nix run .#switch -- --override-input kiso path:$HOME/repositories/kiso`, push it, then
-`nix flake update kiso` here and commit `flake.lock`. kiso is public: nothing about these
+`nix run .#switch -- --override-input scorsi-kiso path:$HOME/repositories/kiso`, push it, then
+`nix flake update scorsi-kiso` here and commit `flake.lock`. kiso is public: nothing about these
 machines goes there.
 
 ## Neovim: kanna
 
 The Neovim config is its own repo and flake, [kanna](https://github.com/scorsi/kanna), consumed as
-the input `kanna` (always from GitHub). Feature `kanna`: the config from the store, frozen with
+the input `scorsi-kanna` (always from GitHub). Feature `kanna`: the config from the store, frozen with
 `flake.lock`. Feature `kanna-dev` (jiban): `~/.config/nvim` links to the clone in
 `~/repositories/kanna` (`sekkeizu.reposDir`), so Lua edits apply without a rebuild. Nix changes
-in kanna: see its README (`--override-input kanna path:…`, then `nix flake update kanna`).
+in kanna: see its README (`--override-input scorsi-kanna path:…`, then `nix flake update scorsi-kanna`).

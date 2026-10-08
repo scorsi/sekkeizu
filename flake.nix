@@ -42,8 +42,9 @@
     preservation.url = "github:nix-community/preservation";
 
     # Neovim and its config, a repo of its own (kiso's `kanna` feature). Pinned here so that
-    # `--override-input kanna path:…` keeps working from this repo.
-    kanna = {
+    # `--override-input scorsi-kanna path:…` keeps working from this repo.
+    # The owner's own flakes are prefixed `scorsi-`, to tell them apart from external inputs.
+    scorsi-kanna = {
       url = "github:scorsi/kanna";
       inputs.nixpkgs.follows = "nixpkgs";
     };
@@ -51,7 +52,7 @@
     # The common base (options `kiso.*`, generic features), a flake-parts module. Every input it
     # shares with this repo follows ours: one version of each. kiso and kanna are always fetched
     # from GitHub, never from Forgejo: rebuilding a machine must not depend on the forge it hosts.
-    kiso = {
+    scorsi-kiso = {
       url = "github:scorsi/kiso";
       inputs = {
         nixpkgs.follows = "nixpkgs";
@@ -62,7 +63,7 @@
         nix-homebrew.follows = "nix-homebrew";
         catppuccin.follows = "catppuccin";
         sops-nix.follows = "sops-nix";
-        kanna.follows = "kanna";
+        scorsi-kanna.follows = "scorsi-kanna";
       };
     };
   };
@@ -72,7 +73,7 @@
     inputs:
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
-        inputs.kiso.flakeModules.default
+        inputs.scorsi-kiso.flakeModules.default
         (inputs.import-tree ./modules)
       ];
     };

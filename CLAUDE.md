@@ -21,7 +21,7 @@ repo is and how it's laid out.
   template to genericize.
 - **Generic features are kiso's.** fish, git, ssh, tmux, Nix settings and the like live in
   `~/repositories/kiso` (its own CLAUDE.md); change them there, test here with
-  `--override-input kiso path:$HOME/repositories/kiso`, then push and `nix flake update kiso`.
+  `--override-input scorsi-kiso path:$HOME/repositories/kiso`, then push and `nix flake update scorsi-kiso`.
 
 ## Standing rules
 
@@ -39,14 +39,15 @@ repo is and how it's laid out.
    secrets). Report any operation that touched real data, even when it turned out harmless.
 4. **Naming.** Components and repos take their names from Japanese construction: tools and
    building elements (jiban the bedrock, ishizue the foundation stone, kanna the plane, kiso the
-   base…).
+   base…). As flake inputs, the owner's own flakes are prefixed `scorsi-` (`scorsi-kanna`,
+   `scorsi-kiso`), external ones are not.
 
 ## kanna (the Neovim config)
 
 Neovim and its Lua config live in their own repo and flake, `kanna` (`github:scorsi/kanna`),
 consumed as a pinned input; the live clone on jiban is `~/repositories/kanna`, which
 `~/.config/nvim` links to. A Neovim change is committed and pushed **in that repo**; sekkeizu only
-moves its pin (`nix flake update kanna`, commit `flake.lock`). See kanna's README for testing a Nix
+moves its pin (`nix flake update scorsi-kanna`, commit `flake.lock`). See kanna's README for testing a Nix
 change with `--override-input` before pushing.
 
 ## Testing changes
