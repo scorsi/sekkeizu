@@ -257,11 +257,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791481977,
-        "narHash": "sha256-sEL9NmG5u8i52Mr5lh4DFzzUQ62eUOJ00orRy7rfB4o=",
+        "lastModified": 1791498138,
+        "narHash": "sha256-0eIziptY5IlPj0TGUJImpWuKikQs2HGXUSsgOhUokjA=",
         "ref": "refs/heads/main",
-        "rev": "47e5b0a61b87aa4f9b597b3df97f8f5d1ed8421a",
-        "revCount": 1,
+        "rev": "0206fd32bebfcc04ff8ef678d0068c8d0b779a07",
+        "revCount": 2,
         "type": "git",
         "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/sekkeizu-private.git"
       },
