@@ -222,8 +222,15 @@ in
           ${lib.concatStringsSep "\n" (
             lib.mapAttrsToList (name: runner: ''
               # Global scope (empty): usable by every repository. Already registered → nothing to do.
+              # Label names only, the way the runner declares them when it connects: this unit runs
+              # again at every Forgejo restart and overwrites the stored labels, and a stored
+              # `linux:host` matches no `runs-on: linux`, so jobs would wait until the runner restarts.
               ${exe} forgejo-cli actions register --scope "" --name ${lib.escapeShellArg name} \
-                --labels ${lib.escapeShellArg (lib.concatStringsSep "," runner.labels)} \
+                --labels ${
+                  lib.escapeShellArg (
+                    lib.concatMapStringsSep "," (l: builtins.head (lib.splitString ":" l)) runner.labels
+                  )
+                } \
                 --secret "$(< "$CREDENTIALS_DIRECTORY/${name}")" \
                 || echo "runner ${name}: registration refused (already registered?)" >&2
             '') forgejoRunners
