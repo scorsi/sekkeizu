@@ -190,6 +190,24 @@ that file (and swapping Tailscale certificates for ACME in Caddy).
 
 Test the macOS runner with a workflow containing `runs-on: macos` and `run: sw_vers`.
 
+### Home of sekkeizu and kanna
+
+Both repositories live on Forgejo (`origin`) and are push-mirrored to GitHub (`github` remote, the
+fallback) at every commit: `modules/nixos/forgejo-mirrors.nix`, a oneshot that sets the mirrors
+through the API. Rebuilding never depends on Forgejo: the bootstrap clones from GitHub, and the
+`kanna` input points at GitHub.
+
+- **Mirror token**: fine-grained GitHub token, only `sekkeizu` and `kanna`, *Contents: read and
+  write*, in `secrets/ishizue/secrets.yaml` (`forgejo-github-mirror-token`). Its expiry date is
+  declared in `forgejo-mirrors.nix` (`sekkeizu.expiringSecrets`): jiban notifies daily and every
+  switch warns from 30 days before. Renewing: new token, `sops edit`, new date, deploy (the oneshot
+  recreates the mirrors, and fails if the declared date doesn't match GitHub's).
+- **Verified commits**: each FIDO2 key must be verified once in Forgejo (Settings → SSH / GPG keys →
+  Verify, then the `ssh-keygen -Y sign` command it shows, with that key plugged in). Forgejo only
+  offers this through the web form; redo it for a new key or a reinstalled Forgejo.
+- **CI**: `.forgejo/workflows/check.yml`, `nix fmt -- --ci` and `nix flake check` on `linux`,
+  `darwinConfigurations.jiban` built on `macos`. Nothing is switched.
+
 ## Bootstrap
 
 ```bash

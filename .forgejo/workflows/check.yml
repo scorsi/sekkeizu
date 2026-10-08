@@ -1,0 +1,20 @@
+# Runs on the two host runners (modules/ci/forgejo-runner.nix): ishizue checks what Linux can build
+# and the formatting, jiban builds its own system. Nothing is switched.
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux:
+    runs-on: linux
+    steps:
+      - uses: https://code.forgejo.org/actions/checkout@v4
+      - run: nix fmt -- --ci
+      # Builds checks.aarch64-linux (ishizue's system) and evaluates the rest.
+      - run: nix flake check -L
+
+  macos:
+    runs-on: macos
+    steps:
+      - uses: https://code.forgejo.org/actions/checkout@v4
+      - run: nix build --no-link -L .#darwinConfigurations.jiban.system

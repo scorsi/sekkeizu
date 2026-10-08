@@ -73,6 +73,8 @@ in
             SSH_DOMAIN = ssh.host;
             SSH_PORT = ssh.port;
             SSH_LISTEN_PORT = ssh.port;
+            # Signed out, the generic landing page is all there is to see: go straight to the form.
+            LANDING_PAGE = "login";
           };
           # Single-user forge: nothing is visible without logging in, and none of the multi-user
           # surface (organisations, user directory) exists. Names checked against Forgejo 15's
