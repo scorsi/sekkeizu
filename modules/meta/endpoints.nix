@@ -12,6 +12,8 @@ in
   sekkeizu.services = {
     forgejo = {
       inherit host;
+      # ishizue's Tailscale IP (`tailscale ip -4 ishizue`): stable as long as the node is not re-registered.
+      address = "REDACTED";
       port = 443;
     };
     forgejo-ssh = {

@@ -190,8 +190,13 @@ in
 
       sops.secrets."forgejo-runner-${name}".owner = macUser;
 
+      # The runner is a Go binary with its own resolver: it reads /etc/hosts, not MagicDNS.
       system.activationScripts.postActivation.text = lib.mkOrder 1550 ''
         install -d -m 700 -o ${macUser} -g ${macUser} ${stateDir}
+        ${lib.optionalString (forgejo.address != null) ''
+          sed -i "" '/# sekkeizu-forgejo$/d' /etc/hosts
+          echo "${forgejo.address} ${forgejo.host} # sekkeizu-forgejo" >> /etc/hosts
+        ''}
       '';
 
       launchd.daemons.forgejo-runner.serviceConfig = {
