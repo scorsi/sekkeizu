@@ -9,7 +9,7 @@ under `modules/`, and contributes to as many of `darwin` / `nixos` / `homeManage
 | Host      | Machine               | OS             |
 | --------- | ---------------------- | -------------- |
 | `jiban`   | Mac Mini M4             | macOS (nix-darwin) |
-| `ishizue` | NixOS VM on Apple Silicon | NixOS (planned) |
+| `ishizue` | NixOS VM on jiban (vfkit) | NixOS |
 
 ## Layout
 
@@ -18,7 +18,9 @@ modules/
   meta/    flake-level options (config.sekkeizu.*) and the one identity file to edit (owner.nix)
   base/    cross-cutting system setup: Nix itself, home-manager wiring, the primary user account
   home/    home-manager features (fish, git, ssh, tmux, neovim, theme, cli tools…)
-  macos/   nix-darwin-only features (macOS defaults, Homebrew)
+  macos/   nix-darwin-only features (macOS defaults, Homebrew, VM host)
+  nixos/   NixOS-only features (server)
+  vm/      NixOS guest base for VMs on a Mac (vfkit, EFI)
   flake/   flake plumbing (supported systems, dev shell, apps, the darwinConfigurations option)
   hosts/   one file per machine: its identity + the features it imports
 scripts/
@@ -36,6 +38,8 @@ nix run .#switch   # rebuild + diff against the current generation (sudo prompt 
 nix run .#check     # nix flake check
 nix run .#fmt       # nix fmt (nixfmt-tree)
 nix run .#rekey-host <host>  # new SSH host key (reinstall): update .sops.yaml + re-encrypt secrets/<host>/
+nix run .#install-ishizue    # on jiban: build ishizue's disk image and start it (once)
+nix run .#deploy-ishizue     # nixos-rebuild switch to ishizue, built inside the VM
 nix develop          # shell with nixfmt, statix, deadnix, shellcheck, just, nvd
 ```
 
@@ -73,6 +77,48 @@ fetched with `curl` from GitHub: bring `scripts/bootstrap.sh` over (AirDrop, `sc
     the command needs the password, so it cannot be declared. Check with `sysadminctl -screenLock status`.
 11. **Reboot** and check: auto-login works, the screen is locked (password asked), `tailscale status`
     and `ssh jiban` still answer.
+
+## ishizue (NixOS VM on jiban)
+
+A classic NixOS machine (own disk, own /nix/store, systemd-boot) booted in EFI mode by vfkit
+(Virtualization.framework). A LaunchAgent of the owner's session (`org.nixos.vm-ishizue`) starts
+it at login, i.e. at boot thanks to auto-login. vCPU, RAM, disk size and MAC are declared on the
+Mac side: `sekkeizu.vms.ishizue` in `modules/hosts/jiban.nix`. Reachable over Tailscale, and as
+`ishizue.local` from jiban (NAT bridge, used by deploys).
+
+State, in `~/.local/state/vm/ishizue/`:
+
+- `disk.raw`: the disk (sparse; the guest's weekly fstrim gives freed blocks back to the Mac).
+- `efi-vars`: the EFI variable store (boot order, systemd-boot one-shot entries). Keep it with the
+  disk; without it the VM still boots (fallback `EFI/BOOT/BOOTAA64.EFI`) but loses those.
+- `console.log` (guest console) and `vfkit.log`, rotated at each start (3 previous kept as `.1`-`.3`):
+  vfkit never reopens them, so newsyslog couldn't rotate them while the VM runs.
+
+Day to day:
+
+- Deploy: `nix run .#deploy-ishizue` (nixos-rebuild, built inside the VM). Each remote `sudo` asks
+  for a touch on the FIDO2 key (pam_rssh over the forwarded agent).
+- Rollback: `nix run .#deploy-ishizue -- --rollback`, or for one boot only,
+  `sudo bootctl set-oneshot nixos-generation-<n>.conf` in the VM, then reboot.
+- Restart: `launchctl kickstart -k gui/$(id -u)/org.nixos.vm-ishizue`. A clean poweroff of the
+  guest stays stopped; start it again with `launchctl kickstart gui/$(id -u)/org.nixos.vm-ishizue`.
+- Resources: edit `sekkeizu.vms.ishizue`, switch jiban, restart the VM. A bigger `diskSize` only
+  applies to a new install.
+
+### Installing it (first time, or `--force` to start over with an empty disk)
+
+1. **Linux builder**: uncomment `darwin.linux-builder` in `modules/hosts/jiban.nix`, `nix run .#switch`.
+2. **Install**: `nix run .#install-ishizue` builds the disk image (~4 min), copies it sparse, grows
+   it to `diskSize` and starts the VM. It refuses to overwrite an existing disk without `-- --force`.
+3. **First boot** (~15 s): the partition grows, a new SSH host key is generated. Forget the old
+   one: `ssh-keygen -R ishizue.local; ssh-keygen -R ishizue`.
+4. **Tailscale**: `ssh ishizue.local` (touch), `sudo tailscale up` (touch), then disable key expiry
+   for ishizue in the admin console. `tailscale netcheck` should say `UDP: true`.
+5. **Re-key**: `nix run .#rekey-host ishizue` (new age recipient in `.sops.yaml`, re-encrypts
+   `secrets/ishizue/`). Commit and push.
+6. **Deploy**: `nix run .#deploy-ishizue`, built inside the VM.
+7. **Drop the linux builder**: comment `darwin.linux-builder` again, `nix run .#switch`
+   (nix-darwin deletes its disk).
 
 ## Bootstrap
 

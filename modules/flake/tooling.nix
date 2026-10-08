@@ -9,8 +9,9 @@
   ...
 }:
 let
-  # nix-darwin configurations declared by files under modules/hosts/.
+  # nix-darwin / NixOS configurations declared by files under modules/hosts/.
   darwinHosts = config.flake.darwinConfigurations or { };
+  nixosHosts = config.flake.nixosConfigurations or { };
 in
 {
   perSystem =
@@ -37,10 +38,15 @@ in
         '';
       };
 
-      # On macOS, `nix flake check` builds every darwin host.
-      checks = lib.optionalAttrs (system == "aarch64-darwin") (
-        lib.mapAttrs' (name: host: lib.nameValuePair "darwin-${name}" host.system) darwinHosts
-      );
+      # On macOS, `nix flake check` builds every darwin host. NixOS hosts are checks of their own
+      # system: evaluated from the Mac, built only where that system is native.
+      checks =
+        lib.optionalAttrs (system == "aarch64-darwin") (
+          lib.mapAttrs' (name: host: lib.nameValuePair "darwin-${name}" host.system) darwinHosts
+        )
+        // lib.mapAttrs' (name: host: lib.nameValuePair "nixos-${name}" host.config.system.build.toplevel) (
+          lib.filterAttrs (_: host: host.pkgs.stdenv.hostPlatform.system == system) nixosHosts
+        );
 
       # darwin-rebuild pinned to the flake's nix-darwin version:
       # the bootstrap script uses it for the very first switch.
