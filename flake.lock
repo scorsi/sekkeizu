@@ -186,17 +186,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1791475674,
-        "narHash": "sha256-Tqi0zowzMDIGZ5QmMkKpaSRwgR+uAYOE1ZQzWIvbYcs=",
-        "owner": "scorsi",
-        "repo": "kanna",
-        "rev": "a280a67aae4389f72956f70527de22b8ab7c6934",
-        "type": "github"
+        "lastModified": 1791480848,
+        "narHash": "sha256-DMZgeF2nN+8AiNoCVrWBSX6eg50KUztRe+Mb3d9vCcA=",
+        "ref": "refs/heads/main",
+        "rev": "626478819970d6dfae98961f8df040e789017343",
+        "revCount": 12,
+        "type": "git",
+        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kanna.git"
       },
       "original": {
-        "owner": "scorsi",
-        "repo": "kanna",
-        "type": "github"
+        "type": "git",
+        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kanna.git"
       }
     },
     "scorsi-kiso": {
@@ -230,17 +230,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1791480710,
-        "narHash": "sha256-CZeNbPrGXM+uXRJCJpD0QMftco+QrNSTfD/rABCKACk=",
-        "owner": "scorsi",
-        "repo": "kiso",
-        "rev": "7f74118845d2d4b42007085fc4c9f17ab2ced240",
-        "type": "github"
+        "lastModified": 1791481368,
+        "narHash": "sha256-rsO1eC/++I9LKK+dGUH79Sk+vsPim04eosNiByr7ZQI=",
+        "ref": "refs/heads/main",
+        "rev": "7a11653edcf436bb7b6cebb4509db61faaeecd63",
+        "revCount": 3,
+        "type": "git",
+        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kiso.git"
       },
       "original": {
-        "owner": "scorsi",
-        "repo": "kiso",
-        "type": "github"
+        "type": "git",
+        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kiso.git"
       }
     },
     "sops-nix": {

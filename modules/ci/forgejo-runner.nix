@@ -15,9 +15,11 @@
 let
   inherit (config.sekkeizu) services forgejoRunners;
   forgejo = services.forgejo;
+  forgejoSsh = services.forgejo-ssh;
   user = "forgejo-runner";
 
-  # Runs as the runner's user, with CONFIG_DIR, SECRET_FILE and WORK_DIR set by the caller.
+  # Runs as the runner's user (HOME = its state directory), with CONFIG_DIR, SECRET_FILE, WORK_DIR
+  # and CI_KEY_FILE set by the caller.
   writeConfig = labels: ''
     secret=$(< "$SECRET_FILE")
     hex=$(printf %s "''${secret:0:16}" | od -An -tx1 | tr -d ' \n')
@@ -37,6 +39,18 @@ let
           uuid: $uuid
           token_url: file:$SECRET_FILE
     YAML
+
+    # The private flakes jobs fetch over git+ssh from Forgejo (sekkeizu.forgejoCi): read-only
+    # deploy key, and Forgejo's host key pinned rather than trusted on first use.
+    mkdir -p "$HOME/.ssh"
+    chmod 700 "$HOME/.ssh"
+    echo "[${forgejoSsh.host}]:${toString forgejoSsh.port} ${forgejoSsh.hostKey}" > "$HOME/.ssh/known_hosts"
+    cat > "$HOME/.ssh/config" <<SSH
+    Host ${forgejoSsh.host}
+      IdentityFile $CI_KEY_FILE
+      IdentitiesOnly yes
+      StrictHostKeyChecking yes
+    SSH
   '';
 in
 {
@@ -92,6 +106,7 @@ in
         ];
 
         sops.secrets."forgejo-runner-${name}".owner = user;
+        sops.secrets.forgejo-ci-key.owner = user;
 
         systemd.services.forgejo-runner = {
           description = "Forgejo Actions runner";
@@ -133,6 +148,7 @@ in
                   CONFIG_DIR=$RUNTIME_DIRECTORY
                   SECRET_FILE=${config.sops.secrets."forgejo-runner-${name}".path}
                   WORK_DIR=${stateDir}/work
+                  CI_KEY_FILE=${config.sops.secrets.forgejo-ci-key.path}
                   ${writeConfig forgejoRunners.${name}.labels}
                   exec ${lib.getExe pkgs.forgejo-runner} daemon --config "$CONFIG_DIR/config.yaml"
                 '';
@@ -189,6 +205,7 @@ in
       };
 
       sops.secrets."forgejo-runner-${name}".owner = macUser;
+      sops.secrets.forgejo-ci-key.owner = macUser;
 
       # The runner is a Go binary with its own resolver: it reads /etc/hosts, not MagicDNS.
       system.activationScripts.postActivation.text = lib.mkOrder 1550 ''
@@ -206,6 +223,7 @@ in
             CONFIG_DIR=${stateDir}
             SECRET_FILE=${secretFile}
             WORK_DIR=${stateDir}/work
+            CI_KEY_FILE=${config.sops.secrets.forgejo-ci-key.path}
             ${writeConfig forgejoRunners.${name}.labels}
             exec ${lib.getExe pkgs.forgejo-runner} daemon --config "$CONFIG_DIR/config.yaml"
           ''}"

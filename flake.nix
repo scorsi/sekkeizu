@@ -41,19 +41,22 @@
     # Declarative state on an ephemeral root (systemd mounts/tmpfiles, no activation script).
     preservation.url = "github:nix-community/preservation";
 
+    # The owner's own flakes, prefixed `scorsi-` to tell them apart from external inputs, come from
+    # Forgejo (ishizue): on the LAN, no dependence on GitHub. A fresh install or a recovery, when
+    # Forgejo is out of reach, takes them from their GitHub mirrors without touching this file or
+    # the lock: `nu scripts/via-github.nu <command>` (the bootstrap does it by itself).
+
     # Neovim and its config, a repo of its own (kiso's `kanna` feature). Pinned here so that
     # `--override-input scorsi-kanna path:…` keeps working from this repo.
-    # The owner's own flakes are prefixed `scorsi-`, to tell them apart from external inputs.
     scorsi-kanna = {
-      url = "github:scorsi/kanna";
+      url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kanna.git";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # The common base (options `kiso.*`, generic features), a flake-parts module. Every input it
-    # shares with this repo follows ours: one version of each. kiso and kanna are always fetched
-    # from GitHub, never from Forgejo: rebuilding a machine must not depend on the forge it hosts.
+    # shares with this repo follows ours: one version of each.
     scorsi-kiso = {
-      url = "github:scorsi/kiso";
+      url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kiso.git";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";

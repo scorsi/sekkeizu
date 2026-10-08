@@ -9,7 +9,8 @@
 #   ./scripts/bootstrap.sh --host jiban --dir ~/sekkeizu --repo git@github.com:<you>/sekkeizu.git
 #   curl -fsSL <raw url>/scripts/bootstrap.sh | bash -s -- --repo <url>
 #
-# Steps: Command Line Tools → Nix (official installer) → repo (nixpkgs ssh/git, FIDO2 key) → kanna clone → checks
+# Steps: Command Line Tools → Nix (official installer) → repo (nixpkgs ssh/git, FIDO2 key) → kanna clone
+#          → flake inputs from the GitHub mirrors → checks
 #          → move aside /etc files that nix-darwin refuses to overwrite → first switch.
 
 set -euo pipefail
@@ -28,7 +29,7 @@ die() {
 }
 
 usage() {
-  sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-0}"
 }
 
@@ -152,6 +153,16 @@ fi
 if git -C "$DIR" status --porcelain 2>/dev/null | grep -q '^??'; then
   warn "fichiers non suivis par git dans ${DIR} : ils seront ignorés par Nix (git add ?)"
 fi
+
+# The repo's own flakes (inputs scorsi-*) come from Forgejo, which a fresh machine can't reach yet
+# (no Tailscale): take them from their GitHub mirrors, at the revisions locked in flake.lock. Same
+# rewrite as scripts/via-github.nu. Fetched now as the user, with the FIDO2 key; every evaluation
+# below, root's included, then finds them in the store.
+export GIT_CONFIG_COUNT=1
+export GIT_CONFIG_KEY_0="url.ssh://git@github.com/scorsi/.insteadOf"
+export GIT_CONFIG_VALUE_0="ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/"
+log "inputs : récupération (miroirs GitHub)"
+with_nix_ssh "$NIX_BIN" "${NIX_FLAGS[@]}" flake archive "$DIR" >/dev/null
 
 # ─── 4. Checks before switching ───────────────────────────────────────
 flake="${DIR}#darwinConfigurations.${HOST}"
