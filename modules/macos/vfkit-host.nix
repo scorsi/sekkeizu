@@ -1,6 +1,8 @@
 # Runs NixOS VMs (nixosConfigurations built on the vfkit-guest feature) on the Mac with vfkit, one
-# LaunchAgent each in the owner's GUI session: Virtualization.framework is not daemon-safe, and the
-# session opens by itself at boot (modules/macos/autologin.nix).
+# LaunchAgent each in the owner's GUI session, which opens by itself at boot
+# (modules/macos/autologin.nix). Not a LaunchDaemon: tried, it starts before login fine, but at
+# macOS shutdown Virtualization.framework fails the stop request ("hypervisor virtualization
+# error") and the guest is cut off like in a power cut; the agent gets a clean poweroff at logout.
 #
 # Each VM's state lives in ~/.local/state/vm/<name>:
 #   disk.raw     the VM's disk (sparse), written once by `nix run .#install-<name>`
