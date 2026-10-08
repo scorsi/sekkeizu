@@ -18,6 +18,14 @@ let
           type = types.str;
           description = "DNS name the service answers on.";
         };
+        address = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = ''
+            IP to pin the name to where DNS cannot be trusted: Go programs on macOS (the runner) ignore
+            Tailscale's MagicDNS, which is not the system resolver there.
+          '';
+        };
         port = mkOption {
           type = types.port;
           default = 443;
