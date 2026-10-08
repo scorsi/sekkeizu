@@ -1,6 +1,7 @@
-# The repo's only identity file: adapt before the first switch.
+# The repo's only identity file: adapt before the first switch. The options are kiso's
+# (github:scorsi/kiso), the values are this repo's.
 {
-  sekkeizu.owner = {
+  kiso.owner = {
     name = "scorsi"; # TODO: must match `whoami` on the Mac (checked by the bootstrap script)
     fullName = "scorsi";
     email = "8389441+scorsi@users.noreply.github.com";
@@ -25,7 +26,10 @@
     ];
   };
 
-  sekkeizu.stateVersions = {
+  # Where the bootstrap script clones this repo (`drs` rebuilds from there).
+  kiso.configDir = "sekkeizu";
+
+  kiso.stateVersions = {
     darwin = 6;
     nixos = "26.05";
     homeManager = "26.05";

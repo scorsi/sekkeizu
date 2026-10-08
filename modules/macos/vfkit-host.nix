@@ -13,7 +13,7 @@
 # Updates go through the guest's own nixos-rebuild (`nix run .#deploy-<name>`), never through here.
 { config, lib, ... }:
 let
-  owner = config.sekkeizu.owner.name;
+  owner = config.kiso.owner.name;
   home = "/Users/${owner}";
 
   # Short on purpose: the control socket lives here, and macOS caps socket paths at 104 bytes.

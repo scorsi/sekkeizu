@@ -1,7 +1,7 @@
 # Headless NixOS server: key-only SSH for the owner, the NixOS twin of modules/macos/server.nix.
 { config, lib, ... }:
 let
-  inherit (config.sekkeizu) owner;
+  inherit (config.kiso) owner;
 in
 {
   flake.modules.nixos.server = {

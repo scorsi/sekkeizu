@@ -1,10 +1,7 @@
-# Flake apps, via `nix run .#<name>`:
-#   switch → rebuild + diff generations (sudo asked by darwin-rebuild)
-#   check  → nix flake check
-#   fmt    → nix fmt
+# Flake apps, via `nix run .#<name>` (switch, check and fmt come from kiso):
 #   set-autologin-password [host] → encrypt the login password as a kcpassword secret (see modules/macos/autologin.nix)
 #   rekey-host <host> → after a reinstall (new SSH host key): update the host's age recipient in .sops.yaml and re-encrypt secrets/<host>/
-{ lib, inputs, ... }:
+{ lib, ... }:
 {
   perSystem =
     { pkgs, system, ... }:
@@ -22,44 +19,6 @@
     in
     lib.optionalAttrs (lib.hasSuffix "darwin" system) {
       apps = {
-        switch = {
-          type = "app";
-          program = toString (
-            pkgs.writeShellScript "switch" ''
-              set -euo pipefail
-              repo=$(${pkgs.git}/bin/git rev-parse --show-toplevel)
-              host=$(/bin/hostname -s)
-              before=$(readlink -f /run/current-system)
-
-              log=$(mktemp -t darwin-switch-XXXXXX.log)
-              echo "Journal : $log"
-
-              sudo ${
-                inputs.nix-darwin.packages.${system}.darwin-rebuild
-              }/bin/darwin-rebuild switch --flake "$repo#$host" 2>&1 | tee "$log"
-
-              after=$(readlink -f /run/current-system)
-              if [ "$before" != "$after" ]; then
-                echo "--- nvd diff ---"
-                ${pkgs.nvd}/bin/nvd diff "$before" "$after"
-              else
-                echo "Pas de changement de génération."
-              fi
-            ''
-          );
-        };
-
-        check = {
-          type = "app";
-          program = toString (
-            pkgs.writeShellScript "check" ''
-              set -euo pipefail
-              repo=$(${pkgs.git}/bin/git rev-parse --show-toplevel)
-              exec nix flake check "$repo"
-            ''
-          );
-        };
-
         set-autologin-password = {
           type = "app";
           program = toString (
@@ -110,17 +69,6 @@
               for f in "''${files[@]}"; do
                 ${pkgs.sops}/bin/sops updatekeys --yes "$f"
               done
-            ''
-          );
-        };
-
-        fmt = {
-          type = "app";
-          program = toString (
-            pkgs.writeShellScript "fmt" ''
-              set -euo pipefail
-              repo=$(${pkgs.git}/bin/git rev-parse --show-toplevel)
-              exec nix fmt "$repo"
             ''
           );
         };

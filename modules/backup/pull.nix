@@ -15,7 +15,7 @@
 # external disk, then off site with restic (a `backup-offsite` feature reading the same option).
 { config, lib, ... }:
 let
-  inherit (config.sekkeizu) owner;
+  inherit (config.kiso) owner;
   user = "backup";
   root = "/persist/backups";
   # jiban's address as seen from the guest, on vfkit's NAT bridge.
