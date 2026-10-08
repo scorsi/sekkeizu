@@ -47,6 +47,7 @@ in
         yaml-language-server
         taplo
         bash-language-server
+        nimlangserver
         vscode-langservers-extracted # jsonls
         # Formatters and linters
         stylua
@@ -55,6 +56,9 @@ in
         yamlfmt
         yamllint
         prettier
+        # nimlangserver drives nimsuggest from the compiler, nimpretty ships with it.
+        nim
+        nimble
       ];
     };
 }
