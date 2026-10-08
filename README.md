@@ -124,18 +124,21 @@ Day to day:
 
 1. **Linux builder**: uncomment `darwin.linux-builder` in `modules/hosts/jiban.nix`, `nix run .#switch`.
 2. **Install**: `nix run .#install-ishizue` builds the disk image (~4 min), copies it sparse, grows
-   it to `diskSize` and starts the VM. It refuses to overwrite an existing disk without `-- --force`.
-3. **First boot** (~15 s): the partition grows, a new SSH host key is generated. Forget the old
-   one: `ssh-keygen -R ishizue.local; ssh-keygen -R ishizue`.
-4. **Tailscale**: `ssh ishizue.local` (touch), `sudo tailscale up` (touch), then disable key expiry
-   for ishizue in the admin console. `tailscale netcheck` should say `UDP: true`.
-   *Keeping the identity of the previous install* (no re-key, same Tailscale node): before
-   `install-ishizue --force`, fetch `/etc/ssh/ssh_host_ed25519_key{,.pub}` (or the `/persist` copy
-   on an already impermanent install) and `/var/lib/tailscale` from the old VM to jiban. After the
-   first boot of the new one, `sudo`-copy them to `/persist/etc/ssh/` (mode 600/644) and
-   `/persist/var/lib/tailscale/`, then `sudo reboot`; skip steps 3 (known_hosts) and 5.
-5. **Re-key**: `nix run .#rekey-host ishizue` (new age recipient in `.sops.yaml`, re-encrypts
-   `secrets/ishizue/`). Commit and push.
+   it to `diskSize`, writes ishizue's identity into it and starts the VM. It refuses to overwrite
+   an existing disk without `-- --force`. The builder's disk is 40 GB (sparse, recreated at each
+   start).
+3. **First boot** (~15 s): the partition grows. The identity comes from
+   `secrets/ishizue/identity.yaml` (sops, admin key: SSH host key and Tailscale state), written into
+   `/persist` offline with `debugfs` before the first boot: same host key (known_hosts, `.sops.yaml`
+   unchanged, the secrets decrypt at once), same Tailscale node and IP. Nothing else to do; go to 6.
+4. **Without `identity.yaml`** (a genuinely new machine): a new SSH host key is generated. Forget
+   the old one (`ssh-keygen -R ishizue.local; ssh-keygen -R ishizue`), then `ssh ishizue.local`,
+   `sudo tailscale up` (touches), disable key expiry in the admin console, update the Tailscale IP
+   in `modules/meta/endpoints.nix`.
+5. **Re-key** (only after 4): `nix run .#rekey-host ishizue`, commit and push. To keep this new
+   identity for the next reinstall, store it in `secrets/ishizue/identity.yaml`
+   (`ssh_host_ed25519_key`, `ssh_host_ed25519_key_pub`, `tailscaled_state`: the files under
+   `/persist`, piped straight into `sops set --value-stdin`).
 6. **Deploy**: `nix run .#deploy-ishizue`, built inside the VM.
 7. **Drop the linux builder**: comment `darwin.linux-builder` again, `nix run .#switch`
    (nix-darwin deletes its disk).

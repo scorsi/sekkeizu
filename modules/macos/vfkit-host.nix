@@ -112,6 +112,63 @@ in
 
   perSystem =
     { pkgs, system, ... }:
+    let
+      # A VM keeps the same identity across reinstalls when secrets/<vm>/identity.yaml exists (sops,
+      # admin key): SSH host key (so no re-key of secrets/<vm>/) and Tailscale state (same node, same
+      # IP). macOS can't mount ext4, so the files are written into the fresh image offline, with
+      # debugfs, before its first boot. Decrypted only into a private temporary directory, removed
+      # on exit. Usage: restore-vm-identity <disk.raw> <identity.yaml>
+      restoreIdentity = pkgs.writeShellScript "restore-vm-identity" ''
+        set -euo pipefail
+        disk=$1 identity=$2
+        export SOPS_AGE_KEY_FILE=''${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}
+        umask 077
+        seed=$(mktemp -d)
+        trap 'rm -rf "$seed"' EXIT
+        for k in ssh_host_ed25519_key ssh_host_ed25519_key_pub tailscaled_state; do
+          ${pkgs.sops}/bin/sops -d --extract "[\"$k\"]" "$identity" > "$seed/$k"
+        done
+
+        # make-disk-image's "efi" layout: partition 1 is the ESP, 2 the ext4 disk (/persist).
+        first=$(${pkgs.gptfdisk}/bin/sgdisk -i 2 "$disk" | ${pkgs.gawk}/bin/awk '/^First sector:/ { print $3 }')
+        fs="$disk?offset=$((first * 512))"
+        debugfs=${pkgs.e2fsprogs}/bin/debugfs
+
+        # Paths are relative to /persist. Errors on mkdir (already there) and rm (not there) are
+        # expected; what counts is checked right after.
+        "$debugfs" -w -f - "$fs" >/dev/null 2>&1 <<EOF || true
+        mkdir /etc
+        mkdir /etc/ssh
+        mkdir /var
+        mkdir /var/lib
+        mkdir /var/lib/tailscale
+        rm /etc/ssh/ssh_host_ed25519_key
+        rm /etc/ssh/ssh_host_ed25519_key.pub
+        rm /var/lib/tailscale/tailscaled.state
+        write $seed/ssh_host_ed25519_key /etc/ssh/ssh_host_ed25519_key
+        write $seed/ssh_host_ed25519_key_pub /etc/ssh/ssh_host_ed25519_key.pub
+        write $seed/tailscaled_state /var/lib/tailscale/tailscaled.state
+        sif /etc mode 040755
+        sif /etc/ssh mode 040755
+        sif /var mode 040755
+        sif /var/lib mode 040755
+        sif /var/lib/tailscale mode 040700
+        sif /etc/ssh/ssh_host_ed25519_key mode 0100600
+        sif /etc/ssh/ssh_host_ed25519_key.pub mode 0100644
+        sif /var/lib/tailscale/tailscaled.state mode 0100600
+        $(for f in /etc /etc/ssh /var /var/lib /var/lib/tailscale /etc/ssh/ssh_host_ed25519_key /etc/ssh/ssh_host_ed25519_key.pub /var/lib/tailscale/tailscaled.state; do
+          printf 'sif %s uid 0\nsif %s gid 0\n' "$f" "$f"
+        done)
+        EOF
+
+        # debugfs exits 0 even when a command fails: read every file back.
+        for f in ssh_host_ed25519_key:/etc/ssh/ssh_host_ed25519_key ssh_host_ed25519_key_pub:/etc/ssh/ssh_host_ed25519_key.pub tailscaled_state:/var/lib/tailscale/tailscaled.state; do
+          "$debugfs" -R "cat ''${f#*:}" "$fs" 2>/dev/null | cmp -s - "$seed/''${f%%:*}" ||
+            { echo "restore-vm-identity : ''${f#*:} mal écrit dans l'image" >&2; exit 1; }
+        done
+        echo "identité restaurée dans l'image (clé hôte SSH, état Tailscale)"
+      '';
+    in
     lib.optionalAttrs (system == "aarch64-darwin") {
       apps = lib.concatMapAttrs (name: vm: {
         "install-${name}" = {
@@ -152,6 +209,9 @@ in
               ${pkgs.coreutils}/bin/cp --sparse=always "$img/nixos.img" "$state/disk.raw.new"
               chmod u+w "$state/disk.raw.new"
               ${pkgs.coreutils}/bin/truncate -s ${toString vm.diskSize}G "$state/disk.raw.new"
+              if [ -f "$repo/secrets/${name}/identity.yaml" ]; then
+                ${restoreIdentity} "$state/disk.raw.new" "$repo/secrets/${name}/identity.yaml"
+              fi
               mv -f "$state/disk.raw.new" "$state/disk.raw"
               # Boot entries of the previous disk mean nothing for this one.
               rm -f "$state/efi-vars"
@@ -159,7 +219,11 @@ in
               nix store delete "$img" >/dev/null 2>&1 || true
 
               launchctl kickstart "$agent"
-              echo "${name} installé et démarré (premier boot : partition agrandie, nouvelle clé hôte SSH)."
+              if [ -f "$repo/secrets/${name}/identity.yaml" ]; then
+                echo "${name} installé et démarré, avec son identité (clé hôte SSH, nœud Tailscale)."
+              else
+                echo "${name} installé et démarré (premier boot : partition agrandie, nouvelle clé hôte SSH)."
+              fi
               echo "Suite : README, section ${name}."
             ''
           );
