@@ -3,7 +3,7 @@
 { config, inputs, ... }:
 let
   inherit (config.flake.modules) darwin homeManager;
-  inherit (config.sekkeizu) owner stateVersions;
+  inherit (config.kiso) owner stateVersions;
   hostName = "jiban";
 in
 {
@@ -34,6 +34,7 @@ in
           homeManager.fish
           homeManager.nushell
           homeManager.ssh
+          homeManager.ssh-hosts
           homeManager.git
           homeManager.cli
           homeManager.pay-respects
@@ -60,6 +61,9 @@ in
         # Keeps track of the repo revision in `darwin-version`.
         system.configurationRevision = inputs.self.rev or inputs.self.dirtyRev or null;
         system.stateVersion = stateVersions.darwin;
+
+        # GUI apps of this Mac (Homebrew casks; the mechanism is kiso's `homebrew` feature).
+        homebrew.casks = [ ];
 
         sops.defaultSopsFile = ../../secrets/${hostName}/secrets.yaml;
         sops.secrets.kcpassword.sopsFile = ../../secrets/${hostName}/kcpassword;

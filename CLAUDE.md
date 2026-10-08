@@ -17,7 +17,11 @@ repo is and how it's laid out.
   done. `nix flake check` (or `nix run .#check`) builds every darwin host on macOS — run it after
   any change under `modules/`.
 - `modules/meta/owner.nix` holds real identity data (account name, email, SSH public keys) for
-  this specific user/machine. Treat it as config to preserve, not a template to genericize.
+  this specific user/machine: the values of kiso's options. Treat it as config to preserve, not a
+  template to genericize.
+- **Generic features are kiso's.** fish, git, ssh, tmux, Nix settings and the like live in
+  `~/repositories/kiso` (its own CLAUDE.md); change them there, test here with
+  `--override-input kiso path:$HOME/repositories/kiso`, then push and `nix flake update kiso`.
 
 ## Standing rules
 
@@ -25,10 +29,11 @@ repo is and how it's laid out.
    features, services, network, secrets, infrastructure. Application code (in-house components,
    the site's content, editor config like kanna) lives in its own repo, exposes a flake and is
    consumed here as a pinned input.
-2. **Trust levels (planned, not done yet).** A publishable common base, `kiso` (nix, shell, git,
-   ssh, tmux, tooling), will be extracted with a flakeModule; sensitive services will move to a
-   separate private repo; a work PC will import only the base. Keep every generic feature movable:
-   no reference to the homelab (host names, tailnet, IPs, domains, services) inside it.
+2. **Trust levels.** The publishable common base is `kiso` (`github:scorsi/kiso`, public, a
+   flakeModule: nix, shell, git, ssh, tmux, tooling, options `kiso.*`), developed in
+   `~/repositories/kiso`. Planned: sensitive services move to a separate private repo; a work PC
+   imports only kiso. Keep every generic feature movable: no reference to the homelab (host names,
+   tailnet, IPs, domains, services) inside it — and nothing of the sort ever goes into kiso.
 3. **Destructive tests.** First check that a recent backup exists (`~/Backups/ishizue/`,
    `/persist/backups/` on ishizue). Leave no temporary file behind (`.bak`, copies, decrypted
    secrets). Report any operation that touched real data, even when it turned out harmless.

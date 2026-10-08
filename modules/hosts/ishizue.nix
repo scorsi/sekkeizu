@@ -5,7 +5,7 @@
 { config, inputs, ... }:
 let
   inherit (config.flake.modules) nixos homeManager;
-  inherit (config.sekkeizu) owner stateVersions;
+  inherit (config.kiso) owner stateVersions;
   hostName = "ishizue";
 in
 {
@@ -33,6 +33,7 @@ in
         home-manager.users.${owner.name}.imports = [
           homeManager.fish
           homeManager.ssh
+          homeManager.ssh-hosts
           homeManager.git
           homeManager.cli
           homeManager.pay-respects

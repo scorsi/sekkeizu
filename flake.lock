@@ -114,6 +114,50 @@
         "type": "github"
       }
     },
+    "kiso": {
+      "inputs": {
+        "catppuccin": [
+          "catppuccin"
+        ],
+        "flake-parts": [
+          "flake-parts"
+        ],
+        "home-manager": [
+          "home-manager"
+        ],
+        "import-tree": [
+          "import-tree"
+        ],
+        "kanna": [
+          "kanna"
+        ],
+        "nix-darwin": [
+          "nix-darwin"
+        ],
+        "nix-homebrew": [
+          "nix-homebrew"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "sops-nix": [
+          "sops-nix"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791480260,
+        "narHash": "sha256-1PQbtIUS6gNIHTEdU/HC/LWsnBNE44ig8Ehvg2UWPhw=",
+        "owner": "scorsi",
+        "repo": "kiso",
+        "rev": "e81795c0d5303d50a332882379858e34c58366bb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "scorsi",
+        "repo": "kiso",
+        "type": "github"
+      }
+    },
     "nix-darwin": {
       "inputs": {
         "nixpkgs": [
@@ -191,6 +235,7 @@
         "home-manager": "home-manager",
         "import-tree": "import-tree",
         "kanna": "kanna",
+        "kiso": "kiso",
         "nix-darwin": "nix-darwin",
         "nix-homebrew": "nix-homebrew",
         "nixpkgs": "nixpkgs",

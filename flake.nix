@@ -41,14 +41,39 @@
     # Declarative state on an ephemeral root (systemd mounts/tmpfiles, no activation script).
     preservation.url = "github:nix-community/preservation";
 
-    # Neovim and its config, a repo of its own (modules/home/kanna.nix). Always fetched from GitHub,
-    # never from Forgejo: rebuilding a machine must not depend on the forge it hosts.
+    # Neovim and its config, a repo of its own (kiso's `kanna` feature). Pinned here so that
+    # `--override-input kanna path:…` keeps working from this repo.
     kanna = {
       url = "github:scorsi/kanna";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # The common base (options `kiso.*`, generic features), a flake-parts module. Every input it
+    # shares with this repo follows ours: one version of each. kiso and kanna are always fetched
+    # from GitHub, never from Forgejo: rebuilding a machine must not depend on the forge it hosts.
+    kiso = {
+      url = "github:scorsi/kiso";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
+        import-tree.follows = "import-tree";
+        nix-darwin.follows = "nix-darwin";
+        home-manager.follows = "home-manager";
+        nix-homebrew.follows = "nix-homebrew";
+        catppuccin.follows = "catppuccin";
+        sops-nix.follows = "sops-nix";
+        kanna.follows = "kanna";
+      };
+    };
   };
 
   # Everything else lives in ./modules: this file should barely ever change.
-  outputs = inputs: inputs.flake-parts.lib.mkFlake { inherit inputs; } (inputs.import-tree ./modules);
+  outputs =
+    inputs:
+    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [
+        inputs.kiso.flakeModules.default
+        (inputs.import-tree ./modules)
+      ];
+    };
 }

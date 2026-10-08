@@ -21,7 +21,7 @@
         KbdInteractiveAuthentication no
         PermitRootLogin no
         AuthenticationMethods publickey
-        AllowUsers ${config.sekkeizu.owner.name}
+        AllowUsers ${config.kiso.owner.name}
       '';
     };
 

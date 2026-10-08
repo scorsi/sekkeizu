@@ -10,7 +10,7 @@
 # small (/nix and /home are on disk).
 { config, inputs, ... }:
 let
-  inherit (config.sekkeizu) owner;
+  inherit (config.kiso) owner;
   persistRoot = "/persist";
 in
 {

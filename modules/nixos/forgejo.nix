@@ -10,7 +10,8 @@
 # (40 hex chars: `openssl rand -hex 20`).
 { config, ... }:
 let
-  inherit (config.sekkeizu) owner services forgejoRunners;
+  inherit (config.kiso) owner;
+  inherit (config.sekkeizu) services forgejoRunners;
   web = services.forgejo;
   ssh = services.forgejo-ssh;
   internalPort = 3000;

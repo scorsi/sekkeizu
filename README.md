@@ -4,6 +4,11 @@ Personal Nix flake for all my machines, built with [flake-parts](https://flake.p
 [dendritic pattern](https://github.com/mightyiam/dendritic): every feature lives in its own file
 under `modules/`, and contributes to as many of `darwin` / `nixos` / `homeManager` as it needs.
 
+The generic part (options `kiso.*`, shell, git, ssh, tmux, Nix itself, home-manager wiring, the
+flake plumbing) is [kiso](https://github.com/scorsi/kiso), a public flake-parts module imported in
+`flake.nix`: hosts use its features by name like their own (`darwin.fish`, `homeManager.git`…).
+This repo keeps the machines, the services, the network, the secrets and the values.
+
 ## Hosts
 
 | Host      | Machine               | OS             |
@@ -15,16 +20,15 @@ under `modules/`, and contributes to as many of `darwin` / `nixos` / `homeManage
 
 ```
 modules/
-  meta/    flake-level options (config.sekkeizu.*), the identity file (owner.nix) and where services live (endpoints.nix)
-  base/    cross-cutting system setup: Nix itself, home-manager wiring, the primary user account
-  home/    home-manager features (fish, git, ssh, tmux, kanna, theme, cli tools…)
-  macos/   nix-darwin-only features (macOS defaults, Homebrew, VM host)
+  meta/    the values of kiso's options (owner.nix), this repo's options (services, expiring secrets) and where services live (endpoints.nix)
+  home/    home-manager features of this repo (ssh-hosts, gh, Claude Code); the generic ones are kiso's
+  macos/   nix-darwin-only features (headless server, auto-login, VM host, linux builder, reminders)
   nixos/   NixOS-only features (server, Caddy, Forgejo, site)
   ci/      Forgejo Actions runners (NixOS and macOS)
   backup/  off-VM copies (jiban pulls ishizue's backups)
   network/ Tailscale
   vm/      NixOS guest base for VMs on a Mac (vfkit, EFI)
-  flake/   flake plumbing (supported systems, dev shell, apps, the darwinConfigurations option)
+  flake/   this repo's apps (rekey-host, set-autologin-password); the rest of the plumbing is kiso's
   hosts/   one file per machine: its identity + the features it imports
 scripts/
   bootstrap.sh   turns a fresh Mac into a working jiban
@@ -193,14 +197,14 @@ that file (and swapping Tailscale certificates for ACME in Caddy).
 
 Test the macOS runner with a workflow containing `runs-on: macos` and `run: sw_vers`.
 
-### Home of sekkeizu and kanna
+### Home of sekkeizu, kanna and kiso
 
-Both repositories live on Forgejo (`origin`) and are push-mirrored to GitHub (`github` remote, the
+sekkeizu, kanna and kiso live on Forgejo (`origin`) and are push-mirrored to GitHub (`github` remote, the
 fallback) at every commit: `modules/nixos/forgejo-mirrors.nix`, a oneshot that sets the mirrors
 through the API. Rebuilding never depends on Forgejo: the bootstrap clones from GitHub, and the
-`kanna` input points at GitHub.
+`kanna` and `kiso` inputs point at GitHub.
 
-- **Mirror token**: fine-grained GitHub token, only `sekkeizu` and `kanna`, *Contents: read and
+- **Mirror token**: fine-grained GitHub token, only `sekkeizu`, `kanna` and `kiso`, *Contents: read and
   write*, in `secrets/ishizue/secrets.yaml` (`forgejo-github-mirror-token`). Its expiry date is
   declared in `forgejo-mirrors.nix` (`sekkeizu.expiringSecrets`): jiban notifies daily and every
   switch warns from 30 days before. Renewing: new token, `sops edit`, new date, deploy (the oneshot
@@ -222,8 +226,13 @@ Idempotent: on an already configured machine it skips what is done and ends with
 ## Identity
 
 The only file meant to be edited per-user is [`modules/meta/owner.nix`](modules/meta/owner.nix):
-account name, display name, email, and the FIDO2 (YubiKey/Thetis) SSH keys used both to log in
-and to sign commits.
+the values of kiso's options (account name, display name, email, the FIDO2 (YubiKey/Thetis) SSH
+keys used both to log in and to sign commits, where this repo is cloned, state versions).
+
+To change kiso itself: edit `~/repositories/kiso`, test with
+`nix run .#switch -- --override-input kiso path:$HOME/repositories/kiso`, push it, then
+`nix flake update kiso` here and commit `flake.lock`. kiso is public: nothing about these
+machines goes there.
 
 ## Neovim: kanna
 

@@ -7,7 +7,7 @@
 # is locked; launchd daemons (sshd, tailscaled) and SSH logins are unaffected.
 { config, lib, ... }:
 let
-  inherit (config.sekkeizu) owner;
+  inherit (config.kiso) owner;
 in
 {
   flake.modules.darwin.autologin =
