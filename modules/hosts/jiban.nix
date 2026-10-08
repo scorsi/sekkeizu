@@ -30,6 +30,7 @@ in
           homeManager.ssh
           homeManager.git
           homeManager.cli
+          homeManager.pay-respects
           homeManager.github
           homeManager.claude-code
           homeManager.tmux
@@ -49,6 +50,7 @@ in
           computerName = hostName;
           localHostName = hostName; # reachable as jiban.local (Bonjour)
         };
+        time.timeZone = "Europe/Paris";
         # Keeps track of the repo revision in `darwin-version`.
         system.configurationRevision = inputs.self.rev or inputs.self.dirtyRev or null;
         system.stateVersion = stateVersions.darwin;
