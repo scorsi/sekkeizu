@@ -68,7 +68,10 @@ fetched with `curl` from GitHub: bring `scripts/bootstrap.sh` over (AirDrop, `sc
    `nix run .#rekey-host jiban`, then commit and push `.sops.yaml` and `secrets/jiban/`
    (pull them on jiban if it ran elsewhere).
 9. **Second switch**: `nix run .#switch` (or `drs`): the secrets now decrypt and `/etc/kcpassword` is installed.
-10. **Reboot** and check: auto-login works, the screen is locked (password asked), `tailscale status`
+10. **Immediate screen lock**: `sysadminctl -screenLock immediate -password -` (type the account
+    password when prompted). The `askForPassword` default alone is not honoured by recent macOS, and
+    the command needs the password, so it cannot be declared. Check with `sysadminctl -screenLock status`.
+11. **Reboot** and check: auto-login works, the screen is locked (password asked), `tailscale status`
     and `ssh jiban` still answer.
 
 ## Bootstrap
