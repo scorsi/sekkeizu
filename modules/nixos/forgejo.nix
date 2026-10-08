@@ -74,11 +74,35 @@ in
             SSH_PORT = ssh.port;
             SSH_LISTEN_PORT = ssh.port;
           };
-          service.DISABLE_REGISTRATION = true;
+          # Single-user forge: nothing is visible without logging in, and none of the multi-user
+          # surface (organisations, user directory) exists. Names checked against Forgejo 15's
+          # modules/setting/: the org creation switch lives in [admin], not [service].
+          service = {
+            DISABLE_REGISTRATION = true;
+            REQUIRE_SIGNIN_VIEW = true;
+            DEFAULT_ALLOW_CREATE_ORGANIZATION = false;
+          };
+          "service.explore" = {
+            DISABLE_USERS_PAGE = true;
+            DISABLE_ORGANIZATIONS_PAGE = true;
+          };
+          admin.DISABLE_REGULAR_ORG_CREATION = true;
           session.COOKIE_SECURE = true;
           actions.ENABLED = true;
-          # `git push` to a repository that does not exist yet creates it (private).
-          repository.ENABLE_PUSH_CREATE_USER = true;
+          # Also drops the registry itself, not just the repository tab.
+          packages.ENABLED = false;
+          repository = {
+            # `git push` to a repository that does not exist yet creates it (private).
+            ENABLE_PUSH_CREATE_USER = true;
+            # Kept: code, issues, pull requests, releases, Actions.
+            DISABLED_REPO_UNITS = lib.concatStringsSep "," [
+              "repo.wiki"
+              "repo.ext_wiki"
+              "repo.ext_issues"
+              "repo.projects"
+              "repo.packages"
+            ];
+          };
         };
       };
 
