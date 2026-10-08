@@ -19,13 +19,13 @@ repo is and how it's laid out.
 - `modules/meta/owner.nix` holds real identity data (account name, email, SSH public keys) for
   this specific user/machine. Treat it as config to preserve, not a template to genericize.
 
-## The `files/nvim` submodule
+## kanna (the Neovim config)
 
-`files/nvim` is a separate git repository (`git@github.com:scorsi/nvim.git`), checked out as a
-submodule and also cloned standalone at `~/repositories/nvim` on this machine. A change to the
-Neovim config must be committed **inside that submodule's own repo**, not just in `sekkeizu`'s
-working tree — `sekkeizu` only records which submodule commit it points at (via `git -C files/nvim
-status` / `git submodule status`). Verify which checkout you're editing before committing.
+Neovim and its Lua config live in their own repo and flake, `kanna` (`github:scorsi/kanna`),
+consumed as a pinned input; the live clone on jiban is `~/repositories/kanna`, which
+`~/.config/nvim` links to. A Neovim change is committed and pushed **in that repo**; sekkeizu only
+moves its pin (`nix flake update kanna`, commit `flake.lock`). See kanna's README for testing a Nix
+change with `--override-input` before pushing.
 
 ## Testing changes
 

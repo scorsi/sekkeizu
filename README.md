@@ -17,17 +17,17 @@ under `modules/`, and contributes to as many of `darwin` / `nixos` / `homeManage
 modules/
   meta/    flake-level options (config.sekkeizu.*), the identity file (owner.nix) and where services live (endpoints.nix)
   base/    cross-cutting system setup: Nix itself, home-manager wiring, the primary user account
-  home/    home-manager features (fish, git, ssh, tmux, neovim, theme, cli tools…)
+  home/    home-manager features (fish, git, ssh, tmux, kanna, theme, cli tools…)
   macos/   nix-darwin-only features (macOS defaults, Homebrew, VM host)
   nixos/   NixOS-only features (server, Caddy, Forgejo, site)
   ci/      Forgejo Actions runners (NixOS and macOS)
+  backup/  off-VM copies (jiban pulls ishizue's backups)
   network/ Tailscale
   vm/      NixOS guest base for VMs on a Mac (vfkit, EFI)
   flake/   flake plumbing (supported systems, dev shell, apps, the darwinConfigurations option)
   hosts/   one file per machine: its identity + the features it imports
 scripts/
   bootstrap.sh   turns a fresh Mac into a working jiban
-files/nvim/      Neovim config, a separate git submodule (github.com/scorsi/nvim)
 ```
 
 A feature file declares `flake.modules.<class>.<name>`; a host file just lists the names it wants.
@@ -48,10 +48,10 @@ nix develop          # shell with nixfmt, statix, deadnix, shellcheck, just, nvd
 ## Reinstalling a Mac from scratch
 
 Steps in execution order. Everything not listed here is declarative and comes back with the
-switch. Repo and nvim submodule are private (SSH over FIDO2 key), so the bootstrap script cannot be
+switch. The repo is private (SSH over FIDO2 key), so the bootstrap script cannot be
 fetched with `curl` from GitHub: bring `scripts/bootstrap.sh` over (AirDrop, `scp`, USB stick).
 
-1. **Before wiping**: everything pushed (`sekkeizu` and `files/nvim`), and the sops admin key
+1. **Before wiping**: everything pushed (`sekkeizu` and `~/repositories/kanna`), and the sops admin key
    (`~/.config/sops/age/keys.txt`) is in the password manager.
 2. **Erase All Content and Settings**, then in Setup Assistant: create the account with the name set
    in `modules/meta/owner.nix`, and **turn FileVault off** when the assistant offers it (with
@@ -61,7 +61,7 @@ fetched with `curl` from GitHub: bring `scripts/bootstrap.sh` over (AirDrop, `sc
    bash bootstrap.sh --repo git@github.com:scorsi/sekkeizu.git
    ```
    It installs the Command Line Tools and Nix, pulls the key handle (`ssh-keygen -K`: PIN, then touch),
-   clones with submodules and runs the first switch. That switch can complain that sops cannot
+   clones sekkeizu and kanna (`~/repositories/kanna`, the live Neovim config) and runs the first switch. That switch can complain that sops cannot
    decrypt `kcpassword`: expected, the host key is new (step 8 fixes it).
 4. **One `ssh-keygen -K` per additional key**: plug the next FIDO2 key, then
    `cd ~/.ssh && ssh-keygen -K` (the bootstrap only handled the first one).
@@ -204,14 +204,10 @@ The only file meant to be edited per-user is [`modules/meta/owner.nix`](modules/
 account name, display name, email, and the FIDO2 (YubiKey/Thetis) SSH keys used both to log in
 and to sign commits.
 
-## Submodule
+## Neovim: kanna
 
-`files/nvim` is a separate repo (its own history, its own `lazy-lock.json`). Clone with:
-
-```bash
-git clone --recurse-submodules git@github.com:<you>/sekkeizu.git
-# or, on an existing checkout:
-git submodule update --init --recursive
-```
-
-`scripts/bootstrap.sh` does this for you.
+The Neovim config is its own repo and flake, [kanna](https://github.com/scorsi/kanna), consumed as
+the input `kanna` (always from GitHub). Feature `kanna`: the config from the store, frozen with
+`flake.lock`. Feature `kanna-dev` (jiban): `~/.config/nvim` links to the clone in
+`~/repositories/kanna` (`sekkeizu.reposDir`), so Lua edits apply without a rebuild. Nix changes
+in kanna: see its README (`--override-input kanna path:…`, then `nix flake update kanna`).

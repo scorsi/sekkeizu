@@ -37,7 +37,7 @@ in
           homeManager.pay-respects
           homeManager.tmux
           homeManager.theme
-          homeManager.neovim
+          homeManager.kanna
         ];
       }
 
