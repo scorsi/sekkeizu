@@ -19,6 +19,23 @@ repo is and how it's laid out.
 - `modules/meta/owner.nix` holds real identity data (account name, email, SSH public keys) for
   this specific user/machine. Treat it as config to preserve, not a template to genericize.
 
+## Standing rules
+
+1. **Repo boundary.** sekkeizu describes WHERE things run and HOW they are configured: hosts,
+   features, services, network, secrets, infrastructure. Application code (in-house components,
+   the site's content, editor config like kanna) lives in its own repo, exposes a flake and is
+   consumed here as a pinned input.
+2. **Trust levels (planned, not done yet).** A publishable common base, `kiso` (nix, shell, git,
+   ssh, tmux, tooling), will be extracted with a flakeModule; sensitive services will move to a
+   separate private repo; a work PC will import only the base. Keep every generic feature movable:
+   no reference to the homelab (host names, tailnet, IPs, domains, services) inside it.
+3. **Destructive tests.** First check that a recent backup exists (`~/Backups/ishizue/`,
+   `/persist/backups/` on ishizue). Leave no temporary file behind (`.bak`, copies, decrypted
+   secrets). Report any operation that touched real data, even when it turned out harmless.
+4. **Naming.** Components and repos take their names from Japanese construction: tools and
+   building elements (jiban the bedrock, ishizue the foundation stone, kanna the plane, kiso the
+   base…).
+
 ## kanna (the Neovim config)
 
 Neovim and its Lua config live in their own repo and flake, `kanna` (`github:scorsi/kanna`),
