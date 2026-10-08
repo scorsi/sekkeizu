@@ -108,8 +108,9 @@ Anything installed by hand outside the declared paths is gone at the next reboot
 
 Day to day:
 
-- Deploy: `nix run .#deploy-ishizue` (nixos-rebuild, built inside the VM). Each remote `sudo` asks
-  for a touch on the FIDO2 key (pam_rssh over the forwarded agent).
+- Deploy: `nix run .#deploy-ishizue` (nixos-rebuild, built inside the VM). Connects as `root@` (key-only,
+  FIDO2 keys, allowed only from the Mac's NAT bridge and Tailscale), one shared SSH connection:
+  one touch per deploy. Interactive `sudo` in the VM still uses pam_rssh (a touch each).
 - Rollback: `nix run .#deploy-ishizue -- --rollback`, or for one boot only,
   `sudo bootctl set-oneshot nixos-generation-<n>.conf` in the VM, then reboot.
 - Restart: `launchctl kickstart -k gui/$(id -u)/org.nixos.vm-ishizue`. A clean poweroff of the

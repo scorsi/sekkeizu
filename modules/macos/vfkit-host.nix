@@ -172,11 +172,11 @@ in
               set -euo pipefail
               repo=$(${pkgs.git}/bin/git rev-parse --show-toplevel)
               # <vm>.local (mDNS over the NAT bridge) rather than Tailscale, which hairpins through
-              # the router from the Mac. Built inside the VM; each remote sudo is one FIDO2 touch
-              # (pam_rssh over the forwarded agent, see modules/nixos/server.nix).
+              # the router from the Mac. Built inside the VM. Same root@ user for build and target so
+              # both share one ControlMaster connection (modules/home/ssh.nix): one FIDO2 touch.
               exec ${pkgs.nixos-rebuild}/bin/nixos-rebuild switch \
                 --flake "$repo#${name}" \
-                --build-host ${name}.local --target-host ${name}.local --sudo "$@"
+                --build-host root@${name}.local --target-host root@${name}.local "$@"
             ''
           );
         };
