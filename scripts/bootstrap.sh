@@ -173,7 +173,7 @@ log "évaluation de ${HOST}"
 configured_user="$("$NIX_BIN" "${NIX_FLAGS[@]}" eval --raw "${flake}.config.system.primaryUser")" ||
   die "évaluation impossible : host '${HOST}' inexistant ou erreur Nix (voir ci-dessus)"
 [[ "$configured_user" == "$(whoami)" ]] ||
-  die "sekkeizu.owner.name = '${configured_user}' mais tu es '$(whoami)' : corrige modules/meta/owner.nix"
+  die "kiso.owner.name = '${configured_user}' mais tu es '$(whoami)' : corrige modules/meta/owner.nix"
 
 # ─── 5. /etc files nix-darwin refuses to overwrite ───────────────────
 # nix-darwin aborts if it finds these files unmanaged by it: rename them once.
