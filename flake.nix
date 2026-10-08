@@ -37,6 +37,9 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Declarative state on an ephemeral root (systemd mounts/tmpfiles, no activation script).
+    preservation.url = "github:nix-community/preservation";
   };
 
   # Everything else lives in ./modules: this file should barely ever change.
