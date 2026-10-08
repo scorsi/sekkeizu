@@ -40,6 +40,10 @@ in
         done
         curl -fsS ${api}/healthz >/dev/null
       '';
+      afterStateDir = {
+        requires = [ "forgejo-state-dir.service" ];
+        after = [ "forgejo-state-dir.service" ];
+      };
       secretNames = [
         "forgejo-admin-password"
       ]
@@ -87,6 +91,26 @@ in
         }
       ];
 
+      # The state directory is a bind mount from /persist. At a switch the mount unit is new, and
+      # tmpfiles may have created custom/ underneath it, so the sandbox (ReadWritePaths) would not
+      # find it (and the sandbox of the unit itself cannot run the fix): a separate unit waits for the mount and
+      # creates the tree on top of it.
+      systemd.services.forgejo-secrets = afterStateDir;
+      systemd.services.forgejo = afterStateDir;
+      systemd.services.forgejo-state-dir = {
+        description = "Forgejo: state directory tree, on top of its mount";
+        unitConfig.RequiresMountsFor = [ cfg.stateDir ];
+        before = [
+          "forgejo-secrets.service"
+          "forgejo.service"
+        ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = "${pkgs.systemd}/bin/systemd-tmpfiles --create --prefix=${cfg.stateDir}";
+        };
+      };
+
       services.caddy.virtualHosts.${web.url}.extraConfig = ''
         reverse_proxy 127.0.0.1:${toString internalPort}
       '';
@@ -96,7 +120,10 @@ in
 
       systemd.services.forgejo-admin = {
         description = "Forgejo: owner account and SSH keys";
-        wantedBy = [ "multi-user.target" ];
+        wantedBy = [
+          "multi-user.target"
+          "forgejo.service"
+        ];
         after = [ "forgejo.service" ];
         # Runs again whenever Forgejo restarts (new password in sops, new key in owner.nix).
         partOf = [ "forgejo.service" ];
@@ -147,7 +174,10 @@ in
 
       systemd.services.forgejo-runners = {
         description = "Forgejo: pre-register the Actions runners";
-        wantedBy = [ "multi-user.target" ];
+        wantedBy = [
+          "multi-user.target"
+          "forgejo.service"
+        ];
         after = [ "forgejo.service" ];
         partOf = [ "forgejo.service" ];
         environment = env;

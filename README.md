@@ -172,10 +172,7 @@ that file (and swapping Tailscale certificates for ACME in Caddy).
 1. **Tailscale admin console → DNS → HTTPS Certificates**: enable. Without it Caddy cannot get
    its certificate (`tailscale cert` answers "does not support getting TLS certs"); it retries by
    itself every minute once enabled.
-2. **Deploy ishizue**: `nix run .#deploy-ishizue`. On the very first deploy the persistent
-   `/var/lib/forgejo` is mounted after tmpfiles ran, so `forgejo-secrets` can fail: on ishizue,
-   `sudo systemd-tmpfiles --create && sudo systemctl restart forgejo-secrets forgejo forgejo-admin forgejo-runners`.
-   A reboot also fixes it.
+2. **Deploy ishizue**: `nix run .#deploy-ishizue`.
 3. **Switch jiban**: `nix run .#switch` (creates the `_forgejo-runner` account and the daemon).
    Check in Forgejo → Site administration → Actions → Runners that `ishizue` and `jiban` are idle.
 4. **Log in**: user = `owner.name`, password:
