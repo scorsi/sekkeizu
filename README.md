@@ -35,16 +35,49 @@ Adding a feature never requires touching an existing file.
 nix run .#switch   # rebuild + diff against the current generation (sudo prompt included)
 nix run .#check     # nix flake check
 nix run .#fmt       # nix fmt (nixfmt-tree)
+nix run .#rekey-host <host>  # new SSH host key (reinstall): update .sops.yaml + re-encrypt secrets/<host>/
 nix develop          # shell with nixfmt, statix, deadnix, shellcheck, just, nvd
 ```
 
-First-time setup on a brand-new Mac:
+## Reinstalling a Mac from scratch
+
+Steps in execution order. Everything not listed here is declarative and comes back with the
+switch. Repo and nvim submodule are private (SSH over FIDO2 key), so the bootstrap script cannot be
+fetched with `curl` from GitHub: bring `scripts/bootstrap.sh` over (AirDrop, `scp`, USB stick).
+
+1. **Before wiping**: everything pushed (`sekkeizu` and `files/nvim`), and the sops admin key
+   (`~/.config/sops/age/keys.txt`) is in the password manager.
+2. **Erase All Content and Settings**, then in Setup Assistant: create the account with the name set
+   in `modules/meta/owner.nix`, and **turn FileVault off** when the assistant offers it (with
+   FileVault on, macOS ignores `/etc/kcpassword` and the headless boot stops at the unlock screen).
+3. **Bootstrap**, with the first FIDO2 key plugged in:
+   ```bash
+   bash bootstrap.sh --repo git@github.com:scorsi/sekkeizu.git
+   ```
+   It installs the Command Line Tools and Nix, pulls the key handle (`ssh-keygen -K`: PIN, then touch),
+   clones with submodules and runs the first switch. That switch can complain that sops cannot
+   decrypt `kcpassword`: expected, the host key is new (step 8 fixes it).
+4. **One `ssh-keygen -K` per additional key**: plug the next FIDO2 key, then
+   `cd ~/.ssh && ssh-keygen -K` (the bootstrap only handled the first one).
+5. **Screen Sharing**: System Settings → General → Sharing → Screen Sharing on (not declarative).
+   Remote Login (sshd) is declared.
+6. **Tailscale**: `sudo tailscale up`, then in the admin console disable key expiry for the machine.
+7. **Admin age key**: restore `~/.config/sops/age/keys.txt` from the password manager (on the machine
+   where step 8 runs; `jiban` itself is fine).
+8. **Re-key**: the reinstall generated a new SSH host key, so the old age recipient is dead.
+   `nix run .#rekey-host jiban`, then commit and push `.sops.yaml` and `secrets/jiban/`
+   (pull them on jiban if it ran elsewhere).
+9. **Second switch**: `nix run .#switch` (or `drs`): the secrets now decrypt and `/etc/kcpassword` is installed.
+10. **Reboot** and check: auto-login works, the screen is locked (password asked), `tailscale status`
+    and `ssh jiban` still answer.
+
+## Bootstrap
 
 ```bash
-curl -fsSL <raw-url>/scripts/bootstrap.sh | bash -s -- --repo git@github.com:<you>/sekkeizu.git
+./scripts/bootstrap.sh --repo git@github.com:<you>/sekkeizu.git   # see --help for the flags
 ```
 
-See `scripts/bootstrap.sh --help` for the available flags.
+Idempotent: on an already configured machine it skips what is done and ends with a switch.
 
 ## Identity
 

@@ -9,7 +9,7 @@
 #   ./scripts/bootstrap.sh --host jiban --dir ~/sekkeizu --repo git@github.com:<you>/sekkeizu.git
 #   curl -fsSL <raw url>/scripts/bootstrap.sh | bash -s -- --repo <url>
 #
-# Steps: Command Line Tools → Nix (official installer) → repo → submodules → checks
+# Steps: Command Line Tools → Nix (official installer) → repo (nixpkgs ssh/git, FIDO2 key) → submodules → checks
 #          → move aside /etc files that nix-darwin refuses to overwrite → first switch.
 
 set -euo pipefail
@@ -96,11 +96,41 @@ fi
   . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 
 # ─── 3. The repo ──────────────────────────────────────────────────────
+# Private repo on a brand-new Mac: the system ssh has no FIDO2 support (and Apple's git
+# would use it), so clone with nixpkgs' openssh + git. The SSH key lives on the hardware
+# key as a resident credential: `ssh-keygen -K` pulls its handle into ~/.ssh.
+ssh_cmd="ssh -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes"
+
+with_nix_ssh() {
+  "$NIX_BIN" "${NIX_FLAGS[@]}" shell nixpkgs#openssh nixpkgs#git \
+    --command env GIT_SSH_COMMAND="$ssh_cmd" "$@"
+}
+
+# FIDO2 key handles in ~/.ssh (as written by `ssh-keygen -K`: id_ed25519_sk_rk…), private part only.
+fido_handles() {
+  local f
+  for f in "${HOME}"/.ssh/id_*_sk*; do
+    [[ -f "$f" && "$f" != *.pub ]] && printf '%s\n' "$f"
+  done
+  return 0
+}
+
+if [[ "$REPO" == git@* || "$REPO" == ssh://* ]]; then
+  if [[ -z "$(fido_handles)" ]]; then
+    log "clé FIDO2 : aucun handle dans ~/.ssh, récupération (branche la clé, PIN puis touch)"
+    mkdir -p "${HOME}/.ssh" && chmod 700 "${HOME}/.ssh"
+    (cd "${HOME}/.ssh" && with_nix_ssh ssh-keygen -K </dev/tty)
+  fi
+  while IFS= read -r handle; do
+    ssh_cmd="${ssh_cmd} -i ${handle}"
+  done < <(fido_handles)
+fi
+
 if [[ -f "${DIR}/flake.nix" ]]; then
   log "repo : présent dans ${DIR}"
 elif [[ -n "$REPO" ]]; then
-  log "repo : clonage de ${REPO}"
-  git clone "$REPO" "$DIR"
+  log "repo : clonage de ${REPO} (avec submodules)"
+  with_nix_ssh git clone --recurse-submodules "$REPO" "$DIR"
 else
   die "pas de flake dans ${DIR} : passe --repo <url> ou copie le repo (ex. scp -r depuis le laptop)"
 fi
@@ -108,7 +138,7 @@ fi
 # files/nvim is a git submodule (separate Neovim config): skip this step and
 # ~/.config/nvim would point to an empty directory. Idempotent, safe to rerun.
 log "submodules : initialisation (nvim)"
-git -C "$DIR" submodule update --init --recursive
+with_nix_ssh git -C "$DIR" submodule update --init --recursive
 
 # Some configs (Neovim) point straight at ~/sekkeizu (option sekkeizu.repoDir).
 [[ "$DIR" == "${HOME}/sekkeizu" ]] ||
