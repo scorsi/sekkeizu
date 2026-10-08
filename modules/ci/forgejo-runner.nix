@@ -221,6 +221,8 @@ in
               pkgs.coreutils
               pkgs.gitMinimal
               pkgs.nodejs
+              # The daemon's own Nix: jobs build through it as an ordinary user (e.g. sekkeizu's CI).
+              config.nix.package
             ]
           }:/usr/bin:/bin:/usr/sbin:/sbin";
         };

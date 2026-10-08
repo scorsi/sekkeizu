@@ -23,6 +23,7 @@ in
       nixos.server
       nixos.caddy
       nixos.forgejo
+      nixos.forgejo-mirrors
       nixos.forgejo-runner
       nixos.site
       nixos.backup-source
