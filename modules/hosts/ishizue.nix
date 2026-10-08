@@ -13,6 +13,7 @@ in
     modules = [
       # ─── System features ──────────────────────────────────────────────
       nixos.vfkit-guest
+      nixos.impermanence
       nixos.nix
       nixos.owner
       nixos.home-manager

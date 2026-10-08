@@ -94,6 +94,18 @@ State, in `~/.local/state/vm/ishizue/`:
 - `console.log` (guest console) and `vfkit.log`, rotated at each start (3 previous kept as `.1`-`.3`):
   vfkit never reopens them, so newsyslog couldn't rotate them while the VM runs.
 
+### Ephemeral root
+
+`/` is a 1 GB tmpfs, rebuilt empty at every boot. The disk (ext4, label `nixos`) is mounted on
+`/persist` and carries `/nix` (bind of `/persist/nix`) and everything declared to survive. Each
+feature adds its own state to `sekkeizu.persist.directories` / `.files` (tailscale keeps
+`/var/lib/tailscale`…); `modules/nixos/impermanence.nix` aggregates them (via
+[preservation](https://github.com/nix-community/preservation)) and keeps the machine-id, the
+uid/gid map, `/var/lib/systemd`, `/var/log` and the owner's whole home. The SSH host key lives
+directly at `/persist/etc/ssh/ssh_host_ed25519_key` (sops decrypts before the bind mounts exist).
+
+Anything installed by hand outside the declared paths is gone at the next reboot: declare it.
+
 Day to day:
 
 - Deploy: `nix run .#deploy-ishizue` (nixos-rebuild, built inside the VM). Each remote `sudo` asks
@@ -114,6 +126,11 @@ Day to day:
    one: `ssh-keygen -R ishizue.local; ssh-keygen -R ishizue`.
 4. **Tailscale**: `ssh ishizue.local` (touch), `sudo tailscale up` (touch), then disable key expiry
    for ishizue in the admin console. `tailscale netcheck` should say `UDP: true`.
+   *Keeping the identity of the previous install* (no re-key, same Tailscale node): before
+   `install-ishizue --force`, fetch `/etc/ssh/ssh_host_ed25519_key{,.pub}` (or the `/persist` copy
+   on an already impermanent install) and `/var/lib/tailscale` from the old VM to jiban. After the
+   first boot of the new one, `sudo`-copy them to `/persist/etc/ssh/` (mode 600/644) and
+   `/persist/var/lib/tailscale/`, then `sudo reboot`; skip steps 3 (known_hosts) and 5.
 5. **Re-key**: `nix run .#rekey-host ishizue` (new age recipient in `.sops.yaml`, re-encrypts
    `secrets/ishizue/`). Commit and push.
 6. **Deploy**: `nix run .#deploy-ishizue`, built inside the VM.

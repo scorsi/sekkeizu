@@ -31,7 +31,8 @@
 
       # The image is built minimal, then enlarged on the Mac (sparse file) by install-<vm>.
       boot.growPartition = true;
-      fileSystems."/" = {
+      # mkDefault: the impermanence feature moves this disk to /persist and puts a tmpfs on /.
+      fileSystems."/" = lib.mkDefault {
         device = "/dev/disk/by-label/nixos";
         fsType = "ext4";
         autoResize = true;
