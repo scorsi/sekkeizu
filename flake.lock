@@ -176,6 +176,7 @@
         "preservation": "preservation",
         "scorsi-kanna": "scorsi-kanna",
         "scorsi-kiso": "scorsi-kiso",
+        "scorsi-sekkeizu-private": "scorsi-sekkeizu-private",
         "sops-nix": "sops-nix"
       }
     },
@@ -241,6 +242,32 @@
       "original": {
         "type": "git",
         "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kiso.git"
+      }
+    },
+    "scorsi-sekkeizu-private": {
+      "inputs": {
+        "flake-parts": [
+          "flake-parts"
+        ],
+        "import-tree": [
+          "import-tree"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791481977,
+        "narHash": "sha256-sEL9NmG5u8i52Mr5lh4DFzzUQ62eUOJ00orRy7rfB4o=",
+        "ref": "refs/heads/main",
+        "rev": "47e5b0a61b87aa4f9b597b3df97f8f5d1ed8421a",
+        "revCount": 1,
+        "type": "git",
+        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/sekkeizu-private.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/sekkeizu-private.git"
       }
     },
     "sops-nix": {

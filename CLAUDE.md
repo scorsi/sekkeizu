@@ -31,8 +31,9 @@ repo is and how it's laid out.
    consumed here as a pinned input.
 2. **Trust levels.** The publishable common base is `kiso` (`github:scorsi/kiso`, public, a
    flakeModule: nix, shell, git, ssh, tmux, tooling, options `kiso.*`), developed in
-   `~/repositories/kiso`. Planned: sensitive services move to a separate private repo; a work PC
-   imports only kiso. Keep every generic feature movable: no reference to the homelab (host names,
+   `~/repositories/kiso`. Sensitive services, values and their secrets go to the private repo
+   `sekkeizu-private` (input `scorsi-sekkeizu-private`, `~/repositories/sekkeizu-private`, its own
+   `.sops.yaml`); a work PC imports only kiso. Keep every generic feature movable: no reference to the homelab (host names,
    tailnet, IPs, domains, services) inside it — and nothing of the sort ever goes into kiso.
 3. **Destructive tests.** First check that a recent backup exists (`~/Backups/ishizue/`,
    `/persist/backups/` on ishizue). Leave no temporary file behind (`.bak`, copies, decrypted

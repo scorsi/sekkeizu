@@ -7,7 +7,9 @@ under `modules/`, and contributes to as many of `darwin` / `nixos` / `homeManage
 The generic part (options `kiso.*`, shell, git, ssh, tmux, Nix itself, home-manager wiring, the
 flake plumbing) is [kiso](https://github.com/scorsi/kiso), a public flake-parts module imported in
 `flake.nix`: hosts use its features by name like their own (`darwin.fish`, `homeManager.git`…).
-This repo keeps the machines, the services, the network, the secrets and the values.
+This repo keeps the machines, the services, the network, the secrets and the values; what must
+not be public goes to `sekkeizu-private` (private repo, input `scorsi-sekkeizu-private`, a
+flake-parts module whose files behave like the ones under `modules/`, with its own secrets).
 
 ## Hosts
 
@@ -199,13 +201,13 @@ that file (and swapping Tailscale certificates for ACME in Caddy).
 
 Test the macOS runner with a workflow containing `runs-on: macos` and `run: sw_vers`.
 
-### Home of sekkeizu, kanna and kiso
+### Home of the repositories
 
-sekkeizu, kanna and kiso live on Forgejo (`origin`) and are push-mirrored to GitHub (`github` remote, the
+sekkeizu, sekkeizu-private, kanna and kiso live on Forgejo (`origin`) and are push-mirrored to GitHub (`github` remote, the
 fallback) at every commit: `modules/nixos/forgejo-mirrors.nix`, a oneshot that sets the mirrors
 through the API.
 
-- **Inputs come from Forgejo**: `scorsi-kiso` and `scorsi-kanna` are `git+ssh` URLs on Forgejo
+- **Inputs come from Forgejo**: the `scorsi-*` inputs are `git+ssh` URLs on Forgejo
   (LAN, no dependence on GitHub). GitHub is the recovery path, for a fresh install or when Forgejo
   is down: `nu scripts/via-github.nu <command>` (e.g. `nix run .#switch`) rewrites the Forgejo URLs
   to the mirrors through git's environment; Nix still checks the revs and hashes of `flake.lock`
@@ -218,7 +220,7 @@ through the API.
 - **`switch` as root**: kiso's `switch` fetches the inputs as the user (SSH agent, a touch) before
   `sudo darwin-rebuild`, which then finds them in the store.
 
-- **Mirror token**: fine-grained GitHub token, only `sekkeizu`, `kanna` and `kiso`, *Contents: read and
+- **Mirror token**: fine-grained GitHub token, only `sekkeizu`, `sekkeizu-private`, `kanna` and `kiso`, *Contents: read and
   write*, in `secrets/ishizue/secrets.yaml` (`forgejo-github-mirror-token`). Its expiry date is
   declared in `forgejo-mirrors.nix` (`sekkeizu.expiringSecrets`): jiban notifies daily and every
   switch warns from 30 days before. Renewing: new token, `sops edit`, new date, deploy (the oneshot
