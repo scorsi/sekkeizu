@@ -25,7 +25,7 @@ in
       darwin.forgejo-runner
       darwin.backup-pull
       darwin.secret-reminders
-      # Only needed to build a VM image (`nix run .#install-<vm>`): QEMU VM, 3 GB RAM, 20 GB disk.
+      # Only needed to build a VM image (`nix run .#install-<vm>`): QEMU VM, 3 GB RAM, 40 GB disk.
       # darwin.linux-builder
 
       # ─── User features ────────────────────────────────────────────────
