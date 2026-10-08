@@ -27,6 +27,7 @@
 
   sekkeizu.stateVersions = {
     darwin = 6;
+    nixos = "26.05";
     homeManager = "26.05";
   };
 }

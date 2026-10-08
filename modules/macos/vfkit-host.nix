@@ -1,0 +1,179 @@
+# Runs NixOS VMs (nixosConfigurations built on the vfkit-guest feature) on the Mac with vfkit, one
+# LaunchAgent each in the owner's GUI session: Virtualization.framework is not daemon-safe, and the
+# session opens by itself at boot (modules/macos/autologin.nix).
+#
+# Each VM's state lives in ~/.local/state/vm/<name>:
+#   disk.raw     the VM's disk (sparse), written once by `nix run .#install-<name>`
+#   efi-vars     EFI variable store (boot order, systemd-boot one-shot entries); recreated empty
+#                if missing, the VM still boots through the removable-media path
+#   console.log  guest console (hvc0), vfkit.log: vfkit itself; 3 previous starts kept as .1-.3
+#   vm.sock      vfkit's REST control socket
+# Updates go through the guest's own nixos-rebuild (`nix run .#deploy-<name>`), never through here.
+{ config, lib, ... }:
+let
+  owner = config.sekkeizu.owner.name;
+  home = "/Users/${owner}";
+
+  # Short on purpose: the control socket lives here, and macOS caps socket paths at 104 bytes.
+  stateDir = name: "${home}/.local/state/vm/${name}";
+  agentName = name: "vm-${name}";
+  # nix-darwin's default label for launchd.user.agents.<name>.
+  label = name: "org.nixos.${agentName name}";
+
+  vmOptions = {
+    options = with lib; {
+      vcpu = mkOption {
+        type = types.ints.positive;
+        description = "Virtual CPUs.";
+      };
+      memory = mkOption {
+        type = types.ints.positive;
+        description = "RAM, in MiB. Allocated lazily by Virtualization.framework, but never given back.";
+      };
+      diskSize = mkOption {
+        type = types.ints.positive;
+        description = "Disk size, in GiB (sparse: only what the guest writes takes space). Applied by install-<vm>.";
+      };
+      mac = mkOption {
+        type = types.strMatching "([0-9a-f]{2}:){5}[0-9a-f]{2}";
+        description = "NIC MAC address: macOS's DHCP server keys the VM's NAT address on it.";
+      };
+    };
+  };
+
+  # VMs declared by any darwin host: the apps below are generated for each.
+  declaredVms = lib.foldl' (acc: host: acc // (host.config.sekkeizu.vms or { })) { } (
+    lib.attrValues config.flake.darwinConfigurations
+  );
+in
+{
+  flake.modules.darwin.vfkit-host =
+    { config, pkgs, ... }:
+    {
+      options.sekkeizu.vms = lib.mkOption {
+        type = lib.types.attrsOf (lib.types.submodule vmOptions);
+        default = { };
+        description = "VMs to run on this Mac, named after their nixosConfigurations (built on the vfkit-guest feature).";
+      };
+
+      config.launchd.user.agents = lib.mapAttrs' (
+        name: vm:
+        lib.nameValuePair (agentName name) {
+          serviceConfig = {
+            ProgramArguments = [
+              "${pkgs.writeShellScript "vm-${name}-start" ''
+                set -euo pipefail
+                state=${stateDir name}
+                mkdir -p "$state"
+                cd "$state"
+
+                # vfkit never reopens its files (and Virtualization.framework rewrites the console
+                # from the start), so newsyslog can't rotate them live: rotate at each start instead.
+                for f in vfkit.log console.log; do
+                  for i in 2 1; do [ -f "$f.$i" ] && mv -f "$f.$i" "$f.$((i + 1))"; done
+                  [ -f "$f" ] && mv -f "$f" "$f.1"
+                done
+                exec >>vfkit.log 2>&1
+
+                if [ ! -f disk.raw ]; then
+                  echo "$(date '+%F %T') pas de disque : nix run .#install-${name}"
+                  exit 0
+                fi
+
+                create=
+                [ -e efi-vars ] || create=,create
+                exec ${pkgs.vfkit}/bin/vfkit \
+                  --cpus ${toString vm.vcpu} --memory ${toString vm.memory} \
+                  --bootloader "efi,variable-store=$state/efi-vars$create" \
+                  --device virtio-rng \
+                  --device "virtio-blk,path=$state/disk.raw" \
+                  --device virtio-net,nat,mac=${vm.mac} \
+                  --device "virtio-serial,logFilePath=$state/console.log" \
+                  --restful-uri "unix://$state/vm.sock"
+              ''}"
+            ];
+            RunAtLoad = true;
+            # A clean stop (guest poweroff) stays stopped; a crash is restarted.
+            KeepAlive.SuccessfulExit = false;
+            # Not throttled like a background job: it's a whole machine.
+            ProcessType = "Interactive";
+            # launchd's SIGTERM makes vfkit power the guest off cleanly (a few seconds).
+            ExitTimeOut = 60;
+          };
+        }
+      ) config.sekkeizu.vms;
+    };
+
+  perSystem =
+    { pkgs, system, ... }:
+    lib.optionalAttrs (system == "aarch64-darwin") {
+      apps = lib.concatMapAttrs (name: vm: {
+        "install-${name}" = {
+          type = "app";
+          program = toString (
+            pkgs.writeShellScript "install-${name}" ''
+              set -euo pipefail
+              die() { echo "install-${name}: $*" >&2; exit 1; }
+              repo=$(${pkgs.git}/bin/git rev-parse --show-toplevel)
+              state=${stateDir name}
+              agent=gui/$(id -u)/${label name}
+
+              force=no
+              case "''${1:-}" in
+                "") ;;
+                --force) force=yes ;;
+                *) die "usage : nix run .#install-${name} [-- --force]" ;;
+              esac
+
+              launchctl print "$agent" >/dev/null 2>&1 ||
+                die "agent ${label name} absent : déclare sekkeizu.vms.${name} sur cet hôte, puis switch"
+              if [ -e "$state/disk.raw" ] && [ "$force" = no ]; then
+                die "$state/disk.raw existe déjà. --force l'écrase : toutes les données de la VM sont perdues"
+              fi
+              grep -qs aarch64-linux /etc/nix/machines ||
+                die "aucun builder aarch64-linux : décommente darwin.linux-builder dans modules/hosts/$(/bin/hostname -s).nix, switch, puis relance"
+
+              img=$(nix build "$repo#nixosConfigurations.${name}.config.system.build.vfkitImage" --no-link --print-out-paths)
+
+              if launchctl print "$agent" | grep -q 'state = running'; then
+                echo "Arrêt de ${name}…"
+                launchctl kill SIGTERM "$agent"
+                while launchctl print "$agent" | grep -q 'state = running'; do sleep 1; done
+              fi
+
+              mkdir -p "$state"
+              # The image is fully allocated in the store; copy it sparse, then grow it (sparse too).
+              ${pkgs.coreutils}/bin/cp --sparse=always "$img/nixos.img" "$state/disk.raw.new"
+              chmod u+w "$state/disk.raw.new"
+              ${pkgs.coreutils}/bin/truncate -s ${toString vm.diskSize}G "$state/disk.raw.new"
+              mv -f "$state/disk.raw.new" "$state/disk.raw"
+              # Boot entries of the previous disk mean nothing for this one.
+              rm -f "$state/efi-vars"
+              # Several GB, and rebuilt on demand anyway.
+              nix store delete "$img" >/dev/null 2>&1 || true
+
+              launchctl kickstart "$agent"
+              echo "${name} installé et démarré (premier boot : partition agrandie, nouvelle clé hôte SSH)."
+              echo "Suite : README, section ${name}."
+            ''
+          );
+        };
+
+        "deploy-${name}" = {
+          type = "app";
+          program = toString (
+            pkgs.writeShellScript "deploy-${name}" ''
+              set -euo pipefail
+              repo=$(${pkgs.git}/bin/git rev-parse --show-toplevel)
+              # <vm>.local (mDNS over the NAT bridge) rather than Tailscale, which hairpins through
+              # the router from the Mac. Built inside the VM; each remote sudo is one FIDO2 touch
+              # (pam_rssh over the forwarded agent, see modules/nixos/server.nix).
+              exec ${pkgs.nixos-rebuild}/bin/nixos-rebuild switch \
+                --flake "$repo#${name}" \
+                --build-host ${name}.local --target-host ${name}.local --sudo "$@"
+            ''
+          );
+        };
+      }) declaredVms;
+    };
+}

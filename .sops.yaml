@@ -1,8 +1,10 @@
 # Recipients per host: the host's own key (decrypts at activation) + the admin key (edits from the dev machine).
 # jiban: `ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub`
+# ishizue: `ssh-keyscan -t ed25519 ishizue | cut -d' ' -f2,3 | ssh-to-age` (key on its /var volume)
 # admin: `age-keygen -o ~/.config/sops/age/keys.txt` (backed up in the password manager)
 keys:
   - &admin age1vqcwxk24dl4wht0d63tcrd90uwygek2rtaw2p4klz2wkz2d8wpsqc57tyf
+  - &ishizue age13v3z9aq5pmxjyllxcljw3t0mag6afccgf3dgwm65xeug35kkp4fs83mves
   - &jiban age1huncufpm34n6xxjk97fp8dpn5uy66d0ylwzhmrvq0lkz78avwplq59t67f
 creation_rules:
   - path_regex: secrets/jiban/.*
@@ -10,3 +12,8 @@ creation_rules:
       - age:
           - *admin
           - *jiban
+  - path_regex: secrets/ishizue/.*
+    key_groups:
+      - age:
+          - *admin
+          - *ishizue

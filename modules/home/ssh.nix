@@ -28,8 +28,16 @@
             LogLevel = "ERROR";
           };
           # sekkeizu machines: forwarded agent to sign commits from the server.
-          "jiban jiban.local ishizue" = {
+          "jiban jiban.local ishizue ishizue.local" = {
             ForwardAgent = true;
+          };
+          # A deploy opens several connections (probe, switch, then the user's own `ssh ishizue`):
+          # one master connection means a single FIDO2 touch. %C is a hash, keeping the socket
+          # path under macOS's 104-byte limit.
+          "ishizue ishizue.local" = {
+            ControlMaster = "auto";
+            ControlPath = "~/.ssh/cm-%C";
+            ControlPersist = "10m";
           };
         };
       };
