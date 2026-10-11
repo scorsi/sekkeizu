@@ -3,6 +3,16 @@
 {
   flake.modules.darwin.claude-code = {
     nixpkgs.config.allowUnfreePredicate = pkg: (pkg.pname or "") == "claude-code";
+    # nixpkgs packaging lags upstream releases by weeks; override just the binary manifest
+    # (same mechanism nixpkgs' own update.sh uses) to track current claude-code. Drop this
+    # once nixpkgs' pinned manifest.json catches up to claude-code-manifest.json's version.
+    nixpkgs.overlays = [
+      (final: prev: {
+        claude-code = prev.claude-code.override {
+          manifest = prev.lib.importJSON ./claude-code-manifest.json;
+        };
+      })
+    ];
   };
 
   flake.modules.homeManager.claude-code =
