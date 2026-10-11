@@ -5,7 +5,11 @@
     nixpkgs.config.allowUnfreePredicate = pkg: (pkg.pname or "") == "claude-code";
   };
 
-  flake.modules.homeManager.claude-code = {
-    programs.claude-code.enable = true;
-  };
+  flake.modules.homeManager.claude-code =
+    { pkgs, ... }:
+    {
+      programs.claude-code.enable = true;
+      # Plugin hooks (e.g. ponytail's UserPromptSubmit) shell out to `node`.
+      home.packages = [ pkgs.nodejs ];
+    };
 }
