@@ -187,11 +187,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791747691,
-        "narHash": "sha256-QL6avOOQaT1jCv96qJPmQu8mKvTID++Unx2aNubWcqQ=",
+        "lastModified": 1791831417,
+        "narHash": "sha256-MffWt1nw5TmrXpP+/L9XElV4W4h7ZpiDcBx8ldqd+bA=",
         "ref": "refs/heads/main",
-        "rev": "8eea6b73d85e8657ea4cd3a538ea63c324e5b99e",
-        "revCount": 16,
+        "rev": "b2460fba5f8af3256d4a41166ba8ec2a29840b65",
+        "revCount": 17,
         "type": "git",
         "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kanna.git"
       },
