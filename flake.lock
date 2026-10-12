@@ -231,11 +231,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791832205,
-        "narHash": "sha256-mXsEYtskYl6HDPhSMKyYOi3XAePX2xPMPYS9MeWYG8k=",
+        "lastModified": 1791832920,
+        "narHash": "sha256-akQ8F924z5kdoeqdtEa9d2aYehL4R20Imcf5R70JARY=",
         "ref": "refs/heads/main",
-        "rev": "470527314aabc068dc1824030f5d3fbb78e6c910",
-        "revCount": 5,
+        "rev": "75f5fda10333e906f9362eb65fb8e823811d6179",
+        "revCount": 6,
         "type": "git",
         "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kiso.git"
       },
