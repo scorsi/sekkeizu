@@ -46,7 +46,14 @@
         };
         enabledPlugins = {
           "ponytail@ponytail" = true;
+        }
+        # The LSP plugins only wire Claude Code to servers kanna's withDevTools puts on PATH;
+        # keep this list in step with kanna/nix/dev-tools.nix. Guarded for hosts without kanna.
+        // lib.optionalAttrs (config.programs ? kanna && config.programs.kanna.withDevTools) {
           "rust-analyzer-lsp@claude-plugins-official" = true;
+          "typescript-lsp@claude-plugins-official" = true;
+          "gopls-lsp@claude-plugins-official" = true;
+          "lua-lsp@claude-plugins-official" = true;
         };
         statusLine = {
           type = "command";
