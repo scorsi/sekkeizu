@@ -16,7 +16,7 @@ repo is and how it's laid out.
 - **Nix formatting**: run `nix fmt` (aliased via `nix run .#fmt`) before considering Nix changes
   done. `nix flake check` (or `nix run .#check`) builds every darwin host on macOS — run it after
   any change under `modules/`.
-- `modules/meta/owner.nix` (and `private/keys.nix` for the SSH public keys) holds real identity data for
+- `modules/meta/owner.nix` (and `modules-private/meta/keys.nix` for the SSH public keys) holds real identity data for
   this specific user/machine: the values of kiso's options. Treat it as config to preserve, not a
   template to genericize.
 - **Generic features are kiso's.** fish, git, ssh, tmux, Nix settings and the like live in
@@ -31,9 +31,9 @@ repo is and how it's laid out.
    consumed here as a pinned input.
 2. **Trust levels.** The publishable common base is `kiso` (`github:scorsi/kiso`, public, a
    flakeModule: nix, shell, git, ssh, tmux, tooling, options `kiso.*`), developed in
-   `~/repositories/kiso`. Values that must not be public (endpoints, public keys) go to `private/`,
+   `~/repositories/kiso`. Values that must not be public (endpoints, public keys) go to `modules-private/`, laid out like `modules/`,
    secrets to sops under `secrets/`; both trees are git-crypt encrypted (`.gitattributes`, README
-   "Encrypted trees"), and nothing Nix reads from `private/` may be a secret (it lands in the
+   "Encrypted trees"), and nothing Nix reads from `modules-private/` may be a secret (it lands in the
    store). A work PC imports only kiso. Keep every generic feature movable: no reference to the homelab (host names,
    tailnet, IPs, domains, services) inside it — and nothing of the sort ever goes into kiso.
 3. **Destructive tests.** First check that a recent backup exists (`~/Backups/ishizue/`,

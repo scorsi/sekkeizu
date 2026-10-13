@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Refuses a commit that would store an encrypted tree (.gitattributes: secrets/, private/) in clear.
+# Refuses a commit that would store an encrypted tree (.gitattributes: secrets/, modules-private/) in clear.
 # git skips an unconfigured filter without a word: in a clone that was never `git-crypt unlock`ed,
 # a new file there would be committed as is. Checks the index, which holds what git stores, so CI
 # runs it too, before or after unlocking. Enabled per clone: `git config core.hooksPath scripts/hooks`.
@@ -12,5 +12,5 @@ while IFS= read -r -d '' f; do
     echo "en clair dans l'index : $f (git-crypt unlock, puis git rm --cached \"$f\" && git add \"$f\")" >&2
     bad=1
   fi
-done < <(git ls-files -z -- secrets private)
+done < <(git ls-files -z -- secrets modules-private)
 exit "$bad"

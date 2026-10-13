@@ -6,7 +6,7 @@
     fullName = "scorsi";
     email = "8389441+scorsi@users.noreply.github.com";
 
-    # sshKeys, in private/keys.nix (encrypted, see .gitattributes): FIDO2 keys (YubiKey, Thetis),
+    # sshKeys, in modules-private/meta/keys.nix (encrypted, see .gitattributes): FIDO2 keys (YubiKey, Thetis),
     # SSH login to the machines AND commit signing. One key per device, generated with:
     #   ssh-keygen -t ed25519-sk -O resident -C "scorsi@<device>"
     # No -O verify-required: ssh-agent (a LaunchAgent, no terminal) can't prompt

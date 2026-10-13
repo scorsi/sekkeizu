@@ -9,7 +9,7 @@
 # keeps 30 days, logs one line per run with the exit code; a failure also raises a notification.
 # The private key is in sops (secrets/jiban/secrets.yaml, `backup-pull-key`) rather than generated
 # on the Mac: it survives a reinstall through `rekey-host`, so its public key
-# (`sekkeizu.backupPullKey`, private/keys.nix) never changes and ishizue needs no redeploy after
+# (`sekkeizu.backupPullKey`, modules-private/meta/keys.nix) never changes and ishizue needs no redeploy after
 # jiban is rebuilt.
 #
 # Next steps, not implemented: `sekkeizu.backups.dir` is the one tree to ship elsewhere, first to an

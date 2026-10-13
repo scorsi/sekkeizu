@@ -77,10 +77,10 @@
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         inputs.scorsi-kiso.flakeModules.default
-        # private/ is git-crypt encrypted (.gitattributes): values that stay out of the public tree.
+        # modules-private/ is git-crypt encrypted (.gitattributes): values that stay out of the public tree.
         (inputs.import-tree [
           ./modules
-          ./private
+          ./modules-private
         ])
       ];
     };

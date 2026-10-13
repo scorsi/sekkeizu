@@ -8,7 +8,7 @@ The generic part (options `kiso.*`, shell, git, ssh, tmux, Nix itself, home-mana
 flake plumbing) is [kiso](https://github.com/scorsi/kiso), a public flake-parts module imported in
 `flake.nix`: hosts use its features by name like their own (`darwin.fish`, `homeManager.git`…).
 This repo keeps the machines, the services, the network, the secrets and the values; what must
-not be public (where the services live, public keys) sits in `private/`, encrypted in the
+not be public (where the services live, public keys) sits in `modules-private/`, encrypted in the
 repository with git-crypt (see [Encrypted trees](#encrypted-trees)).
 
 ## Hosts
@@ -32,7 +32,7 @@ modules/
   vm/      NixOS guest base for VMs on a Mac (vfkit, EFI)
   flake/   this repo's apps (rekey-host, set-autologin-password); the rest of the plumbing is kiso's
   hosts/   one file per machine: its identity + the features it imports
-private/   git-crypt: where services live (endpoints.nix), public keys (keys.nix); files behave like modules/'s
+modules-private/  git-crypt, laid out like modules/: where services live (meta/endpoints.nix), public keys (meta/keys.nix)
 secrets/   sops files per host, git-crypt on top
 scripts/
   bootstrap.sh   turns a fresh Mac into a working jiban
@@ -145,7 +145,7 @@ Day to day:
 4. **Without `identity.yaml`** (a genuinely new machine): a new SSH host key is generated. Forget
    the old one (`ssh-keygen -R ishizue.local; ssh-keygen -R ishizue`), then `ssh ishizue.local`,
    `sudo tailscale up` (touches), disable key expiry in the admin console, update the Tailscale IP
-   in `private/endpoints.nix`.
+   in `modules-private/meta/endpoints.nix`.
 5. **Re-key** (only after 4): `nix run .#rekey-host ishizue`, commit and push. To keep this new
    identity for the next reinstall, store it in `secrets/ishizue/identity.yaml`
    (`ssh_host_ed25519_key`, `ssh_host_ed25519_key_pub`, `tailscaled_state`: the files under
@@ -166,7 +166,7 @@ One name per machine, `ishizue.<tailnet>.ts.net`, services told apart by port:
 | Site      | `https://ishizue.<tailnet>.ts.net:8443`  | Caddy, static files        |
 | Résumé    | `https://ishizue.<tailnet>.ts.net:8444`  | Caddy, static files        |
 
-Addresses are declared once, in `private/endpoints.nix` (`sekkeizu.services.*`); Caddy,
+Addresses are declared once, in `modules-private/meta/endpoints.nix` (`sekkeizu.services.*`); Caddy,
 Forgejo's `ROOT_URL` and the runners read them from there. Moving to `git.lab.<domain>` means editing
 that file (and swapping Tailscale certificates for ACME in Caddy).
 
@@ -221,7 +221,7 @@ through the API.
   (identical either way: checked). The bootstrap clones sekkeizu from GitHub and fetches the
   inputs that way by itself.
 - **CI reads them** with a read-only deploy key (`forgejo-ci-key` in sops, public half and repo
-  list in `sekkeizu.forgejoCi`, `private/endpoints.nix`), registered on each repo by the
+  list in `sekkeizu.forgejoCi`, `modules-private/meta/endpoints.nix`), registered on each repo by the
   `forgejo-runners` oneshot; Forgejo's SSH host key is pinned there too. A new private flake for
   CI = add it to `forgejoCi.readRepos` and deploy.
 - **`switch` as root**: kiso's `switch` fetches the inputs as the user (SSH agent, a touch) before
@@ -240,9 +240,9 @@ through the API.
 
 ## Encrypted trees
 
-`secrets/` and `private/` are encrypted by [git-crypt](https://github.com/AGWA/git-crypt)
+`secrets/` and `modules-private/` are encrypted by [git-crypt](https://github.com/AGWA/git-crypt)
 (`.gitattributes`): plain in an unlocked clone, ciphertext in the repository and on GitHub. Secrets
-stay sops files underneath: whatever Nix reads ends up in the world-readable store, so `private/`
+stay sops files underneath: whatever Nix reads ends up in the world-readable store, so `modules-private/`
 holds values only, never a secret.
 
 - **Key**: one symmetric key, in the password manager (base64) and in sops for the runners
@@ -253,7 +253,7 @@ holds values only, never a secret.
 - **The leak to avoid**: in a clone that was never unlocked, git skips the filter and would commit a
   new file of these trees in clear. `scripts/hooks/pre-commit` refuses that commit; CI runs it
   too, but after the push (and the GitHub mirror), so the hook is what counts.
-- A locked clone does not evaluate: the modules of `private/` are ciphertext.
+- A locked clone does not evaluate: the modules of `modules-private/` are ciphertext.
 
 ## Bootstrap
 

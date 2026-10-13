@@ -158,7 +158,7 @@ for name in kanna kiso; do
   fi
 done
 
-# secrets/ and private/ are git-crypt encrypted (.gitattributes): unlock before anything evaluates
+# secrets/ and modules-private/ are git-crypt encrypted (.gitattributes): unlock before anything evaluates
 # the flake. The filters call git-crypt by name, not by this store path, so a GC can't break them
 # (the home profile has it after the switch); the hook refuses to commit them in clear.
 git_crypt_bin="$("$NIX_BIN" "${NIX_FLAGS[@]}" build --no-link --print-out-paths nixpkgs#git-crypt)/bin"
@@ -167,7 +167,7 @@ if git -C "$DIR" config --get filter.git-crypt.smudge >/dev/null; then
   log "git-crypt : déjà déverrouillé"
 else
   [[ -n "$GIT_CRYPT_KEY" ]] ||
-    die "secrets/ et private/ sont chiffrés : passe --git-crypt-key <fichier> (gestionnaire de mots de passe, base64 -d)"
+    die "secrets/ et modules-private/ sont chiffrés : passe --git-crypt-key <fichier> (gestionnaire de mots de passe, base64 -d)"
   log "git-crypt : déverrouillage"
   (cd "$DIR" && git-crypt unlock "$GIT_CRYPT_KEY")
   git -C "$DIR" config filter.git-crypt.smudge 'git-crypt smudge'
