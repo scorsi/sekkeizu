@@ -11,6 +11,9 @@
 # Forgejo (modules/nixos/forgejo.nix, `forgejo-cli actions register`), and the runner connects with it
 # (`server.connections`); its UUID is the first 16 bytes of the secret, like Forgejo derives it.
 # The secret is `forgejo-runner-<host>` in secrets/<host>/secrets.yaml (jiban's is in ishizue's too).
+#
+# sekkeizu's own CI unlocks its encrypted trees (.gitattributes) with the repo's git-crypt key,
+# `git-crypt-key` (secrets/<host>/git-crypt-key, binary sops), at /run/secrets/git-crypt-key.
 { config, lib, ... }:
 let
   inherit (config.sekkeizu) services forgejoRunners;
@@ -107,6 +110,11 @@ in
 
         sops.secrets."forgejo-runner-${name}".owner = user;
         sops.secrets.forgejo-ci-key.owner = user;
+        sops.secrets.git-crypt-key = {
+          sopsFile = ../../secrets/${name}/git-crypt-key;
+          format = "binary";
+          owner = user;
+        };
 
         systemd.services.forgejo-runner = {
           description = "Forgejo Actions runner";
@@ -123,6 +131,7 @@ in
             pkgs.curl
             pkgs.findutils
             pkgs.gawk
+            pkgs.git-crypt
             pkgs.gitMinimal
             pkgs.gnugrep
             pkgs.gnused
@@ -206,6 +215,11 @@ in
 
       sops.secrets."forgejo-runner-${name}".owner = macUser;
       sops.secrets.forgejo-ci-key.owner = macUser;
+      sops.secrets.git-crypt-key = {
+        sopsFile = ../../secrets/${name}/git-crypt-key;
+        format = "binary";
+        owner = macUser;
+      };
 
       # The runner is a Go binary with its own resolver: it reads /etc/hosts, not MagicDNS.
       system.activationScripts.postActivation.text = lib.mkOrder 1550 ''
@@ -237,6 +251,7 @@ in
             lib.makeBinPath [
               pkgs.bash
               pkgs.coreutils
+              pkgs.git-crypt
               pkgs.gitMinimal
               pkgs.nodejs
               # The daemon's own Nix: jobs build through it as an ordinary user (e.g. sekkeizu's CI).

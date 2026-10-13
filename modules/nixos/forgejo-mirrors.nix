@@ -21,7 +21,6 @@ let
     sekkeizu = "sekkeizu";
     kanna = "kanna";
     kiso = "kiso";
-    sekkeizu-private = "sekkeizu-private";
     rirekisho = "rirekisho";
     genkan = "genkan";
     kekkai = "kekkai";
@@ -31,7 +30,7 @@ in
 {
   sekkeizu.expiringSecrets.github-mirror-token = {
     expires = tokenExpires;
-    renew = "nouveau jeton fine-grained (sekkeizu, sekkeizu-private, kanna, kiso, rirekisho, genkan, kekkai ; Contents RW), sops edit secrets/ishizue/secrets.yaml, date dans forgejo-mirrors.nix, deploy";
+    renew = "nouveau jeton fine-grained (sekkeizu, kanna, kiso, rirekisho, genkan, kekkai ; Contents RW), sops edit secrets/ishizue/secrets.yaml, date dans forgejo-mirrors.nix, deploy";
   };
 
   flake.modules.nixos.forgejo-mirrors =

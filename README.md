@@ -8,8 +8,8 @@ The generic part (options `kiso.*`, shell, git, ssh, tmux, Nix itself, home-mana
 flake plumbing) is [kiso](https://github.com/scorsi/kiso), a public flake-parts module imported in
 `flake.nix`: hosts use its features by name like their own (`darwin.fish`, `homeManager.git`…).
 This repo keeps the machines, the services, the network, the secrets and the values; what must
-not be public goes to `sekkeizu-private` (private repo, input `scorsi-sekkeizu-private`, a
-flake-parts module whose files behave like the ones under `modules/`, with its own secrets).
+not be public (where the services live, public keys) sits in `private/`, encrypted in the
+repository with git-crypt (see [Encrypted trees](#encrypted-trees)).
 
 ## Hosts
 
@@ -22,7 +22,7 @@ flake-parts module whose files behave like the ones under `modules/`, with its o
 
 ```
 modules/
-  meta/    the values of kiso's options (owner.nix), this repo's options (services, expiring secrets) and where services live (endpoints.nix)
+  meta/    the values of kiso's options (owner.nix), this repo's options (services, expiring secrets)
   home/    home-manager features of this repo (ssh-hosts, gh, Claude Code); the generic ones are kiso's
   macos/   nix-darwin-only features (headless server, auto-login, VM host, linux builder, reminders)
   nixos/   NixOS-only features (server, Caddy, Forgejo, site, rirekisho)
@@ -32,8 +32,11 @@ modules/
   vm/      NixOS guest base for VMs on a Mac (vfkit, EFI)
   flake/   this repo's apps (rekey-host, set-autologin-password); the rest of the plumbing is kiso's
   hosts/   one file per machine: its identity + the features it imports
+private/   git-crypt: where services live (endpoints.nix), public keys (keys.nix); files behave like modules/'s
+secrets/   sops files per host, git-crypt on top
 scripts/
   bootstrap.sh   turns a fresh Mac into a working jiban
+  hooks/         pre-commit: refuses an encrypted tree committed in clear
 ```
 
 A feature file declares `flake.modules.<class>.<name>`; a host file just lists the names it wants.
@@ -142,7 +145,7 @@ Day to day:
 4. **Without `identity.yaml`** (a genuinely new machine): a new SSH host key is generated. Forget
    the old one (`ssh-keygen -R ishizue.local; ssh-keygen -R ishizue`), then `ssh ishizue.local`,
    `sudo tailscale up` (touches), disable key expiry in the admin console, update the Tailscale IP
-   in `modules/meta/endpoints.nix`.
+   in `private/endpoints.nix`.
 5. **Re-key** (only after 4): `nix run .#rekey-host ishizue`, commit and push. To keep this new
    identity for the next reinstall, store it in `secrets/ishizue/identity.yaml`
    (`ssh_host_ed25519_key`, `ssh_host_ed25519_key_pub`, `tailscaled_state`: the files under
@@ -163,7 +166,7 @@ One name per machine, `ishizue.<tailnet>.ts.net`, services told apart by port:
 | Site      | `https://ishizue.<tailnet>.ts.net:8443`  | Caddy, static files        |
 | Résumé    | `https://ishizue.<tailnet>.ts.net:8444`  | Caddy, static files        |
 
-Addresses are declared once, in `modules/meta/endpoints.nix` (`sekkeizu.services.*`); Caddy,
+Addresses are declared once, in `private/endpoints.nix` (`sekkeizu.services.*`); Caddy,
 Forgejo's `ROOT_URL` and the runners read them from there. Moving to `git.lab.<domain>` means editing
 that file (and swapping Tailscale certificates for ACME in Caddy).
 
@@ -207,7 +210,7 @@ Test the macOS runner with a workflow containing `runs-on: macos` and `run: sw_v
 
 ### Home of the repositories
 
-sekkeizu, sekkeizu-private, kanna, kiso, rirekisho and genkan live on Forgejo (`origin`) and are push-mirrored to GitHub (`github` remote, the
+sekkeizu, kanna, kiso, rirekisho, genkan and kekkai live on Forgejo (`origin`) and are push-mirrored to GitHub (`github` remote, the
 fallback) at every commit: `modules/nixos/forgejo-mirrors.nix`, a oneshot that sets the mirrors
 through the API.
 
@@ -218,7 +221,7 @@ through the API.
   (identical either way: checked). The bootstrap clones sekkeizu from GitHub and fetches the
   inputs that way by itself.
 - **CI reads them** with a read-only deploy key (`forgejo-ci-key` in sops, public half and repo
-  list in `sekkeizu.forgejoCi`, `modules/meta/endpoints.nix`), registered on each repo by the
+  list in `sekkeizu.forgejoCi`, `private/endpoints.nix`), registered on each repo by the
   `forgejo-runners` oneshot; Forgejo's SSH host key is pinned there too. A new private flake for
   CI = add it to `forgejoCi.readRepos` and deploy.
 - **`switch` as root**: kiso's `switch` fetches the inputs as the user (SSH agent, a touch) before
@@ -233,12 +236,29 @@ through the API.
   Verify, then the `ssh-keygen -Y sign` command it shows, with that key plugged in). Forgejo only
   offers this through the web form; redo it for a new key or a reinstalled Forgejo.
 - **CI**: `.forgejo/workflows/check.yml`, `nix fmt -- --ci` and `nix flake check` on `linux`,
-  `darwinConfigurations.jiban` built on `macos`. Nothing is switched.
+  `darwinConfigurations.jiban` built on `macos`, after `git-crypt unlock`. Nothing is switched.
+
+## Encrypted trees
+
+`secrets/` and `private/` are encrypted by [git-crypt](https://github.com/AGWA/git-crypt)
+(`.gitattributes`): plain in an unlocked clone, ciphertext in the repository and on GitHub. Secrets
+stay sops files underneath: whatever Nix reads ends up in the world-readable store, so `private/`
+holds values only, never a secret.
+
+- **Key**: one symmetric key, in the password manager (base64) and in sops for the runners
+  (`secrets/<host>/git-crypt-key`, `/run/secrets/git-crypt-key`). From an unlocked clone:
+  `sops -d secrets/jiban/git-crypt-key | base64`.
+- **Unlock a clone**: `base64 -d > key`, `git-crypt unlock key`, delete `key`, then
+  `git config core.hooksPath scripts/hooks` (the bootstrap does all of it with `--git-crypt-key`).
+- **The leak to avoid**: in a clone that was never unlocked, git skips the filter and would commit a
+  new file of these trees in clear. `scripts/hooks/pre-commit` refuses that commit; CI runs it
+  too, but after the push (and the GitHub mirror), so the hook is what counts.
+- A locked clone does not evaluate: the modules of `private/` are ciphertext.
 
 ## Bootstrap
 
 ```bash
-./scripts/bootstrap.sh --repo git@github.com:<you>/sekkeizu.git   # see --help for the flags
+./scripts/bootstrap.sh --repo git@github.com:<you>/sekkeizu.git --git-crypt-key <file>   # see --help
 ```
 
 Idempotent: on an already configured machine it skips what is done and ends with a switch.

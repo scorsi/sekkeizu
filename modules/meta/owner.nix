@@ -6,24 +6,14 @@
     fullName = "scorsi";
     email = "8389441+scorsi@users.noreply.github.com";
 
-    # FIDO2 keys (YubiKey, Thetis): SSH login to the machines AND commit signing.
-    # One key per device, generated with:
+    # sshKeys, in private/keys.nix (encrypted, see .gitattributes): FIDO2 keys (YubiKey, Thetis),
+    # SSH login to the machines AND commit signing. One key per device, generated with:
     #   ssh-keygen -t ed25519-sk -O resident -C "scorsi@<device>"
     # No -O verify-required: ssh-agent (a LaunchAgent, no terminal) can't prompt
     # for the PIN at signing time ("agent refused operation"). Touch only is required;
     # the device PIN is still useful for managing resident credentials (fido2-token -L -r/-D).
     # aaguid: FIDO2 model identifier (`fido2-token -I`), used to pick the signing key
     # based on the device actually plugged in (modules/home/git.nix).
-    sshKeys = [
-      {
-        aaguid = "d7781e5de35346aaafe23ca49f13332a";
-        key = "sk-ssh-ed25519@openssh.com REDACTED scorsi@yubikey";
-      }
-      {
-        aaguid = "a3975549b191fd67b8fb017e2917fdb3";
-        key = "sk-ssh-ed25519@openssh.com REDACTED scorsi@thetis";
-      }
-    ];
   };
 
   # Where the bootstrap script clones this repo (`drs` rebuilds from there).

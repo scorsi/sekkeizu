@@ -1,5 +1,6 @@
 # Runs on the two host runners (modules/ci/forgejo-runner.nix): ishizue checks what Linux can build
-# and the formatting, jiban builds its own system. Nothing is switched.
+# and the formatting, jiban builds its own system. Nothing is switched. The encrypted trees
+# (.gitattributes) are checked, then unlocked with the runners' git-crypt key (forgejo-runner.nix).
 on:
   push:
   pull_request:
@@ -9,6 +10,8 @@ jobs:
     runs-on: linux
     steps:
       - uses: https://code.forgejo.org/actions/checkout@v4
+      - run: scripts/hooks/pre-commit
+      - run: git-crypt unlock /run/secrets/git-crypt-key
       - run: nix fmt -- --ci
       # Builds checks.aarch64-linux (ishizue's system) and evaluates the rest.
       - run: nix flake check -L
@@ -17,4 +20,5 @@ jobs:
     runs-on: macos
     steps:
       - uses: https://code.forgejo.org/actions/checkout@v4
+      - run: git-crypt unlock /run/secrets/git-crypt-key
       - run: nix build --no-link -L .#darwinConfigurations.jiban.system

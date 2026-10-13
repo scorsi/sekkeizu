@@ -8,8 +8,9 @@
 # jiban (`backup-pull`): a daily launchd job rsyncs into `sekkeizu.backups.dir`/ishizue/forgejo,
 # keeps 30 days, logs one line per run with the exit code; a failure also raises a notification.
 # The private key is in sops (secrets/jiban/secrets.yaml, `backup-pull-key`) rather than generated
-# on the Mac: it survives a reinstall through `rekey-host`, so the public key below never changes
-# and ishizue needs no redeploy after jiban is rebuilt.
+# on the Mac: it survives a reinstall through `rekey-host`, so its public key
+# (`sekkeizu.backupPullKey`, private/keys.nix) never changes and ishizue needs no redeploy after
+# jiban is rebuilt.
 #
 # Next steps, not implemented: `sekkeizu.backups.dir` is the one tree to ship elsewhere, first to an
 # external disk, then off site with restic (a `backup-offsite` feature reading the same option).
@@ -20,7 +21,7 @@ let
   root = "/persist/backups";
   # jiban's address as seen from the guest, on vfkit's NAT bridge.
   puller = "192.168.64.1";
-  publicKey = "ssh-ed25519 REDACTED backup@jiban";
+  publicKey = config.sekkeizu.backupPullKey;
   keepDays = 30;
 in
 {

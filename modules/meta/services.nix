@@ -63,6 +63,11 @@ in
       description = "Addresses of the lab's services, by name.";
     };
 
+    backupPullKey = mkOption {
+      type = types.str;
+      description = "Public half of jiban's backup-pull key (private half: backup-pull-key in sops), see backup/pull.nix.";
+    };
+
     forgejoCi = {
       readKey = mkOption {
         type = types.str;

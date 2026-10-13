@@ -1,0 +1,4 @@
+# git-crypt: these trees are encrypted in the repository and plain in an unlocked clone (README,
+# "Encrypted trees"). scripts/hooks/pre-commit refuses a commit that would store them in clear.
+secrets/** filter=git-crypt diff=git-crypt
+private/** filter=git-crypt diff=git-crypt

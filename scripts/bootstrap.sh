@@ -6,11 +6,12 @@
 #
 # Usage:
 #   ./scripts/bootstrap.sh                         # host jiban, repo in ~/repositories/sekkeizu
-#   ./scripts/bootstrap.sh --host jiban --dir ~/repositories/sekkeizu --repo git@github.com:<you>/sekkeizu.git
+#   ./scripts/bootstrap.sh --host jiban --dir ~/repositories/sekkeizu --repo git@github.com:<you>/sekkeizu.git \
+#     --git-crypt-key <file>                       # the repo's key (password manager, base64 -d)
 #   curl -fsSL <raw url>/scripts/bootstrap.sh | bash -s -- --repo <url>
 #
-# Steps: Command Line Tools → Nix (official installer) → repo (nixpkgs ssh/git, FIDO2 key) → clones (kanna, kiso, sekkeizu-private)
-#          → flake inputs from the GitHub mirrors → checks
+# Steps: Command Line Tools → Nix (official installer) → repo (nixpkgs ssh/git, FIDO2 key) → clones (kanna, kiso)
+#          → git-crypt unlock → flake inputs from the GitHub mirrors → checks
 #          → move aside /etc files that nix-darwin refuses to overwrite → first switch.
 
 set -euo pipefail
@@ -18,6 +19,7 @@ set -euo pipefail
 HOST="jiban"
 DIR="${HOME}/repositories/sekkeizu"
 REPO=""
+GIT_CRYPT_KEY=""
 NIX_BIN="/nix/var/nix/profiles/default/bin/nix"
 NIX_FLAGS=(--extra-experimental-features "nix-command flakes")
 
@@ -29,7 +31,7 @@ die() {
 }
 
 usage() {
-  sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-0}"
 }
 
@@ -45,6 +47,10 @@ while [[ $# -gt 0 ]]; do
     ;;
   --repo)
     REPO="${2:?--repo attend une valeur}"
+    shift 2
+    ;;
+  --git-crypt-key)
+    GIT_CRYPT_KEY="${2:?--git-crypt-key attend une valeur}"
     shift 2
     ;;
   -h | --help) usage 0 ;;
@@ -137,10 +143,10 @@ else
 fi
 
 # Live clones of the owner's other repos, next to where this one came from (GitHub, FIDO2 key):
-# kanna is what ~/.config/nvim links to on a dev machine (`kanna-dev`, kiso.reposDir); kiso and
-# sekkeizu-private are where their changes are made. The flake inputs don't need them.
+# kanna is what ~/.config/nvim links to on a dev machine (`kanna-dev`, kiso.reposDir); kiso is
+# where its changes are made. The flake inputs don't need them.
 REPOS_DIR="${HOME}/repositories"
-for name in kanna kiso sekkeizu-private; do
+for name in kanna kiso; do
   if [[ -d "${REPOS_DIR}/${name}/.git" ]]; then
     log "${name} : présent dans ${REPOS_DIR}/${name}"
   elif [[ -n "$REPO" ]]; then
@@ -151,6 +157,25 @@ for name in kanna kiso sekkeizu-private; do
     warn "${name} absent de ${REPOS_DIR} (pas de --repo) : à cloner à la main"
   fi
 done
+
+# secrets/ and private/ are git-crypt encrypted (.gitattributes): unlock before anything evaluates
+# the flake. The filters call git-crypt by name, not by this store path, so a GC can't break them
+# (the home profile has it after the switch); the hook refuses to commit them in clear.
+git_crypt_bin="$("$NIX_BIN" "${NIX_FLAGS[@]}" build --no-link --print-out-paths nixpkgs#git-crypt)/bin"
+export PATH="${git_crypt_bin}:${PATH}"
+if git -C "$DIR" config --get filter.git-crypt.smudge >/dev/null; then
+  log "git-crypt : déjà déverrouillé"
+else
+  [[ -n "$GIT_CRYPT_KEY" ]] ||
+    die "secrets/ et private/ sont chiffrés : passe --git-crypt-key <fichier> (gestionnaire de mots de passe, base64 -d)"
+  log "git-crypt : déverrouillage"
+  (cd "$DIR" && git-crypt unlock "$GIT_CRYPT_KEY")
+  git -C "$DIR" config filter.git-crypt.smudge 'git-crypt smudge'
+  git -C "$DIR" config filter.git-crypt.clean 'git-crypt clean'
+  git -C "$DIR" config filter.git-crypt.required true
+  git -C "$DIR" config diff.git-crypt.textconv 'git-crypt diff'
+fi
+git -C "$DIR" config core.hooksPath scripts/hooks
 
 # Nix only sees files tracked by git: an unadded file = "doesn't exist".
 if git -C "$DIR" status --porcelain 2>/dev/null | grep -q '^??'; then
