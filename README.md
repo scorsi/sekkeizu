@@ -207,7 +207,7 @@ Test the macOS runner with a workflow containing `runs-on: macos` and `run: sw_v
 
 ### Home of the repositories
 
-sekkeizu, sekkeizu-private, kanna and kiso live on Forgejo (`origin`) and are push-mirrored to GitHub (`github` remote, the
+sekkeizu, sekkeizu-private, kanna, kiso, rirekisho and genkan live on Forgejo (`origin`) and are push-mirrored to GitHub (`github` remote, the
 fallback) at every commit: `modules/nixos/forgejo-mirrors.nix`, a oneshot that sets the mirrors
 through the API.
 
@@ -224,7 +224,7 @@ through the API.
 - **`switch` as root**: kiso's `switch` fetches the inputs as the user (SSH agent, a touch) before
   `sudo darwin-rebuild`, which then finds them in the store.
 
-- **Mirror token**: fine-grained GitHub token, only `sekkeizu`, `sekkeizu-private`, `kanna` and `kiso`, *Contents: read and
+- **Mirror token**: fine-grained GitHub token, only the repositories listed in `forgejo-mirrors.nix`, *Contents: read and
   write*, in `secrets/ishizue/secrets.yaml` (`forgejo-github-mirror-token`). Its expiry date is
   declared in `forgejo-mirrors.nix` (`sekkeizu.expiringSecrets`): jiban notifies daily and every
   switch warns from 30 days before. Renewing: new token, `sops edit`, new date, deploy (the oneshot
