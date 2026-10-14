@@ -22,14 +22,13 @@
         set-autologin-password = {
           type = "app";
           program = toString (
-            pkgs.writeShellScript "set-autologin-password" ''
-              set -euo pipefail
-              repo=$(${pkgs.git}/bin/git rev-parse --show-toplevel)
-              host=''${1:-$(/bin/hostname -s)}
-              cd "$repo"
-              mkdir -p "secrets/$host"
-              exec ${setAutologinPassword}/bin/set-autologin-password \
-                ${pkgs.sops}/bin/sops "secrets/$host/kcpassword"
+            pkgs.writers.writeNu "set-autologin-password" ''
+              def main [host?: string] {
+                let host = $host | default (^/bin/hostname -s | str trim)
+                cd (^${pkgs.git}/bin/git rev-parse --show-toplevel | str trim)
+                mkdir $"secrets/($host)"
+                ^${setAutologinPassword}/bin/set-autologin-password ${pkgs.sops}/bin/sops $"secrets/($host)/kcpassword"
+              }
             ''
           );
         };
@@ -37,38 +36,44 @@
         rekey-host = {
           type = "app";
           program = toString (
-            pkgs.writeShellScript "rekey-host" ''
-              set -euo pipefail
-              host=''${1:?usage: rekey-host <host>}
-              repo=$(${pkgs.git}/bin/git rev-parse --show-toplevel)
-              cd "$repo"
+            pkgs.writers.writeNu "rekey-host" ''
+              def main [host: string] {
+                cd (^${pkgs.git}/bin/git rev-parse --show-toplevel | str trim)
 
-              # Decrypts before re-encrypting: the FIDO2 identities, a touch per file.
-              export SOPS_AGE_KEY_FILE=''${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}
-              [ -r "$SOPS_AGE_KEY_FILE" ] || { echo "identités age introuvables : $SOPS_AGE_KEY_FILE" >&2; exit 1; }
+                # Decrypts before re-encrypting: the FIDO2 identities, a touch per file.
+                $env.SOPS_AGE_KEY_FILE = $env.SOPS_AGE_KEY_FILE? | default $"($env.HOME)/.config/sops/age/keys.txt"
+                if not ($env.SOPS_AGE_KEY_FILE | path exists) {
+                  error make { msg: $"age identities not found: ($env.SOPS_AGE_KEY_FILE)" }
+                }
 
-              if [ "$host" = "$(/bin/hostname -s)" ]; then
-                pub=$(cut -d' ' -f1,2 /etc/ssh/ssh_host_ed25519_key.pub)
-              else
-                # Recent ssh-keyscan also prints a "# host:22 SSH-2.0-…" comment line on stdout.
-                pub=$(${pkgs.openssh}/bin/ssh-keyscan -t ed25519 "$host" 2>/dev/null | grep -v '^#' | cut -d' ' -f2,3)
-              fi
-              [ -n "$pub" ] || { echo "clé hôte ed25519 introuvable pour $host" >&2; exit 1; }
+                let pub = if $host == (^/bin/hostname -s | str trim) {
+                  open --raw /etc/ssh/ssh_host_ed25519_key.pub | split row " " | first 2 | str join " "
+                } else {
+                  # Recent ssh-keyscan also prints a "# host:22 SSH-2.0-…" comment line on stdout.
+                  ^${pkgs.openssh}/bin/ssh-keyscan -t ed25519 $host | complete | get stdout | lines
+                  | where { |l| $l != "" and not ($l | str starts-with "#") }
+                  | each { split row " " | skip 1 | first 2 | str join " " }
+                  | get 0?
+                }
+                if ($pub | is-empty) { error make { msg: $"no ed25519 host key found for ($host)" } }
 
-              age=$(echo "$pub" | ${pkgs.ssh-to-age}/bin/ssh-to-age)
-              echo "recipient de $host : $age"
+                let age = $pub | ^${pkgs.ssh-to-age}/bin/ssh-to-age | str trim
+                print $"recipient of ($host): ($age)"
 
-              grep -Eq "^  - &$host age1" .sops.yaml ||
-                { echo "pas d'ancre &$host dans .sops.yaml : ajoute l'hôte à la main d'abord" >&2; exit 1; }
-              ${pkgs.gnused}/bin/sed -i.bak -E "s|^(  - &$host )age1[0-9a-z]+|\1$age|" .sops.yaml
-              rm -f .sops.yaml.bak
+                let anchor = "(?m)^  - &" + $host + " age1[0-9a-z]+"
+                let sops = open --raw .sops.yaml
+                if not ($sops =~ $anchor) {
+                  error make { msg: $"no &($host) anchor in .sops.yaml: add the host by hand first" }
+                }
+                $sops | str replace --regex $anchor $"  - &($host) ($age)" | save --force .sops.yaml
 
-              shopt -s nullglob
-              files=(secrets/"$host"/*)
-              [ ''${#files[@]} -gt 0 ] || { echo "aucun secret dans secrets/$host/" >&2; exit 0; }
-              for f in "''${files[@]}"; do
-                ${pkgs.sops}/bin/sops updatekeys --yes "$f"
-              done
+                let files = glob $"secrets/($host)/*"
+                if ($files | is-empty) {
+                  print --stderr $"no secrets in secrets/($host)/"
+                  return
+                }
+                for f in $files { ^${pkgs.sops}/bin/sops updatekeys --yes $f }
+              }
             ''
           );
         };

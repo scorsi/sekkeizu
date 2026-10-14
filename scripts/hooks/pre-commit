@@ -1,16 +1,17 @@
-#!/usr/bin/env bash
+#!/usr/bin/env nu
 # Refuses a commit that would store an encrypted tree (.gitattributes: secrets/, modules-private/) in clear.
 # git skips an unconfigured filter without a word: in a clone that was never `git-crypt unlock`ed,
 # a new file there would be committed as is. Checks the index, which holds what git stores, so CI
 # runs it too, before or after unlocking. Enabled per clone: `git config core.hooksPath scripts/hooks`.
-set -euo pipefail
 
-bad=0
-while IFS= read -r -d '' f; do
+def main [] {
   # git-crypt blobs start with "\0GITCRYPT\0".
-  if [ "$(git cat-file blob ":$f" | head -c 10 | tr -d '\0')" != GITCRYPT ]; then
-    echo "en clair dans l'index : $f (git-crypt unlock, puis git rm --cached \"$f\" && git add \"$f\")" >&2
-    bad=1
-  fi
-done < <(git ls-files -z -- secrets modules-private)
-exit "$bad"
+  let clear = git ls-files -z -- secrets modules-private
+    | split row (char nul)
+    | where $it != ""
+    | where { |f| not (git cat-file blob $":($f)" | into binary | bytes starts-with 0x[00474954435259505400]) }
+  for f in $clear {
+    print --stderr $"in clear in the index: ($f) \(git-crypt unlock, then git rm --cached \"($f)\" && git add \"($f)\")"
+  }
+  if ($clear | is-not-empty) { exit 1 }
+}

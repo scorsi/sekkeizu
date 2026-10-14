@@ -3,6 +3,6 @@
 _: {
   sekkeizu.expiringSecrets.github-mirror-token = {
     expires = "2026-12-07";
-    renew = "nouveau jeton fine-grained (dépôts miroirs ; Contents RW), sops edit secrets/tofu.yaml dans koseki, tofu apply (recrée les mirrors), date dans modules/meta/github-mirror-token.nix";
+    renew = "new fine-grained token (mirror repos; Contents RW), sops edit secrets/tofu.yaml in koseki, tofu apply (recreates the mirrors), date in modules/meta/github-mirror-token.nix";
   };
 }

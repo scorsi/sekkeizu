@@ -12,19 +12,22 @@ in
     { pkgs, ... }:
     let
       # Prints one line per secret within `days` days of its date; "notify" also posts it.
-      check = pkgs.writeShellScript "secret-reminders" ''
-        now=$(/bin/date -u +%s)
-        ${lib.concatStringsSep "\n" (
-          lib.mapAttrsToList (name: s: ''
-            left=$(( ($(/bin/date -j -u -f '%Y-%m-%d %H:%M:%S' '${s.expires} 00:00:00' +%s) - now) / 86400 ))
-            if [ "$left" -le ${toString days} ]; then
-              if [ "$left" -lt 0 ]; then msg="${name} a expiré le ${s.expires}"; else msg="${name} expire dans $left j (${s.expires})"; fi
-              echo "!! $msg : ${s.renew}" >&2
-              [ "''${1:-}" = notify ] && /usr/bin/osascript -e "display notification \"${s.renew}\" with title \"$msg\""
-            fi
-          '') secrets
-        )}
-        exit 0
+      check = pkgs.writers.writeNu "secret-reminders" ''
+        def main [mode?: string] {
+          let secrets = open ${pkgs.writeText "expiring-secrets.json" (builtins.toJSON secrets)}
+          for name in ($secrets | columns) {
+            let s = $secrets | get $name
+            let left = (($"($s.expires)T00:00:00Z" | into datetime) - (date now)) / 1day | math floor
+            if $left <= ${toString days} {
+              let msg = if $left < 0 { $"($name) expired on ($s.expires)" } else { $"($name) expires in ($left) d \(($s.expires)\)" }
+              print --stderr $"!! ($msg): ($s.renew)"
+              if $mode == "notify" {
+                # A failed notification must not fail the switch.
+                try { ^/usr/bin/osascript -e $"display notification \"($s.renew)\" with title \"($msg)\"" }
+              }
+            }
+          }
+        }
       '';
     in
     {

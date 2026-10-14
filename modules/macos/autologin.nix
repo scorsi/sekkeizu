@@ -11,7 +11,7 @@ let
 in
 {
   flake.modules.darwin.autologin =
-    { config, ... }:
+    { config, pkgs, ... }:
     {
       system.defaults.loginwindow.autoLoginUser = owner.name;
 
@@ -33,11 +33,11 @@ in
 
       # A real file, not a link to /run/secrets: /run doesn't exist yet when loginwindow reads it at boot.
       # mkOrder 1600 runs after sops-nix's own mkAfter (1500) install step, so the secret is decrypted by then.
-      system.activationScripts.postActivation.text = lib.mkOrder 1600 ''
-        install -m 600 -o root -g wheel ${config.sops.secrets.kcpassword.path} /etc/kcpassword
-        if fdesetup status | grep -q "is On"; then
-          echo "warning: FileVault is on, auto-login is ignored by macOS (disable it for a headless boot)" >&2
-        fi
-      '';
+      system.activationScripts.postActivation.text = lib.mkOrder 1600 "${pkgs.writers.writeNu "install-kcpassword" ''
+        ^/usr/bin/install -m 600 -o root -g wheel ${config.sops.secrets.kcpassword.path} /etc/kcpassword
+        if (^/usr/bin/fdesetup status | str contains "is On") {
+          print --stderr "warning: FileVault is on, auto-login is ignored by macOS (disable it for a headless boot)"
+        }
+      ''}";
     };
 }
