@@ -61,8 +61,8 @@ Steps in execution order. Everything not listed here is declarative and comes ba
 switch. The repo is private (SSH over FIDO2 key), so the bootstrap script cannot be
 fetched with `curl` from GitHub: bring `scripts/bootstrap.sh` over (AirDrop, `scp`, USB stick).
 
-1. **Before wiping**: everything pushed (`sekkeizu` and `~/repositories/kanna`), and the sops admin key
-   (`~/.config/sops/age/keys.txt`) is in the password manager.
+1. **Before wiping**: everything pushed (`sekkeizu` and `~/repositories/kanna`), and the password
+   manager holds the two FIDO2 identities of `~/.config/sops/age/keys.txt` and the admin age key.
 2. **Erase All Content and Settings**, then in Setup Assistant: create the account with the name set
    in `modules/meta/owner.nix`, and **turn FileVault off** when the assistant offers it (with
    FileVault on, macOS ignores `/etc/kcpassword` and the headless boot stops at the unlock screen).
@@ -80,8 +80,10 @@ fetched with `curl` from GitHub: bring `scripts/bootstrap.sh` over (AirDrop, `sc
 5. **Screen Sharing**: System Settings → General → Sharing → Screen Sharing on (not declarative).
    Remote Login (sshd) is declared.
 6. **Tailscale**: `sudo tailscale up`, then in the admin console disable key expiry for the machine.
-7. **Admin age key**: restore `~/.config/sops/age/keys.txt` from the password manager (on the machine
-   where step 8 runs; `jiban` itself is fine).
+7. **sops identities**: put the two `AGE-PLUGIN-FIDO2-HMAC-1…` lines from the password manager into
+   `~/.config/sops/age/keys.txt` (on the machine where step 8 runs; `jiban` itself is fine). Each
+   decryption then takes a touch of either key; the admin key stays in the password manager
+   (break-glass, see `.sops.yaml`).
 8. **Re-key**: the reinstall generated a new SSH host key, so the old age recipient is dead.
    `nix run .#rekey-host jiban`, then commit and push `.sops.yaml` and `secrets/jiban/`
    (pull them on jiban if it ran elsewhere).
@@ -255,6 +257,12 @@ holds values only, never a secret.
   new file of these trees in clear. `scripts/hooks/pre-commit` refuses that commit; CI runs it
   too, but after the push (and the GitHub mirror), so the hook is what counts.
 - A locked clone does not evaluate: the modules of `modules-private/` are ciphertext.
+- **sops keys** (`.sops.yaml`): every file is encrypted to its host (activation, unattended), the
+  two FIDO2 keys and the admin key. No private key on disk: `keys.txt` only holds the FIDO2
+  identities (`age-plugin-fido2-hmac -g`, touch only, separate identity; useless without the
+  physical key), so any human decryption takes a touch. The admin key is the break-glass, kept only
+  in the password manager. A new FIDO2 key: generate it, add its classic `age1…` recipient to
+  `.sops.yaml` (the anchor names the serial number printed on the key), `sops updatekeys` every file.
 
 ## Infrastructure (OpenTofu)
 
@@ -280,8 +288,8 @@ infra/
   `tofu providers lock -platform=darwin_arm64 -platform=linux_amd64 -platform=linux_arm64`.
 - **State**: local `terraform.tfstate`, committed, encrypted by OpenTofu itself (AES-GCM, key from a
   passphrase through PBKDF2, `enforced`). Commit it after every apply. No locking: one operator.
-- **Secrets**: `secrets/infra/tofu.yaml` (sops), encrypted to the two FIDO2 keys and a break-glass age
-  key that lives only in the password manager, not to the admin key: decrypting takes a touch.
+- **Secrets**: `secrets/infra/tofu.yaml` (sops, keys as in "Encrypted trees", no host key):
+  decrypting takes a touch.
   Keys: `vultr_api_key`, `porkbun_api_key`, `porkbun_secret_key`, `hcloud_token`,
   `state_passphrase`. API keys reach the providers through an ephemeral `sops_file` (never in the
   state, the plan or the environment); the passphrase through the external key provider
@@ -291,26 +299,19 @@ infra/
 
 ### Manual steps, in order
 
-1. **FIDO2 recipients**, once per key, with only that key plugged in:
-   `age-plugin-fido2-hmac -g` (PIN, touch; PIN for decryption: no; separate identity: yes). The
-   public key goes to `.sops.yaml` (rule `secrets/infra/`), the `AGE-PLUGIN-FIDO2-HMAC-1…` identity
-   is appended to `~/.config/sops/age/keys.txt` and stored in the password manager: without the
-   identity, the key alone cannot decrypt.
-2. **Break-glass key**: `age-keygen` in a terminal of your own; private key to the password manager
-   only, public key to `.sops.yaml`.
-3. **Porkbun**: Domain Management → API Access **on** for scorsi.dev and scorsi.me (per domain;
+1. **Porkbun**: Domain Management → API Access **on** for scorsi.dev and scorsi.me (per domain;
    without it the API answers `API_ACCESS_DISABLED`). API key limited to the DNS permission on
    those two domains. Delete the default parking records (`ALIAS`/`CNAME` to `pixie.porkbun.com`)
    if the domains have them.
-4. **Vultr**: API key, access restricted to your IP addresses (access control of the API settings).
-5. **Hetzner**: Console project → Security → API token, read and write.
-6. **Secrets file**: `sops secrets/infra/tofu.yaml` with the five keys (`state_passphrase`:
+2. **Vultr**: API key, access restricted to your IP addresses (access control of the API settings).
+3. **Hetzner**: Console project → Security → API token, read and write.
+4. **Secrets file**: `sops secrets/infra/tofu.yaml` with the five keys (`state_passphrase`:
    `openssl rand -base64 36`).
-7. **Apply**, from each stack: `tofu init`, `tofu plan`, `tofu apply`; commit `terraform.tfstate`.
-8. **DNSSEC**: Porkbun → the domain → DNSSEC, enable by hand once the zone is stable. Porkbun's API
+5. **Apply**, from each stack: `tofu init`, `tofu plan`, `tofu apply`; commit `terraform.tfstate`.
+6. **DNSSEC**: Porkbun → the domain → DNSSEC, enable by hand once the zone is stable. Porkbun's API
    only manages DS records at the registry for zones signed elsewhere; nothing turns on its own
    signing.
-9. **restic's subaccount**: `tofu output -raw backup_password` (in `stacks/storage`), then put jiban's
+7. **restic's subaccount**: `tofu output -raw backup_password` (in `stacks/storage`), then put jiban's
    SSH public key into `.ssh/authorized_keys` of the `backup` subaccount over SFTP. Not through the box
    resource: changing its `ssh_keys` recreates the box, data included.
 

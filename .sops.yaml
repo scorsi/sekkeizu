@@ -1,19 +1,35 @@
-# Recipients per host: the host's own key (decrypts at activation) + the admin key (edits from the dev machine).
+# Recipients per rule: the host's own key (decrypts at activation, unattended), the two FIDO2 keys
+# (every human edit: a touch per decryption) and the admin key, a break-glass kept only in the
+# password manager, never on disk.
 # jiban: `ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub`
 # ishizue: `ssh-keyscan -t ed25519 ishizue | cut -d' ' -f2,3 | ssh-to-age` (key on its /var volume)
-# admin: `age-keygen -o ~/.config/sops/age/keys.txt` (backed up in the password manager)
+# FIDO2: `age-plugin-fido2-hmac -g`, the classic `age1…` recipient; the anchor carries the serial
+#   number printed on the key, since nothing in the recipient tells which device it belongs to.
+# admin: `age-keygen | pbcopy`, straight into the password manager.
 keys:
-  - &admin age1vqcwxk24dl4wht0d63tcrd90uwygek2rtaw2p4klz2wkz2d8wpsqc57tyf
+  - &admin age1hxryee5cq0vk5rwf078s3lftpdsh5anfzscpv223ulwggg3hay3qz38s8e
+  - &fido-thetis-102800549530 age19v5h3aa0ypmrwq2vqssmch75ma5qvgmuylh5c7t4llxz2rgpdptqx6y7py
+  - &fido-yubikey-34043456 age12whmd2dhljlatw5ywvanknftjzjpl9xnvhce9ky0d3dcr7lqqfeql5mev0
   - &ishizue age13v3z9aq5pmxjyllxcljw3t0mag6afccgf3dgwm65xeug35kkp4fs83mves
   - &jiban age1huncufpm34n6xxjk97fp8dpn5uy66d0ylwzhmrvq0lkz78avwplq59t67f
 creation_rules:
   - path_regex: secrets/jiban/.*
     key_groups:
       - age:
-          - *admin
           - *jiban
+          - *fido-thetis-102800549530
+          - *fido-yubikey-34043456
+          - *admin
   - path_regex: secrets/ishizue/.*
     key_groups:
       - age:
-          - *admin
           - *ishizue
+          - *fido-thetis-102800549530
+          - *fido-yubikey-34043456
+          - *admin
+  - path_regex: secrets/infra/.*
+    key_groups:
+      - age:
+          - *fido-thetis-102800549530
+          - *fido-yubikey-34043456
+          - *admin

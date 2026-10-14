@@ -43,9 +43,9 @@
               repo=$(${pkgs.git}/bin/git rev-parse --show-toplevel)
               cd "$repo"
 
-              # Needs the admin key to decrypt before re-encrypting.
+              # Decrypts before re-encrypting: the FIDO2 identities, a touch per file.
               export SOPS_AGE_KEY_FILE=''${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}
-              [ -r "$SOPS_AGE_KEY_FILE" ] || { echo "clé admin introuvable : $SOPS_AGE_KEY_FILE" >&2; exit 1; }
+              [ -r "$SOPS_AGE_KEY_FILE" ] || { echo "identités age introuvables : $SOPS_AGE_KEY_FILE" >&2; exit 1; }
 
               if [ "$host" = "$(/bin/hostname -s)" ]; then
                 pub=$(cut -d' ' -f1,2 /etc/ssh/ssh_host_ed25519_key.pub)

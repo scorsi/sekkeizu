@@ -37,6 +37,7 @@ in
           homeManager.ssh-hosts
           homeManager.git
           homeManager.git-crypt
+          homeManager.sops-fido2
           homeManager.cli
           homeManager.pay-respects
           homeManager.github
