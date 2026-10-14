@@ -213,9 +213,9 @@ Test the macOS runner with a workflow containing `runs-on: macos` and `run: sw_v
 
 ### Home of the repositories
 
-sekkeizu, kanna, kiso, rirekisho, genkan and kekkai live on Forgejo (`origin`) and are push-mirrored to GitHub (`github` remote, the
-fallback) at every commit: `modules/nixos/forgejo-mirrors.nix`, a oneshot that sets the mirrors
-through the API.
+The repositories live on Forgejo (`origin`) and are push-mirrored to GitHub (the fallback) at every
+commit. Which repositories exist, their settings and their mirrors are declared in
+[koseki](https://github.com/scorsi/koseki) (OpenTofu): sekkeizu runs Forgejo, koseki says what is in it.
 
 - **Inputs come from Forgejo**: the `scorsi-*` inputs are `git+ssh` URLs on Forgejo
   (LAN, no dependence on GitHub). GitHub is the recovery path, for a fresh install or when Forgejo
@@ -230,11 +230,9 @@ through the API.
 - **`switch` as root**: kiso's `switch` fetches the inputs as the user (SSH agent, a touch) before
   `sudo darwin-rebuild`, which then finds them in the store.
 
-- **Mirror token**: fine-grained GitHub token, only the repositories listed in `forgejo-mirrors.nix`, *Contents: read and
-  write*, in `secrets/ishizue/secrets.yaml` (`forgejo-github-mirror-token`). Its expiry date is
-  declared in `forgejo-mirrors.nix` (`sekkeizu.expiringSecrets`): jiban notifies daily and every
-  switch warns from 30 days before. Renewing: new token, `sops edit`, new date, deploy (the oneshot
-  recreates the mirrors, and fails if the declared date doesn't match GitHub's).
+- **Mirror token**: kept in koseki; only its expiry date is declared here
+  (`modules/meta/github-mirror-token.nix`, `sekkeizu.expiringSecrets`): jiban notifies daily and
+  every switch warns from 30 days before.
 - **Verified commits**: each FIDO2 key must be verified once in Forgejo (Settings → SSH / GPG keys →
   Verify, then the `ssh-keygen -Y sign` command it shows, with that key plugged in). Forgejo only
   offers this through the web form; redo it for a new key or a reinstalled Forgejo.
