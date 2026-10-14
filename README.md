@@ -281,8 +281,9 @@ infra/
     dns/            scorsi.dev and scorsi.me; reads torii's addresses from its state
 ```
 
-- **Tooling**: `nix develop .#infra` (OpenTofu, sops, the FIDO2 age plugin, `tofu-state-key`). Run
-  every tofu command from that shell, inside a stack directory.
+- **Tooling**: the `infra` shell (OpenTofu, sops, the FIDO2 age plugin, `tofu-state-key`), loaded by
+  direnv under `infra/` (`direnv allow infra` once), or `nix develop .#infra`. Run tofu from a stack
+  directory.
 - **Providers**: exact versions in each stack, `.terraform.lock.hcl` committed with the hashes of
   `darwin_arm64`, `linux_amd64` and `linux_arm64`. After a version bump:
   `tofu providers lock -platform=darwin_arm64 -platform=linux_amd64 -platform=linux_arm64`.
