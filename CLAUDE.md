@@ -7,8 +7,8 @@ repo is and how it's laid out.
 
 - **Comments: English, why not what.** Only comment on non-obvious reasoning (a constraint, a
   workaround, a gotcha) — never restate what the code already says. User-facing runtime strings
-  (bootstrap script `log`/`warn`/`die` messages, shell error output) stay in French; that's output
-  for the repo owner, not documentation.
+  (`log`/`warn`/`die` messages, error output) are English too; older scripts still in French get
+  translated when they are rewritten.
 - **Dendritic pattern**: a feature is one file under `modules/` declaring
   `flake.modules.<darwin|nixos|homeManager>.<name>`. A host file (`modules/hosts/*.nix`) just
   lists the feature names it imports. Adding a feature should never require editing an existing

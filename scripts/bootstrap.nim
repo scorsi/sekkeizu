@@ -21,7 +21,7 @@ proc run(cmd: openArray[string]; dir = ""): int =
 
 proc sh(cmd: openArray[string]; dir = "") =
   if run(cmd, dir) != 0:
-    die "échec : " & quoteShellCommand(cmd)
+    die "failed: " & quoteShellCommand(cmd)
 
 proc capture(cmd: openArray[string]): tuple[code: int, output, errors: string] =
   # shortcut: stderr is drained after stdout, so a command writing >64 KiB to stderr
@@ -67,9 +67,9 @@ proc main() =
   while i < params.len:
     let flag = params[i]
     if flag notin ["--host", "--dir", "--repo", "--git-crypt-key"]:
-      die "option inconnue : " & flag & " (voir bootstrap.sh --help)"
+      die "unknown option: " & flag & " (see bootstrap.sh --help)"
     if i + 1 >= params.len:
-      die flag & " attend une valeur"
+      die flag & " expects a value"
     let value = params[i + 1]
     case flag
     of "--host": host = value
@@ -83,9 +83,9 @@ proc main() =
 
   # ─── 1. Command Line Tools (git, compilers) ──────────────────────────
   if capture(["xcode-select", "-p"]).code == 0:
-    log "Command Line Tools : déjà installés"
+    log "Command Line Tools: already installed"
   else:
-    log "Command Line Tools : installation sans interface graphique"
+    log "Command Line Tools: headless install"
     const marker = "/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
     writeFile(marker, "")
     try:
@@ -97,7 +97,7 @@ proc main() =
           if label == "" or newer(versionKey(candidate), versionKey(label)):
             label = candidate
       if label == "":
-        die "paquet Command Line Tools introuvable via softwareupdate"
+        die "no Command Line Tools package found via softwareupdate"
       sh ["sudo", "softwareupdate", "-i", label, "--verbose"]
     finally:
       removeFile(marker)
@@ -108,7 +108,7 @@ proc main() =
   var sshCmd = "ssh -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes"
   if repo.startsWith("git@") or repo.startsWith("ssh://"):
     if fidoHandles().len == 0:
-      log "clé FIDO2 : aucun handle dans ~/.ssh, récupération (branche la clé, PIN puis touch)"
+      log "FIDO2 key: no handle in ~/.ssh, fetching it (plug the key in, PIN then touch)"
       let sshDir = getHomeDir() / ".ssh"
       createDir(sshDir)
       setFilePermissions(sshDir, {fpUserRead, fpUserWrite, fpUserExec})
@@ -118,12 +118,12 @@ proc main() =
   putEnv("GIT_SSH_COMMAND", sshCmd)
 
   if fileExists(dir / "flake.nix"):
-    log "repo : présent dans " & dir
+    log "repo: present in " & dir
   elif repo != "":
-    log "repo : clonage de " & repo
+    log "repo: cloning " & repo
     sh withNixSsh("git", "clone", repo, dir)
   else:
-    die "pas de flake dans " & dir & " : passe --repo <url> ou copie le repo (ex. scp -r depuis le laptop)"
+    die "no flake in " & dir & ": pass --repo <url> or copy the repo over (e.g. scp -r from the laptop)"
 
   # Live clones of the owner's other repos, next to where this one came from (GitHub, FIDO2 key):
   # kanna is what ~/.config/nvim links to on a dev machine (`kanna-dev`, kiso.reposDir); kiso is
@@ -131,14 +131,14 @@ proc main() =
   let reposDir = getHomeDir() / "repositories"
   for name in ["kanna", "kiso"]:
     if dirExists(reposDir / name / ".git"):
-      log name & " : présent dans " & reposDir / name
+      log name & ": present in " & reposDir / name
     elif repo != "":
       let url = repo.rsplit('/', 1)[0] & "/" & name & ".git"
-      log name & " : clonage de " & url
+      log name & ": cloning " & url
       createDir(reposDir)
       sh withNixSsh("git", "clone", url, reposDir / name)
     else:
-      warn name & " absent de " & reposDir & " (pas de --repo) : à cloner à la main"
+      warn name & " missing from " & reposDir & " (no --repo): clone it by hand"
 
   # secrets/ and modules-private/ are git-crypt encrypted (.gitattributes): unlock before anything
   # evaluates the flake. The filters call git-crypt by name, not by this store path, so a GC can't
@@ -146,14 +146,14 @@ proc main() =
   let gitCrypt = capture(nix("build", "--no-link", "--print-out-paths", "nixpkgs#git-crypt"))
   if gitCrypt.code != 0:
     stderr.write gitCrypt.errors
-    die "git-crypt introuvable dans nixpkgs"
+    die "git-crypt not found in nixpkgs"
   putEnv("PATH", gitCrypt.output / "bin" & ":" & getEnv("PATH"))
   if capture(["git", "-C", dir, "config", "--get", "filter.git-crypt.smudge"]).code == 0:
-    log "git-crypt : déjà déverrouillé"
+    log "git-crypt: already unlocked"
   else:
     if gitCryptKey == "":
-      die "secrets/ et modules-private/ sont chiffrés : passe --git-crypt-key <fichier> (gestionnaire de mots de passe, base64 -d)"
-    log "git-crypt : déverrouillage"
+      die "secrets/ and modules-private/ are encrypted: pass --git-crypt-key <file> (password manager, base64 -d)"
+    log "git-crypt: unlocking"
     sh(["git-crypt", "unlock", gitCryptKey], dir)
     for (key, value) in [("filter.git-crypt.smudge", "git-crypt smudge"),
                          ("filter.git-crypt.clean", "git-crypt clean"),
@@ -165,7 +165,7 @@ proc main() =
   # Nix only sees files tracked by git: an unadded file = "doesn't exist".
   for line in capture(["git", "-C", dir, "status", "--porcelain"]).output.splitLines:
     if line.startsWith("??"):
-      warn "fichiers non suivis par git dans " & dir & " : ils seront ignorés par Nix (git add ?)"
+      warn "files untracked by git in " & dir & ": Nix will ignore them (git add?)"
       break
 
   # The repo's own flakes (inputs scorsi-*) come from Forgejo, which a fresh machine can't reach yet
@@ -175,37 +175,37 @@ proc main() =
   putEnv("GIT_CONFIG_COUNT", "1")
   putEnv("GIT_CONFIG_KEY_0", "url.ssh://git@github.com/scorsi/.insteadOf")
   putEnv("GIT_CONFIG_VALUE_0", "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/")
-  log "inputs : récupération (miroirs GitHub)"
+  log "inputs: fetching (GitHub mirrors)"
   sh withNixSsh(nix("flake", "archive", dir))
 
   # ─── 3. Checks before switching ───────────────────────────────────────
   let flake = dir & "#darwinConfigurations." & host
-  log "évaluation de " & host
+  log "evaluating " & host
   let configured = capture(nix("eval", "--raw", flake & ".config.system.primaryUser"))
   if configured.code != 0:
     stderr.write configured.errors
-    die "évaluation impossible : host '" & host & "' inexistant ou erreur Nix (voir ci-dessus)"
+    die "evaluation failed: no host '" & host & "' or a Nix error (see above)"
   let me = $getpwuid(geteuid()).pw_name
   if configured.output != me:
-    die "kiso.owner.name = '" & configured.output & "' mais tu es '" & me & "' : corrige modules/meta/owner.nix"
+    die "kiso.owner.name = '" & configured.output & "' but you are '" & me & "': fix modules/meta/owner.nix"
 
   # ─── 4. /etc files nix-darwin refuses to overwrite ───────────────────
   # nix-darwin aborts if it finds these files unmanaged by it: rename them once.
   for f in ["/etc/bashrc", "/etc/zshrc", "/etc/zprofile", "/etc/shells", "/etc/nix/nix.conf",
             "/etc/nix/nix.custom.conf"]:
     if fileExists(f) and not symlinkExists(f):
-      log "mise de côté : " & f & " -> " & f & ".before-nix-darwin"
+      log "moving aside: " & f & " -> " & f & ".before-nix-darwin"
       sh ["sudo", "mv", f, f & ".before-nix-darwin"]
 
   # ─── 5. Switch ─────────────────────────────────────────────────────────
   if findExe("darwin-rebuild") != "":
-    log "switch (darwin-rebuild déjà installé)"
+    log "switch (darwin-rebuild already installed)"
     sh ["sudo", "darwin-rebuild", "switch", "--flake", dir & "#" & host]
   else:
     # First switch: darwin-rebuild comes from the flake, at the version pinned in flake.lock.
-    log "premier switch"
+    log "first switch"
     sh @["sudo", "-H"] & nix("run", dir & "#darwin-rebuild", "--", "switch", "--flake", dir & "#" & host)
 
-  log "terminé. Ouvre un nouveau terminal (shell : fish). Rebuilds suivants : drs"
+  log "done. Open a new terminal (shell: fish). Later rebuilds: drs"
 
 main()

@@ -33,15 +33,15 @@ for arg in "$@"; do
   fi
 done
 
-[[ "$(uname -s)" == "Darwin" ]] || die "ce script ne tourne que sur macOS"
-[[ "$(uname -m)" == "arm64" ]] || die "ce script vise Apple Silicon (arm64)"
-[[ "$EUID" -ne 0 ]] || die "lance-le avec ton utilisateur, pas en root (sudo est demandé quand il faut)"
-[[ -f "${HERE}/bootstrap.nim" ]] || die "bootstrap.nim introuvable à côté de ce script (${HERE})"
+[[ "$(uname -s)" == "Darwin" ]] || die "this script only runs on macOS"
+[[ "$(uname -m)" == "arm64" ]] || die "this script targets Apple Silicon (arm64)"
+[[ "$EUID" -ne 0 ]] || die "run it as your user, not root (sudo is asked for when needed)"
+[[ -f "${HERE}/bootstrap.nim" ]] || die "bootstrap.nim not found next to this script (${HERE})"
 
 if [[ -x "$NIX_BIN" ]]; then
-  log "Nix : déjà installé ($("$NIX_BIN" --version))"
+  log "Nix: already installed ($("$NIX_BIN" --version))"
 else
-  log "Nix : installation (installeur officiel nixos.org)"
+  log "Nix: installing (official nixos.org installer)"
   installer="$(mktemp)"
   curl --proto '=https' --tlsv1.2 -fsSL https://nixos.org/nix/install -o "$installer"
   sh "$installer" --daemon --yes --no-channel-add
