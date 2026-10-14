@@ -21,40 +21,49 @@ let
   forgejoSsh = services.forgejo-ssh;
   user = "forgejo-runner";
 
-  # Runs as the runner's user (HOME = its state directory), with CONFIG_DIR, SECRET_FILE, WORK_DIR
-  # and CI_KEY_FILE set by the caller.
-  writeConfig = labels: ''
-    secret=$(< "$SECRET_FILE")
-    hex=$(printf %s "''${secret:0:16}" | od -An -tx1 | tr -d ' \n')
-    uuid="''${hex:0:8}-''${hex:8:4}-''${hex:12:4}-''${hex:16:4}-''${hex:20:12}"
-    cat > "$CONFIG_DIR/config.yaml" <<YAML
-    log:
-      level: info
-    runner:
-      capacity: 1
-      labels: [${lib.concatMapStringsSep ", " (l: ''"${l}"'') labels}]
-    host:
-      workdir_parent: $WORK_DIR
-    server:
-      connections:
-        forgejo:
-          url: ${forgejo.url}/
-          uuid: $uuid
-          token_url: file:$SECRET_FILE
-    YAML
+  # The runner's start script, as its user (HOME = its state directory): writes its config and SSH
+  # setup, then becomes the runner.
+  startRunner =
+    pkgs:
+    {
+      name,
+      configDir,
+      secretFile,
+      ciKeyFile,
+      workDir,
+    }:
+    let
+      config = pkgs.writeText "forgejo-runner-config.json" (
+        builtins.toJSON {
+          log.level = "info";
+          runner = {
+            capacity = 1;
+            inherit (forgejoRunners.${name}) labels;
+          };
+          host.workdir_parent = workDir;
+          server.connections.forgejo = {
+            url = "${forgejo.url}/";
+            token_url = "file:${secretFile}";
+          };
+        }
+      );
+    in
+    pkgs.writers.writeNu "forgejo-runner-start" ''
+      # Its UUID is the first 16 bytes of the secret, like Forgejo derives it.
+      let hex = open --raw ${secretFile} | into binary | bytes at 0..15 | encode hex --lower
+      let uuid = [0..7 8..11 12..15 16..19 20..31] | each { |r| $hex | str substring $r } | str join "-"
+      open ${config} | upsert server.connections.forgejo.uuid $uuid | to yaml | save --force ${configDir}/config.yaml
 
-    # The private flakes jobs fetch over git+ssh from Forgejo (sekkeizu.forgejoCi): read-only
-    # deploy key, and Forgejo's host key pinned rather than trusted on first use.
-    mkdir -p "$HOME/.ssh"
-    chmod 700 "$HOME/.ssh"
-    echo "[${forgejoSsh.host}]:${toString forgejoSsh.port} ${forgejoSsh.hostKey}" > "$HOME/.ssh/known_hosts"
-    cat > "$HOME/.ssh/config" <<SSH
-    Host ${forgejoSsh.host}
-      IdentityFile $CI_KEY_FILE
-      IdentitiesOnly yes
-      StrictHostKeyChecking yes
-    SSH
-  '';
+      # The private flakes jobs fetch over git+ssh from Forgejo (sekkeizu.forgejoCi): read-only
+      # deploy key, and Forgejo's host key pinned rather than trusted on first use.
+      let ssh = $"($env.HOME)/.ssh"
+      mkdir $ssh
+      ^chmod 700 $ssh
+      "[${forgejoSsh.host}]:${toString forgejoSsh.port} ${forgejoSsh.hostKey}\n" | save --force $"($ssh)/known_hosts"
+      "Host ${forgejoSsh.host}\n  IdentityFile ${ciKeyFile}\n  IdentitiesOnly yes\n  StrictHostKeyChecking yes\n" | save --force $"($ssh)/config"
+
+      exec ${lib.getExe pkgs.forgejo-runner} daemon --config ${configDir}/config.yaml
+    '';
 in
 {
   flake.modules.nixos.forgejo-runner =
@@ -139,6 +148,7 @@ in
             pkgs.gzip
             pkgs.nix
             pkgs.nodejs
+            pkgs.nushell # CI steps run in nu (.forgejo/workflows)
             pkgs.openssh
             pkgs.xz
           ]
@@ -150,19 +160,14 @@ in
             StateDirectory = "forgejo-runner";
             RuntimeDirectory = "forgejo-runner";
             WorkingDirectory = stateDir;
-            ExecStart =
-              let
-                start = pkgs.writeShellScript "forgejo-runner-start" ''
-                  set -euo pipefail
-                  CONFIG_DIR=$RUNTIME_DIRECTORY
-                  SECRET_FILE=${config.sops.secrets."forgejo-runner-${name}".path}
-                  WORK_DIR=${stateDir}/work
-                  CI_KEY_FILE=${config.sops.secrets.forgejo-ci-key.path}
-                  ${writeConfig forgejoRunners.${name}.labels}
-                  exec ${lib.getExe pkgs.forgejo-runner} daemon --config "$CONFIG_DIR/config.yaml"
-                '';
-              in
-              start;
+            # RuntimeDirectory: /run/forgejo-runner.
+            ExecStart = startRunner pkgs {
+              inherit name;
+              configDir = "/run/forgejo-runner";
+              secretFile = config.sops.secrets."forgejo-runner-${name}".path;
+              ciKeyFile = config.sops.secrets.forgejo-ci-key.path;
+              workDir = "${stateDir}/work";
+            };
             Restart = "on-failure";
             RestartSec = 5;
 
@@ -222,25 +227,22 @@ in
       };
 
       # The runner is a Go binary with its own resolver: it reads /etc/hosts, not MagicDNS.
-      system.activationScripts.postActivation.text = lib.mkOrder 1550 ''
-        install -d -m 700 -o ${macUser} -g ${macUser} ${stateDir}
+      system.activationScripts.postActivation.text = lib.mkOrder 1550 "${pkgs.writers.writeNu "forgejo-runner-activate" ''
+        ^/usr/bin/install -d -m 700 -o ${macUser} -g ${macUser} ${stateDir}
         ${lib.optionalString (forgejo.address != null) ''
-          sed -i "" '/# sekkeizu-forgejo$/d' /etc/hosts
-          echo "${forgejo.address} ${forgejo.host} # sekkeizu-forgejo" >> /etc/hosts
+          let hosts = open --raw /etc/hosts | lines | where { |l| not ($l | str ends-with "# sekkeizu-forgejo") }
+          $hosts | append "${forgejo.address} ${forgejo.host} # sekkeizu-forgejo" | str join "\n" | $in + "\n" | save --force /etc/hosts
         ''}
-      '';
+      ''}";
 
       launchd.daemons.forgejo-runner.serviceConfig = {
         ProgramArguments = [
-          "${pkgs.writeShellScript "forgejo-runner-start" ''
-            set -euo pipefail
-            CONFIG_DIR=${stateDir}
-            SECRET_FILE=${secretFile}
-            WORK_DIR=${stateDir}/work
-            CI_KEY_FILE=${config.sops.secrets.forgejo-ci-key.path}
-            ${writeConfig forgejoRunners.${name}.labels}
-            exec ${lib.getExe pkgs.forgejo-runner} daemon --config "$CONFIG_DIR/config.yaml"
-          ''}"
+          "${startRunner pkgs {
+            inherit name secretFile;
+            configDir = stateDir;
+            ciKeyFile = config.sops.secrets.forgejo-ci-key.path;
+            workDir = "${stateDir}/work";
+          }}"
         ];
         UserName = macUser;
         GroupName = macUser;
@@ -254,6 +256,7 @@ in
               pkgs.git-crypt
               pkgs.gitMinimal
               pkgs.nodejs
+              pkgs.nushell # CI steps run in nu (.forgejo/workflows)
               # The daemon's own Nix: jobs build through it as an ordinary user (e.g. sekkeizu's CI).
               config.nix.package
             ]

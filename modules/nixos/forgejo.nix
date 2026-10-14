@@ -34,13 +34,41 @@ in
         FORGEJO_WORK_DIR = cfg.stateDir;
         FORGEJO_CUSTOM = cfg.customDir;
       };
-      waitForForgejo = ''
-        for _ in $(seq 120); do
-          curl -fsS ${api}/healthz >/dev/null 2>&1 && break
-          sleep 1
-        done
-        curl -fsS ${api}/healthz >/dev/null
+      # Shared by the units below: nu commands to put before their `main`.
+      helpers = ''
+        def wait-for-forgejo [] {
+          for _ in 1..120 {
+            if (try { http get ${api}/healthz | ignore; true } catch { false }) { return }
+            sleep 1sec
+          }
+          http get ${api}/healthz | ignore
+        }
+
+        def credential [name: string] {
+          open --raw $"($env.CREDENTIALS_DIRECTORY)/($name)" | str trim --right --char (char nl)
+        }
+
+        # Basic auth over loopback. Returns the HTTP status.
+        def post [path: string, body: record] {
+          (http post --full --allow-errors --user ${adminUser} --password (credential admin-password)
+            --content-type application/json $"${api}/v1/($path)" $body).status
+        }
       '';
+      # owner.sshKeys entries are "<type> <key> <comment>": the comment becomes the title.
+      keysFile = pkgs.writeText "forgejo-admin-keys.json" (
+        builtins.toJSON (
+          map (
+            k:
+            let
+              parts = lib.splitString " " k.key;
+            in
+            {
+              title = lib.last parts;
+              key = "${builtins.elemAt parts 0} ${builtins.elemAt parts 1}";
+            }
+          ) owner.sshKeys
+        )
+      );
       afterStateDir = {
         requires = [ "forgejo-state-dir.service" ];
         after = [ "forgejo-state-dir.service" ];
@@ -155,48 +183,33 @@ in
         # Runs again whenever Forgejo restarts (new password in sops, new key in owner.nix).
         partOf = [ "forgejo.service" ];
         environment = env;
-        path = [
-          pkgs.curl
-          pkgs.gawk
-          pkgs.coreutils
-        ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
           User = cfg.user;
           Group = cfg.group;
           LoadCredential = "admin-password:${config.sops.secrets.forgejo-admin-password.path}";
+          ExecStart = pkgs.writers.writeNu "forgejo-admin" ''
+            ${helpers}
+            def main [] {
+              wait-for-forgejo
+              let password = credential admin-password
+
+              let users = ^${exe} admin user list | lines | skip 1 | each { str trim | split row --regex '\s+' | get 1? }
+              if ${builtins.toJSON adminUser} in $users {
+                ^${exe} admin user change-password --username ${builtins.toJSON adminUser} --password $password --must-change-password=false
+              } else {
+                ^${exe} admin user create --admin --username ${builtins.toJSON adminUser} --email ${builtins.toJSON owner.email} --password $password --must-change-password=false
+              }
+
+              for k in (open ${keysFile}) {
+                let status = post "admin/users/${adminUser}/keys" $k
+                # 422: the key is already there.
+                if $status not-in [201 422] { error make { msg: $"adding key '($k.title)': HTTP ($status)" } }
+              }
+            }
+          '';
         };
-        script = ''
-          ${waitForForgejo}
-          password=$(< "$CREDENTIALS_DIRECTORY/admin-password")
-
-          if ${exe} admin user list | awk 'NR > 1 { print $2 }' | grep -qx ${lib.escapeShellArg adminUser}; then
-            ${exe} admin user change-password --username ${lib.escapeShellArg adminUser} \
-              --password "$password" --must-change-password=false
-          else
-            ${exe} admin user create --admin --username ${lib.escapeShellArg adminUser} \
-              --email ${lib.escapeShellArg owner.email} --password "$password" --must-change-password=false
-          fi
-
-          # Basic auth over loopback; the credentials go through a curl config, not the command line.
-          add_key() {
-            code=$(curl -sS -o /dev/null -w '%{http_code}' \
-              --config <(printf 'user = "%s:%s"\n' ${lib.escapeShellArg adminUser} "$password") \
-              -H 'Content-Type: application/json' \
-              -d "$(printf '{"title":"%s","key":"%s"}' "$1" "$2")" \
-              ${api}/v1/admin/users/${adminUser}/keys)
-            # 422: the key is already there.
-            case $code in 201 | 422) ;; *) echo "adding key '$1': HTTP $code" >&2; exit 1 ;; esac
-          }
-          ${lib.concatMapStringsSep "\n" (
-            k:
-            let
-              parts = lib.splitString " " k.key;
-            in
-            "add_key ${lib.escapeShellArg (lib.last parts)} ${lib.escapeShellArg "${builtins.elemAt parts 0} ${builtins.elemAt parts 1}"}"
-          ) owner.sshKeys}
-        '';
       };
 
       systemd.services.forgejo-runners = {
@@ -208,7 +221,6 @@ in
         after = [ "forgejo.service" ];
         partOf = [ "forgejo.service" ];
         environment = env;
-        path = [ pkgs.curl ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
@@ -220,52 +232,54 @@ in
           ++ map (n: "${n}:${config.sops.secrets."forgejo-runner-${n}".path}") (
             builtins.attrNames forgejoRunners
           );
-        };
-        script = ''
-          ${waitForForgejo}
-          ${lib.concatStringsSep "\n" (
-            lib.mapAttrsToList (name: runner: ''
+          ExecStart = pkgs.writers.writeNu "forgejo-runners" ''
+            ${helpers}
+            def main [] {
+              wait-for-forgejo
               # Global scope (empty): usable by every repository. Already registered → nothing to do.
               # Label names only, the way the runner declares them when it connects: this unit runs
               # again at every Forgejo restart and overwrites the stored labels, and a stored
               # `linux:host` matches no `runs-on: linux`, so jobs would wait until the runner restarts.
-              ${exe} forgejo-cli actions register --scope "" --name ${lib.escapeShellArg name} \
-                --labels ${
-                  lib.escapeShellArg (
-                    lib.concatMapStringsSep "," (l: builtins.head (lib.splitString ":" l)) runner.labels
+              for r in (open ${
+                pkgs.writeText "forgejo-runners.json" (
+                  builtins.toJSON (
+                    lib.mapAttrsToList (name: runner: {
+                      inherit name;
+                      labels = lib.concatMapStringsSep "," (l: builtins.head (lib.splitString ":" l)) runner.labels;
+                    }) forgejoRunners
                   )
-                } \
-                --secret "$(< "$CREDENTIALS_DIRECTORY/${name}")" \
-                || echo "runner ${name}: registration refused (already registered?)" >&2
-            '') forgejoRunners
-          )}
+                )
+              }) {
+                try {
+                  ^${exe} forgejo-cli actions register --scope "" --name $r.name --labels $r.labels --secret (credential $r.name)
+                } catch {
+                  print --stderr $"runner ($r.name): registration refused \(already registered?\)"
+                }
+              }
 
-          # CI fetches the private flakes this repo depends on over SSH: one read-only deploy key on
-          # each (forgejo-ci-key in sops, written for the runners in forgejo-runner.nix).
-          failed=0
-          for repo in ${lib.escapeShellArgs forgejoCi.readRepos}; do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' \
-              --config <(printf 'user = "%s:%s"\n' ${lib.escapeShellArg adminUser} "$(< "$CREDENTIALS_DIRECTORY/admin-password")") \
-              -H 'Content-Type: application/json' \
-              -d ${
-                lib.escapeShellArg (
+              # CI fetches the private flakes this repo depends on over SSH: one read-only deploy key on
+              # each (forgejo-ci-key in sops, written for the runners in forgejo-runner.nix).
+              mut failed = false
+              for repo in ${builtins.toJSON forgejoCi.readRepos} {
+                let status = post $"repos/${adminUser}/($repo)/keys" ${
                   builtins.toJSON {
                     title = "forgejo-ci";
                     key = forgejoCi.readKey;
                     read_only = true;
                   }
-                )
-              } \
-              ${api}/v1/repos/${adminUser}/"$repo"/keys)
-            # 422: the key is already there.
-            case $code in
-              201 | 422) ;;
-              404) echo "deploy key: $repo absent de Forgejo, ignoré" >&2 ;;
-              *) echo "deploy key: $repo, HTTP $code" >&2; failed=1 ;;
-            esac
-          done
-          exit "$failed"
-        '';
+                }
+                # 422: the key is already there.
+                if $status == 404 {
+                  print --stderr $"deploy key: ($repo) missing from Forgejo, skipped"
+                } else if $status not-in [201 422] {
+                  print --stderr $"deploy key: ($repo), HTTP ($status)"
+                  $failed = true
+                }
+              }
+              if $failed { exit 1 }
+            }
+          '';
+        };
       };
     };
 }

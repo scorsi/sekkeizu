@@ -82,22 +82,23 @@ in
             DefaultDependencies = false;
           };
           before = [ "local-fs.target" ];
-          serviceConfig = {
-            Type = "oneshot";
-            RemainAfterExit = true;
-          };
           path = [
             pkgs.cloud-utils.guest
             pkgs.util-linux
             pkgs.e2fsprogs
           ];
-          script = ''
-            part=$(readlink -f "$(findmnt -no SOURCE ${persistRoot})")
-            disk=/dev/$(lsblk -no PKNAME "$part")
-            num=$(cat "/sys/class/block/''${part##*/}/partition")
+          serviceConfig.Type = "oneshot";
+          serviceConfig.RemainAfterExit = true;
+          serviceConfig.ExecStart = pkgs.writers.writeNu "grow-persist" ''
+            let part = ^readlink -f (^findmnt -no SOURCE ${persistRoot} | str trim) | str trim
+            let disk = $"/dev/(^lsblk -no PKNAME $part | str trim)"
+            let num = open --raw $"/sys/class/block/($part | path basename)/partition" | str trim
+            let grow = ^growpart $disk $num | complete
+            print --no-newline $grow.stdout
+            print --stderr --no-newline $grow.stderr
             # Exit status 1 means "nothing to grow".
-            growpart "$disk" "$num" || [ $? -eq 1 ]
-            resize2fs "$part"
+            if $grow.exit_code not-in [0 1] { exit $grow.exit_code }
+            ^resize2fs $part
           '';
         };
 

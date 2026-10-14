@@ -79,40 +79,43 @@ in
         launchd.daemons.backup-ishizue.serviceConfig = {
           UserName = owner.name;
           ProgramArguments = [
-            "${pkgs.writeShellScript "backup-ishizue" ''
-              set -uo pipefail
-              mkdir -p ${lib.escapeShellArg dest}
-              exec 2>>${lib.escapeShellArg log}
+            "${pkgs.writers.writeNu "backup-ishizue" ''
+              def archives [dest: string] {
+                glob --no-dir $"($dest)/**/*" | each { |f| ls $f | first }
+              }
 
-              # -F none: none of the interactive settings for ishizue (agent forwarding, shared
-              # connection) apply; the host key is still checked against ~/.ssh/known_hosts.
-              ${lib.getExe pkgs.rsync} -rt --chmod=D700,F600 \
-                -e "${pkgs.openssh}/bin/ssh -F none -i ${key} -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o ConnectTimeout=30" \
-                ${user}@ishizue.local:forgejo/ ${lib.escapeShellArg dest}/
-              code=$?
+              def main [] {
+                let dest = "${dest}"
+                mkdir $dest
 
-              if [ "$code" -eq 0 ]; then
-                # ishizue dumps at 04:31: a successful pull with nothing from the last day is a failure too.
-                if [ -z "$(find ${lib.escapeShellArg dest} -type f -mmin -$((26 * 60)) | head -1)" ]; then
-                  echo "aucun dump de moins de 26 h" >&2
-                  code=100
-                else
-                  # Pruned only after a good pull: a broken source never empties the copies.
-                  find ${lib.escapeShellArg dest} -type f -mtime +${toString keepDays} -delete
-                fi
-              fi
+                # -F none: none of the interactive settings for ishizue (agent forwarding, shared
+                # connection) apply; the host key is still checked against ~/.ssh/known_hosts.
+                let rsync = ^${lib.getExe pkgs.rsync} -rt --chmod=D700,F600 -e "${pkgs.openssh}/bin/ssh -F none -i ${key} -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o ConnectTimeout=30" ${user}@ishizue.local:forgejo/ $"($dest)/" | complete
+                print --stderr --no-newline $rsync.stderr
+                mut code = $rsync.exit_code
 
-              n=$(find ${lib.escapeShellArg dest} -type f | wc -l | tr -d ' ')
-              if [ "$code" -eq 0 ]; then
-                line="$(date '+%F %T') ok exit=0 ($n archives)"
-              else
-                line="$(date '+%F %T') ÉCHEC exit=$code ($n archives)"
-              fi
-              echo "$line" >&2
-              echo "$line" > ${lib.escapeShellArg status}
-              exit "$code"
+                if $code == 0 {
+                  # ishizue dumps at 04:31: a successful pull with nothing from the last day is a failure too.
+                  if (archives $dest | where modified > ((date now) - 26hr) | is-empty) {
+                    print --stderr "no dump less than 26 h old"
+                    $code = 100
+                  } else {
+                    # Pruned only after a good pull: a broken source never empties the copies.
+                    archives $dest | where modified < ((date now) - ${toString keepDays}day) | each { |f| rm $f.name } | ignore
+                  }
+                }
+
+                let n = archives $dest | length
+                let result = if $code == 0 { "ok" } else { "FAILED" }
+                let line = $"(date now | format date '%F %T') ($result) exit=($code) \(($n) archives\)"
+                print --stderr $line
+                $line | save --force "${status}"
+                exit $code
+              }
             ''}"
           ];
+          # Appended to by launchd, which nu can't redirect its own stderr to.
+          StandardErrorPath = log;
           StartCalendarInterval = [
             {
               Hour = 5;
@@ -124,11 +127,14 @@ in
         # A daemon can't post to the owner's session: this agent does, whenever the status changes.
         launchd.user.agents.backup-ishizue-notify.serviceConfig = {
           ProgramArguments = [
-            "${pkgs.writeShellScript "backup-ishizue-notify" ''
-              line=$(cat ${lib.escapeShellArg status} 2>/dev/null) || exit 0
-              case "$line" in
-                *ÉCHEC*) /usr/bin/osascript -e "display notification \"$line — voir ${log}\" with title \"Sauvegarde ishizue en échec\"" ;;
-              esac
+            "${pkgs.writers.writeNu "backup-ishizue-notify" ''
+              def main [] {
+                if not ("${status}" | path exists) { return }
+                let line = open --raw "${status}" | str trim
+                if ($line | str contains FAILED) {
+                  ^/usr/bin/osascript -e $"display notification \"($line) — see ${log}\" with title \"ishizue backup failed\""
+                }
+              }
             ''}"
           ];
           WatchPaths = [ status ];
