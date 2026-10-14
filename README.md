@@ -59,7 +59,8 @@ nix develop          # shell with nixfmt, statix, deadnix, shellcheck, just, nvd
 
 Steps in execution order. Everything not listed here is declarative and comes back with the
 switch. The repo is private (SSH over FIDO2 key), so the bootstrap script cannot be
-fetched with `curl` from GitHub: bring `scripts/bootstrap.sh` over (AirDrop, `scp`, USB stick).
+fetched with `curl` from GitHub: bring `scripts/bootstrap.sh` and `scripts/bootstrap.nim` over,
+side by side (AirDrop, `scp`, USB stick).
 
 1. **Before wiping**: everything pushed (`sekkeizu` and `~/repositories/kanna`), and the password
    manager holds the two FIDO2 identities of `~/.config/sops/age/keys.txt` and the admin age key.
@@ -70,7 +71,8 @@ fetched with `curl` from GitHub: bring `scripts/bootstrap.sh` over (AirDrop, `sc
    ```bash
    bash bootstrap.sh --repo git@github.com:scorsi/sekkeizu.git
    ```
-   It installs the Command Line Tools and Nix, pulls the key handle (`ssh-keygen -K`: PIN, then touch),
+   It installs Nix, then compiles and runs `bootstrap.nim` (Nim and clang from nixpkgs), which
+   installs the Command Line Tools, pulls the key handle (`ssh-keygen -K`: PIN, then touch),
    clones sekkeizu and kanna (`~/repositories/kanna`, the live Neovim config), fetches the flake
    inputs from their GitHub mirrors (Forgejo isn't reachable yet) and runs the first switch. Until
    Tailscale is up (step 6), run Nix commands through `nu scripts/via-github.nu …`. That switch can complain that sops cannot
@@ -321,6 +323,7 @@ infra/
 ```
 
 Idempotent: on an already configured machine it skips what is done and ends with a switch.
+The shell part only installs Nix; everything else is `scripts/bootstrap.nim`.
 
 ## Identity
 

@@ -4,90 +4,40 @@
 # Idempotent: re-run on an already configured machine, it skips completed steps
 # and finishes with a `darwin-rebuild switch`.
 #
-# Usage:
+# Usage (bootstrap.nim must sit next to this file):
 #   ./scripts/bootstrap.sh                         # host jiban, repo in ~/repositories/sekkeizu
 #   ./scripts/bootstrap.sh --host jiban --dir ~/repositories/sekkeizu --repo git@github.com:<you>/sekkeizu.git \
 #     --git-crypt-key <file>                       # the repo's key (password manager, base64 -d)
-#   curl -fsSL <raw url>/scripts/bootstrap.sh | bash -s -- --repo <url>
 #
-# Steps: Command Line Tools → Nix (official installer) → repo (nixpkgs ssh/git, FIDO2 key) → clones (kanna, kiso)
-#          → git-crypt unlock → flake inputs from the GitHub mirrors → checks
-#          → move aside /etc files that nix-darwin refuses to overwrite → first switch.
+# Steps: Nix (official installer) → the rest in bootstrap.nim: Command Line Tools → repo (nixpkgs
+#          ssh/git, FIDO2 key) → clones (kanna, kiso) → git-crypt unlock → flake inputs from the
+#          GitHub mirrors → checks → move aside /etc files that nix-darwin refuses to overwrite
+#          → first switch.
 
+# Only what has to run before Nix exists lives here: everything else is bootstrap.nim.
 set -euo pipefail
 
-HOST="jiban"
-DIR="${HOME}/repositories/sekkeizu"
-REPO=""
-GIT_CRYPT_KEY=""
 NIX_BIN="/nix/var/nix/profiles/default/bin/nix"
-NIX_FLAGS=(--extra-experimental-features "nix-command flakes")
+HERE="$(cd "$(dirname "$0")" && pwd)"
 
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
-warn() { printf '\033[1;33m!!\033[0m %s\n' "$*" >&2; }
 die() {
   printf '\033[1;31mxx\033[0m %s\n' "$*" >&2
   exit 1
 }
 
-usage() {
-  sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
-  exit "${1:-0}"
-}
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-  --host)
-    HOST="${2:?--host attend une valeur}"
-    shift 2
-    ;;
-  --dir)
-    DIR="${2:?--dir attend une valeur}"
-    shift 2
-    ;;
-  --repo)
-    REPO="${2:?--repo attend une valeur}"
-    shift 2
-    ;;
-  --git-crypt-key)
-    GIT_CRYPT_KEY="${2:?--git-crypt-key attend une valeur}"
-    shift 2
-    ;;
-  -h | --help) usage 0 ;;
-  *)
-    warn "option inconnue : $1"
-    usage 1
-    ;;
-  esac
+for arg in "$@"; do
+  if [[ "$arg" == -h || "$arg" == --help ]]; then
+    sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
+    exit 0
+  fi
 done
 
-# ─── 0. Preconditions ────────────────────────────────────────────────
 [[ "$(uname -s)" == "Darwin" ]] || die "ce script ne tourne que sur macOS"
 [[ "$(uname -m)" == "arm64" ]] || die "ce script vise Apple Silicon (arm64)"
 [[ "$EUID" -ne 0 ]] || die "lance-le avec ton utilisateur, pas en root (sudo est demandé quand il faut)"
+[[ -f "${HERE}/bootstrap.nim" ]] || die "bootstrap.nim introuvable à côté de ce script (${HERE})"
 
-log "host: ${HOST} · repo: ${DIR}"
-sudo -v # asks for the password once, up front
-
-# ─── 1. Command Line Tools (git, compilers) ──────────────────────────
-if xcode-select -p >/dev/null 2>&1; then
-  log "Command Line Tools : déjà installés"
-else
-  log "Command Line Tools : installation sans interface graphique"
-  marker=/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress
-  touch "$marker"
-  label="$(softwareupdate -l 2>/dev/null |
-    sed -n 's/^[[:space:]]*\* Label: \(Command Line Tools.*\)$/\1/p' |
-    sort -V | tail -n1)"
-  [[ -n "$label" ]] || {
-    rm -f "$marker"
-    die "paquet Command Line Tools introuvable via softwareupdate"
-  }
-  sudo softwareupdate -i "$label" --verbose
-  rm -f "$marker"
-fi
-
-# ─── 2. Nix (official installer, multi-user) ─────────────────────────
 if [[ -x "$NIX_BIN" ]]; then
   log "Nix : déjà installé ($("$NIX_BIN" --version))"
 else
@@ -97,126 +47,15 @@ else
   sh "$installer" --daemon --yes --no-channel-add
   rm -f "$installer"
 fi
-# Makes `nix` available in this shell without reopening it.
+# Gives bootstrap.nim and the commands it runs Nix's environment without reopening the shell.
 # shellcheck disable=SC1091
 [[ -r /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]] &&
   . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 
-# ─── 3. The repo ──────────────────────────────────────────────────────
-# Private repo on a brand-new Mac: the system ssh has no FIDO2 support (and Apple's git
-# would use it), so clone with nixpkgs' openssh + git. The SSH key lives on the hardware
-# key as a resident credential: `ssh-keygen -K` pulls its handle into ~/.ssh.
-ssh_cmd="ssh -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes"
-
-with_nix_ssh() {
-  "$NIX_BIN" "${NIX_FLAGS[@]}" shell nixpkgs#openssh nixpkgs#git \
-    --command env GIT_SSH_COMMAND="$ssh_cmd" "$@"
-}
-
-# FIDO2 key handles in ~/.ssh (as written by `ssh-keygen -K`: id_ed25519_sk_rk…), private part only.
-fido_handles() {
-  local f
-  for f in "${HOME}"/.ssh/id_*_sk*; do
-    [[ -f "$f" && "$f" != *.pub ]] && printf '%s\n' "$f"
-  done
-  return 0
-}
-
-if [[ "$REPO" == git@* || "$REPO" == ssh://* ]]; then
-  if [[ -z "$(fido_handles)" ]]; then
-    log "clé FIDO2 : aucun handle dans ~/.ssh, récupération (branche la clé, PIN puis touch)"
-    mkdir -p "${HOME}/.ssh" && chmod 700 "${HOME}/.ssh"
-    (cd "${HOME}/.ssh" && with_nix_ssh ssh-keygen -K </dev/tty)
-  fi
-  while IFS= read -r handle; do
-    ssh_cmd="${ssh_cmd} -i ${handle}"
-  done < <(fido_handles)
-fi
-
-if [[ -f "${DIR}/flake.nix" ]]; then
-  log "repo : présent dans ${DIR}"
-elif [[ -n "$REPO" ]]; then
-  log "repo : clonage de ${REPO}"
-  with_nix_ssh git clone "$REPO" "$DIR"
-else
-  die "pas de flake dans ${DIR} : passe --repo <url> ou copie le repo (ex. scp -r depuis le laptop)"
-fi
-
-# Live clones of the owner's other repos, next to where this one came from (GitHub, FIDO2 key):
-# kanna is what ~/.config/nvim links to on a dev machine (`kanna-dev`, kiso.reposDir); kiso is
-# where its changes are made. The flake inputs don't need them.
-REPOS_DIR="${HOME}/repositories"
-for name in kanna kiso; do
-  if [[ -d "${REPOS_DIR}/${name}/.git" ]]; then
-    log "${name} : présent dans ${REPOS_DIR}/${name}"
-  elif [[ -n "$REPO" ]]; then
-    log "${name} : clonage de ${REPO%/*}/${name}.git"
-    mkdir -p "$REPOS_DIR"
-    with_nix_ssh git clone "${REPO%/*}/${name}.git" "${REPOS_DIR}/${name}"
-  else
-    warn "${name} absent de ${REPOS_DIR} (pas de --repo) : à cloner à la main"
-  fi
-done
-
-# secrets/ and modules-private/ are git-crypt encrypted (.gitattributes): unlock before anything evaluates
-# the flake. The filters call git-crypt by name, not by this store path, so a GC can't break them
-# (the home profile has it after the switch); the hook refuses to commit them in clear.
-git_crypt_bin="$("$NIX_BIN" "${NIX_FLAGS[@]}" build --no-link --print-out-paths nixpkgs#git-crypt)/bin"
-export PATH="${git_crypt_bin}:${PATH}"
-if git -C "$DIR" config --get filter.git-crypt.smudge >/dev/null; then
-  log "git-crypt : déjà déverrouillé"
-else
-  [[ -n "$GIT_CRYPT_KEY" ]] ||
-    die "secrets/ et modules-private/ sont chiffrés : passe --git-crypt-key <fichier> (gestionnaire de mots de passe, base64 -d)"
-  log "git-crypt : déverrouillage"
-  (cd "$DIR" && git-crypt unlock "$GIT_CRYPT_KEY")
-  git -C "$DIR" config filter.git-crypt.smudge 'git-crypt smudge'
-  git -C "$DIR" config filter.git-crypt.clean 'git-crypt clean'
-  git -C "$DIR" config filter.git-crypt.required true
-  git -C "$DIR" config diff.git-crypt.textconv 'git-crypt diff'
-fi
-git -C "$DIR" config core.hooksPath scripts/hooks
-
-# Nix only sees files tracked by git: an unadded file = "doesn't exist".
-if git -C "$DIR" status --porcelain 2>/dev/null | grep -q '^??'; then
-  warn "fichiers non suivis par git dans ${DIR} : ils seront ignorés par Nix (git add ?)"
-fi
-
-# The repo's own flakes (inputs scorsi-*) come from Forgejo, which a fresh machine can't reach yet
-# (no Tailscale): take them from their GitHub mirrors, at the revisions locked in flake.lock. Same
-# rewrite as scripts/via-github.nu. Fetched now as the user, with the FIDO2 key; every evaluation
-# below, root's included, then finds them in the store.
-export GIT_CONFIG_COUNT=1
-export GIT_CONFIG_KEY_0="url.ssh://git@github.com/scorsi/.insteadOf"
-export GIT_CONFIG_VALUE_0="ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/"
-log "inputs : récupération (miroirs GitHub)"
-with_nix_ssh "$NIX_BIN" "${NIX_FLAGS[@]}" flake archive "$DIR" >/dev/null
-
-# ─── 4. Checks before switching ───────────────────────────────────────
-flake="${DIR}#darwinConfigurations.${HOST}"
-log "évaluation de ${HOST}"
-configured_user="$("$NIX_BIN" "${NIX_FLAGS[@]}" eval --raw "${flake}.config.system.primaryUser")" ||
-  die "évaluation impossible : host '${HOST}' inexistant ou erreur Nix (voir ci-dessus)"
-[[ "$configured_user" == "$(whoami)" ]] ||
-  die "kiso.owner.name = '${configured_user}' mais tu es '$(whoami)' : corrige modules/meta/owner.nix"
-
-# ─── 5. /etc files nix-darwin refuses to overwrite ───────────────────
-# nix-darwin aborts if it finds these files unmanaged by it: rename them once.
-for f in /etc/bashrc /etc/zshrc /etc/zprofile /etc/shells /etc/nix/nix.conf /etc/nix/nix.custom.conf; do
-  if [[ -f "$f" && ! -L "$f" ]]; then
-    log "mise de côté : $f -> ${f}.before-nix-darwin"
-    sudo mv "$f" "${f}.before-nix-darwin"
-  fi
-done
-
-# ─── 6. Switch ─────────────────────────────────────────────────────────
-if command -v darwin-rebuild >/dev/null 2>&1; then
-  log "switch (darwin-rebuild déjà installé)"
-  sudo darwin-rebuild switch --flake "${DIR}#${HOST}"
-else
-  # First switch: darwin-rebuild comes from the flake, at the version pinned in flake.lock.
-  log "premier switch"
-  sudo -H "$NIX_BIN" "${NIX_FLAGS[@]}" run "${DIR}#darwin-rebuild" -- switch --flake "${DIR}#${HOST}"
-fi
-
-log "terminé. Ouvre un nouveau terminal (shell : fish). Rebuilds suivants : drs"
+# clang from nixpkgs: the Command Line Tools may not be installed yet, bootstrap.nim does it.
+# Compiled then run (not `nim r`, which adds its own error line to every failure).
+build="$(mktemp -d)"
+trap 'rm -rf "$build"' EXIT
+"$NIX_BIN" --extra-experimental-features "nix-command flakes" shell nixpkgs#nim nixpkgs#clang \
+  --command nim c --hints:off --nimcache:"${build}/cache" -o:"${build}/bootstrap" "${HERE}/bootstrap.nim"
+"${build}/bootstrap" "$@"

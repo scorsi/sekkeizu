@@ -58,7 +58,8 @@ change with `--override-input` before pushing.
 ## Testing changes
 
 There's no app to run — verification is `nix flake check` / `nix run .#check` succeeding, plus
-(when touching `scripts/bootstrap.sh`) `shellcheck scripts/bootstrap.sh`. Both are cheap; run them
+(when touching the bootstrap) `shellcheck scripts/bootstrap.sh` and
+`nix shell nixpkgs#nim --command nim check scripts/bootstrap.nim`. Both are cheap; run them
 before reporting Nix or shell changes as complete.
 
 Under `infra/`: `tofu fmt -recursive infra` and `tofu plan` in the touched stack, from
