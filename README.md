@@ -34,6 +34,7 @@ modules/
   hosts/   one file per machine: its identity + the features it imports
 modules-private/  git-crypt, laid out like modules/: where services live (meta/endpoints.nix), public keys (meta/keys.nix)
 secrets/   sops files per host, git-crypt on top
+infra/     OpenTofu: cloud resources and public DNS (see Infrastructure)
 scripts/
   bootstrap.sh   turns a fresh Mac into a working jiban
   hooks/         pre-commit: refuses an encrypted tree committed in clear
@@ -254,6 +255,64 @@ holds values only, never a secret.
   new file of these trees in clear. `scripts/hooks/pre-commit` refuses that commit; CI runs it
   too, but after the push (and the GitHub mirror), so the hook is what counts.
 - A locked clone does not evaluate: the modules of `modules-private/` are ciphertext.
+
+## Infrastructure (OpenTofu)
+
+What runs outside the house, in plain HCL under `infra/`. Each stack has its own state; modules are
+shared between stacks.
+
+```
+infra/
+  encryption.tf     state and plan encryption, symlinked into every stack
+  modules/
+    vultr-node/     instance, firewall group (given ports and ICMP, v4 and v6), reserved IPv4
+    dns-zone/       one Porkbun zone: records, optional null-mail (null MX, SPF -all, DMARC reject)
+  stacks/
+    torii/          Vultr, `torii-<region>`, region `cdg` (Paris) by default; only SSH and ICMP open until services land
+    storage/        Hetzner Storage Box BX11 (fsn1) for restic, weekly snapshots, subaccount `backup` for jiban
+    dns/            scorsi.dev and scorsi.me; reads torii's addresses from its state
+```
+
+- **Tooling**: `nix develop .#infra` (OpenTofu, sops, the FIDO2 age plugin, `tofu-state-key`). Run
+  every tofu command from that shell, inside a stack directory.
+- **Providers**: exact versions in each stack, `.terraform.lock.hcl` committed with the hashes of
+  `darwin_arm64`, `linux_amd64` and `linux_arm64`. After a version bump:
+  `tofu providers lock -platform=darwin_arm64 -platform=linux_amd64 -platform=linux_arm64`.
+- **State**: local `terraform.tfstate`, committed, encrypted by OpenTofu itself (AES-GCM, key from a
+  passphrase through PBKDF2, `enforced`). Commit it after every apply. No locking: one operator.
+- **Secrets**: `secrets/infra/tofu.yaml` (sops), encrypted to the two FIDO2 keys and a break-glass age
+  key that lives only in the password manager, not to the admin key: decrypting takes a touch.
+  Keys: `vultr_api_key`, `porkbun_api_key`, `porkbun_secret_key`, `hcloud_token`,
+  `state_passphrase`. API keys reach the providers through an ephemeral `sops_file` (never in the
+  state, the plan or the environment); the passphrase through the external key provider
+  `tofu-state-key` (`modules/flake/infra.nix`). Plan for a few touches per command.
+- **Order**: `storage` and `torii` are independent; `dns` needs torii applied (its state holds the
+  addresses).
+
+### Manual steps, in order
+
+1. **FIDO2 recipients**, once per key, with only that key plugged in:
+   `age-plugin-fido2-hmac -g` (PIN, touch; PIN for decryption: no; separate identity: yes). The
+   public key goes to `.sops.yaml` (rule `secrets/infra/`), the `AGE-PLUGIN-FIDO2-HMAC-1…` identity
+   is appended to `~/.config/sops/age/keys.txt` and stored in the password manager: without the
+   identity, the key alone cannot decrypt.
+2. **Break-glass key**: `age-keygen` in a terminal of your own; private key to the password manager
+   only, public key to `.sops.yaml`.
+3. **Porkbun**: Domain Management → API Access **on** for scorsi.dev and scorsi.me (per domain;
+   without it the API answers `API_ACCESS_DISABLED`). API key limited to the DNS permission on
+   those two domains. Delete the default parking records (`ALIAS`/`CNAME` to `pixie.porkbun.com`)
+   if the domains have them.
+4. **Vultr**: API key, access restricted to your IP addresses (access control of the API settings).
+5. **Hetzner**: Console project → Security → API token, read and write.
+6. **Secrets file**: `sops secrets/infra/tofu.yaml` with the five keys (`state_passphrase`:
+   `openssl rand -base64 36`).
+7. **Apply**, from each stack: `tofu init`, `tofu plan`, `tofu apply`; commit `terraform.tfstate`.
+8. **DNSSEC**: Porkbun → the domain → DNSSEC, enable by hand once the zone is stable. Porkbun's API
+   only manages DS records at the registry for zones signed elsewhere; nothing turns on its own
+   signing.
+9. **restic's subaccount**: `tofu output -raw backup_password` (in `stacks/storage`), then put jiban's
+   SSH public key into `.ssh/authorized_keys` of the `backup` subaccount over SFTP. Not through the box
+   resource: changing its `ssh_keys` recreates the box, data included.
 
 ## Bootstrap
 

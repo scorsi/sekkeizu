@@ -61,6 +61,9 @@ There's no app to run — verification is `nix flake check` / `nix run .#check` 
 (when touching `scripts/bootstrap.sh`) `shellcheck scripts/bootstrap.sh`. Both are cheap; run them
 before reporting Nix or shell changes as complete.
 
+Under `infra/`: `tofu fmt -recursive infra` and `tofu plan` in the touched stack, from
+`nix develop .#infra`. Never `tofu apply`: the owner applies.
+
 ## Git
 
 Commits are SSH-signed via a plugged-in FIDO2 key (see `modules/home/git.nix`); signing just needs
