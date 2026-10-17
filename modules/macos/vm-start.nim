@@ -33,8 +33,9 @@ proc main() =
   # Left behind by a power cut: vfkit won't bind over it (launchd runs one instance).
   removeFile("vm.sock")
   let create = if fileExists("efi-vars"): "" else: ",create"
+  # --nested gives the guest /dev/kvm (M3+, macOS 15+): nixosTests run on KVM instead of TCG.
   let args = allocCStringArray([vfkit,
-    "--cpus", paramStr(4), "--memory", paramStr(5),
+    "--cpus", paramStr(4), "--memory", paramStr(5), "--nested",
     "--bootloader", "efi,variable-store=" & state / "efi-vars" & create,
     "--device", "virtio-rng",
     "--device", "virtio-blk,path=" & state / "disk.raw",
