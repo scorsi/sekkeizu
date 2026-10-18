@@ -87,6 +87,9 @@ in
         # Daily archive of the database, repositories and config; tmpfiles removes the ones older than `age`.
         dump = {
           enable = true;
+          # Uncompressed: restic (backup/offsite.nix) dedups unchanged files between days, which a
+          # zip's compressed stream defeats; restic compresses on its side.
+          type = "tar";
           backupDir = "/persist/backups/forgejo";
           age = "7d";
         };
