@@ -41,6 +41,12 @@
     # Declarative state on an ephemeral root (systemd mounts/tmpfiles, no activation script).
     preservation.url = "github:nix-community/preservation";
 
+    # Partitions a cloud machine's disk when nixos-anywhere installs it (modules/nixos/vultr-guest.nix).
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # The owner's own flakes, prefixed `scorsi-` to tell them apart from external inputs, come from
     # Forgejo (ishizue): on the LAN, no dependence on GitHub. A fresh install or a recovery, when
     # Forgejo is out of reach, takes them from their GitHub mirrors without touching this file or

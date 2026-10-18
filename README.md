@@ -292,7 +292,7 @@ infra/
 - **Secrets**: `secrets/infra/tofu.yaml` (sops, keys as in "Encrypted trees", no host key):
   decrypting takes a touch.
   Keys: `vultr_api_key`, `porkbun_api_key`, `porkbun_secret_key`, `hcloud_token`,
-  `state_passphrase`. API keys reach the providers through an ephemeral `sops_file` (never in the
+  `state_passphrase`, `install_password` (the NixOS ISO's `nixos` user while installing a Vultr host, see `modules/nixos/vultr-guest.nix`). API keys reach the providers through an ephemeral `sops_file` (never in the
   state, the plan or the environment); the passphrase through the external key provider
   `tofu-state-key` (`modules/flake/infra.nix`). Plan for a few touches per command.
 - **Order**: `storage` and `torii` are independent; `dns` needs torii applied (its state holds the

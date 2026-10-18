@@ -26,12 +26,21 @@ variable "region" {
   default = "cdg"
 }
 
+# Only for installing NixOS (modules/nixos/vultr-guest.nix): `tofu apply -var iso_url=<NixOS minimal ISO>`,
+# then remove it in Vultr's console and a plain `tofu apply` deletes it (see vultr-guest.nix, step 5). Last used (2026-10-18):
+# https://releases.nixos.org/nixos/26.05/nixos-26.05.11985.26f4107e47e3/nixos-minimal-26.05.11985.26f4107e47e3-x86_64-linux.iso
+variable "iso_url" {
+  type    = string
+  default = null
+}
+
 module "torii" {
   source = "../../modules/vultr-node"
 
   # Named after Vultr's region (IATA airport codes: cdg Paris, nrt Tokyo).
-  name   = "torii-${var.region}"
-  region = var.region
+  name    = "torii-${var.region}"
+  region  = var.region
+  iso_url = var.iso_url
   # SSH only, to install and reach the machine; each service opens its ports when it lands.
   tcp_ports = ["22"]
 }

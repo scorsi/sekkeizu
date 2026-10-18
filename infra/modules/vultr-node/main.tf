@@ -28,6 +28,13 @@ variable "os" {
   default = "Debian 13 x64 (trixie)"
 }
 
+# Boots the instance on this ISO while set (attached in place, the disk untouched); back to null
+# detaches it and the instance boots its disk again.
+variable "iso_url" {
+  type    = string
+  default = null
+}
+
 variable "tcp_ports" {
   type        = list(string)
   default     = []
@@ -82,6 +89,11 @@ resource "vultr_firewall_rule" "icmp" {
   subnet_size       = 0
 }
 
+resource "vultr_iso_private" "this" {
+  count = var.iso_url == null ? 0 : 1
+  url   = var.iso_url
+}
+
 # Survives a rebuild of the instance, so DNS does not move.
 resource "vultr_reserved_ip" "v4" {
   label   = var.name
@@ -90,11 +102,13 @@ resource "vultr_reserved_ip" "v4" {
 }
 
 resource "vultr_instance" "this" {
-  label             = var.name
-  hostname          = var.name
-  region            = var.region
-  plan              = var.plan
-  os_id             = data.vultr_os.this.id
+  label    = var.name
+  hostname = var.name
+  region   = var.region
+  plan     = var.plan
+  os_id    = data.vultr_os.this.id
+  # The provider refuses os_id and iso_id together on create: only set it on an existing instance.
+  iso_id            = one(vultr_iso_private.this[*].id)
   enable_ipv6       = true
   reserved_ip_id    = vultr_reserved_ip.v4.id
   firewall_group_id = vultr_firewall_group.this.id
