@@ -57,3 +57,35 @@ module "zone" {
   null_mail = each.value.null_mail
   records   = each.value.records
 }
+
+# Delegation: torii-cdg is the authoritative server for both zones. The glue exists because
+# ns1/ns2 live inside the zone they serve, so the registry needs their addresses.
+# torii's remote state is readable here thanks to the shared remote_state_data_sources block.
+resource "porkbun_glue_record" "ns" {
+  for_each = toset(["ns1", "ns2"])
+
+  domain    = "scorsi.dev"
+  subdomain = each.key
+  ips       = [local.torii.ipv4, local.torii.ipv6]
+}
+
+# The glue was created by hand in Porkbun's UI before being managed here.
+import {
+  for_each = toset(["ns1", "ns2"])
+  to       = porkbun_glue_record.ns[each.key]
+  id       = "scorsi.dev_${each.key}"
+}
+
+# This resource has no import support, so the first apply shows two creates that re-send the
+# nameservers already live (no effect). Destroy only warns and leaves them unchanged.
+# Rollback: set nameservers to Porkbun's own, curitiba, fortaleza, maceio and salvador
+# (each <name>.ns.porkbun.com), and apply.
+resource "porkbun_domain_nameservers" "zone" {
+  for_each = toset(["scorsi.dev", "scorsi.me"])
+
+  domain      = each.key
+  nameservers = [for ns in sort(keys(porkbun_glue_record.ns)) : "${ns}.scorsi.dev"]
+
+  # Glue must exist before the registry is told to use these hosts.
+  depends_on = [porkbun_glue_record.ns]
+}
