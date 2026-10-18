@@ -17,6 +17,7 @@ in
       nixos.owner
       nixos.fish
       nixos.secrets
+      nixos.annai-soto
       nixos.server
 
       # ─── Machine identity ─────────────────────────────────────────────

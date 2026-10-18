@@ -1,6 +1,6 @@
 # The lab's network addressing, beyond the services of services.nix: the domain the internal zone
-# hangs from, the VMs' addresses on vfkit's NAT bridge, and kekkai's overlay allocation. Values in
-# modules-private/meta/ (endpoints.nix, kekkai.nix).
+# hangs from, the public hosts' addresses, the VMs' addresses on vfkit's NAT bridge, and kekkai's
+# overlay allocation. Values in modules-private/meta/ (endpoints.nix, public.nix, kekkai.nix).
 { lib, ... }:
 let
   inherit (lib) mkOption types;
@@ -18,6 +18,29 @@ in
       description = ''
         IPv4 address of each VM on vfkit's NAT bridge, by host name. Fixed by the VM's MAC
         (`sekkeizu.vms.<name>.mac`) in macOS's DHCP leases (/var/db/dhcpd_leases).
+      '';
+    };
+
+    publicAddresses = mkOption {
+      default = { };
+      description = "Public IPv4 and IPv6 of each internet-facing host, by host name: infra/stacks/torii's outputs.";
+      type = types.attrsOf (
+        types.submodule {
+          options = {
+            ipv4 = mkOption { type = types.str; };
+            ipv6 = mkOption { type = types.str; };
+          };
+        }
+      );
+    };
+
+    publicZones = mkOption {
+      type = types.attrsOf (types.attrsOf types.anything);
+      default = { };
+      description = ''
+        Public records by apex zone (no final dot), as annai's `names` (annai ADR 0003). The same
+        records as infra/stacks/dns at Porkbun until the NS switch; SOA, NS, glue and CAA come from
+        the annai-soto feature.
       '';
     };
 

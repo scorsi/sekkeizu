@@ -41,8 +41,10 @@ module "torii" {
   name    = "torii-${var.region}"
   region  = var.region
   iso_url = var.iso_url
-  # SSH only, to install and reach the machine; each service opens its ports when it lands.
-  tcp_ports = ["22"]
+  # 22: SSH, to install and reach the machine. Each service opens its ports when it lands
+  # (docs/migration.md); 53: annai soto, the public nameservers (modules/network/annai-soto.nix).
+  tcp_ports = ["22", "53"]
+  udp_ports = ["53"]
 }
 
 output "name" {
