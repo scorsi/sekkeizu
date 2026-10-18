@@ -241,11 +241,11 @@
         "zig2nix": "zig2nix"
       },
       "locked": {
-        "lastModified": 1792329832,
-        "narHash": "sha256-FpIrtSJ+13ycbSA8rq9IB91bZhvlzcCN5ijD124F37g=",
+        "lastModified": 1792333198,
+        "narHash": "sha256-UsSUYBRxaIitDgSNEr5EVIkbCZbyzt634QQS3ZDIbuY=",
         "ref": "refs/heads/main",
-        "rev": "5a19227e88c427304bb32b9da53028a2e8d6ee9d",
-        "revCount": 17,
+        "rev": "6ea37a9465729b75ca4a6c089daafbd79e7eee3d",
+        "revCount": 18,
         "type": "git",
         "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/annai.git"
       },
