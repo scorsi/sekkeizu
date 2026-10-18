@@ -84,6 +84,44 @@ resource "hcloud_storage_box_subaccount" "backup" {
   }
 }
 
+variable "backup_key" {
+  type        = string
+  description = "jiban's backup-pull public key; exported by the infra shell from modules-private."
+}
+
+variable "backup_host_key" {
+  type        = string
+  description = "The box's SSH host key (`<type> <base64>`); exported by the infra shell from modules-private."
+}
+
+# The API has no SSH keys for a subaccount: the box's own `install-ssh-key` command adds it to
+# .ssh/authorized_keys, logged in with the subaccount's password. The host key is pinned, so the
+# password goes to the box only. Runs again when the key or the subaccount changes.
+resource "terraform_data" "backup_key" {
+  triggers_replace = [var.backup_key, hcloud_storage_box_subaccount.backup.id]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -eu
+      known=$(mktemp)
+      trap 'rm -f "$known"' EXIT
+      printf '[%s]:23 %s\n' "$HOST" "$HOST_KEY" > "$known"
+      printf '%s\n' "$KEY" | sshpass -e ssh -F none -p 23 \
+        -o UserKnownHostsFile="$known" -o StrictHostKeyChecking=yes \
+        -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive \
+        "$LOGIN@$HOST" install-ssh-key
+    EOT
+
+    environment = {
+      HOST     = hcloud_storage_box_subaccount.backup.server
+      LOGIN    = hcloud_storage_box_subaccount.backup.username
+      HOST_KEY = var.backup_host_key
+      KEY      = var.backup_key
+      SSHPASS  = random_password.this["backup"].result
+    }
+  }
+}
+
 output "backup_server" {
   value = hcloud_storage_box_subaccount.backup.server
 }

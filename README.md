@@ -182,8 +182,11 @@ that file (and swapping Tailscale certificates for ACME in Caddy).
   them at 05:15 into `~/Backups/ishizue/forgejo/` (30 days kept) as the `backup` account, which
   can only run `rrsync -ro /persist/backups` and only from the NAT bridge (`modules/backup/pull.nix`).
   One line per run in `~/Library/Logs/backup-ishizue.log`, a notification on failure. Run it now:
-  `sudo launchctl kickstart system/org.nixos.backup-ishizue`. External disk and off-site (restic)
-  come next, from `~/Backups`.
+  `sudo launchctl kickstart system/org.nixos.backup-ishizue`. At 06:00, restic copies all of `~/Backups`
+  to the Storage Box (`modules/backup/offsite.nix`; 7 daily, 5 weekly, 12 monthly snapshots), logged in
+  `~/Library/Logs/backup-offsite.log`: `sudo launchctl kickstart system/org.nixos.backup-offsite`.
+  Restore: `restic -r sftp://<user>@<box>:23/restic restore latest --target <dir>` with `restic-password`
+  from sops. External disk: not done.
 - **Runners** (host executor, no containers): `linux` on ishizue (Nix, git, node, zola, rsync;
   systemd sandbox, writes only to its state directory, `/var/lib/site` and `/var/lib/rirekisho`), `macos` on jiban (LaunchDaemon, hidden
   non-admin `_forgejo-runner` account). Rationale in `modules/ci/forgejo-runner.nix`.
@@ -312,9 +315,10 @@ infra/
 6. **DNSSEC**: Porkbun → the domain → DNSSEC, enable by hand once the zone is stable. Porkbun's API
    only manages DS records at the registry for zones signed elsewhere; nothing turns on its own
    signing.
-7. **restic's subaccount**: `tofu output -raw backup_password` (in `stacks/storage`), then put jiban's
-   SSH public key into `.ssh/authorized_keys` of the `backup` subaccount over SFTP. Not through the box
-   resource: changing its `ssh_keys` recreates the box, data included.
+7. **restic's password**: `restic-password` in `secrets/jiban/secrets.yaml` (already set; a new one
+   means a new repository). jiban's key reaches the `backup` subaccount at apply (`terraform_data.backup_key`,
+   the box's `install-ssh-key` over the subaccount's password), never through the box resource:
+   changing its `ssh_keys` recreates the box, data included.
 
 ## Bootstrap
 

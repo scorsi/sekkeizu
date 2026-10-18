@@ -1,5 +1,9 @@
 # `nix develop .#infra`: OpenTofu for infra/ (README, "Infrastructure"). A shell of its own rather
 # than kiso's default one: this is the homelab's tooling, kiso stays generic.
+{ config, lib, ... }:
+let
+  box = config.sekkeizu.services.backup-offsite;
+in
 {
   perSystem =
     { pkgs, ... }:
@@ -37,10 +41,14 @@
           age
           age-plugin-fido2-hmac # secrets/infra/ is encrypted to the FIDO2 keys: a touch per decryption
           tofuStateKey
+          sshpass # stacks/storage installs jiban's key on the Storage Box with the subaccount's password
         ];
         # Same key file as kiso's shell: the FIDO2 identities live next to the admin key.
         shellHook = ''
           export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
+          # Values of modules-private/, which the public infra/ tree must not spell out.
+          export TF_VAR_backup_key=${lib.escapeShellArg config.sekkeizu.backupPullKey}
+          export TF_VAR_backup_host_key=${lib.escapeShellArg box.hostKey}
         '';
       };
     };

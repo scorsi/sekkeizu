@@ -12,8 +12,8 @@
 # (`sekkeizu.backupPullKey`, modules-private/meta/keys.nix) never changes and ishizue needs no redeploy after
 # jiban is rebuilt.
 #
-# Next steps, not implemented: `sekkeizu.backups.dir` is the one tree to ship elsewhere, first to an
-# external disk, then off site with restic (a `backup-offsite` feature reading the same option).
+# `sekkeizu.backups.dir` is the one tree shipped elsewhere: off site by `backup-offsite` (offsite.nix);
+# an external disk is not implemented.
 { config, lib, ... }:
 let
   inherit (config.kiso) owner;
