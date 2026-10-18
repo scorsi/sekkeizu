@@ -41,7 +41,7 @@ in
         ProgramArguments = [
           "${pkgs.writers.writeNu "backup-offsite" ''
             # Runs restic, its output to the log; returns the exit code.
-            def restic [...args: string] {
+            def --wrapped restic [...args: string] {
               let r = ^${lib.getExe pkgs.restic} -o "sftp.args=-F none -i ${key} -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=60" ...$args | complete
               print --stderr --no-newline $r.stdout $r.stderr
               $r.exit_code
