@@ -66,7 +66,8 @@ resource "porkbun_glue_record" "ns" {
 
   domain    = "scorsi.dev"
   subdomain = each.key
-  ips       = [local.torii.ipv4, local.torii.ipv6]
+  # Porkbun returns the IPv6 in canonical form (no leading zeros); cidrhost normalises ours to match.
+  ips = [local.torii.ipv4, cidrhost("${local.torii.ipv6}/128", 0)]
 }
 
 # The glue was created by hand in Porkbun's UI before being managed here.
