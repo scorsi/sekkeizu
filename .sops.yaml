@@ -3,6 +3,7 @@
 # password manager, never on disk.
 # jiban: `ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub`
 # ishizue: `ssh-keyscan -t ed25519 ishizue | cut -d' ' -f2,3 | ssh-to-age` (key on its /var volume)
+# torii-cdg: same, with torii-cdg.scorsi.dev (key on /persist)
 # FIDO2: `age-plugin-fido2-hmac -g`, the classic `age1…` recipient; the anchor carries the serial
 #   number printed on the key, since nothing in the recipient tells which device it belongs to.
 # admin: `age-keygen | pbcopy`, straight into the password manager.
@@ -12,6 +13,7 @@ keys:
   - &fido-yubikey-34043456 age12whmd2dhljlatw5ywvanknftjzjpl9xnvhce9ky0d3dcr7lqqfeql5mev0
   - &ishizue age13v3z9aq5pmxjyllxcljw3t0mag6afccgf3dgwm65xeug35kkp4fs83mves
   - &jiban age1huncufpm34n6xxjk97fp8dpn5uy66d0ylwzhmrvq0lkz78avwplq59t67f
+  - &torii-cdg age1s0ujqtcptk2n5kdcfldrmx8zqjyz9nztpycg7ym9fqc4gfefhs9sph8ln9
 creation_rules:
   - path_regex: secrets/jiban/.*
     key_groups:
@@ -24,6 +26,13 @@ creation_rules:
     key_groups:
       - age:
           - *ishizue
+          - *fido-thetis-102800549530
+          - *fido-yubikey-34043456
+          - *admin
+  - path_regex: secrets/torii-cdg/.*
+    key_groups:
+      - age:
+          - *torii-cdg
           - *fido-thetis-102800549530
           - *fido-yubikey-34043456
           - *admin
