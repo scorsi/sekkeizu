@@ -20,6 +20,7 @@ in
       darwin.secrets
       darwin.autologin
       darwin.tailscale
+      darwin.annai
       darwin.server
       darwin.vfkit-host
       darwin.forgejo-runner

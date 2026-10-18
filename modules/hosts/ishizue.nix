@@ -20,6 +20,7 @@ in
       nixos.fish
       nixos.secrets
       nixos.tailscale
+      nixos.annai
       nixos.server
       nixos.caddy
       nixos.forgejo

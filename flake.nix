@@ -53,6 +53,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # The DNS server of the homelab (modules/network/annai.nix). Not following our nixpkgs: annai
+    # pins its own nixpkgs and Zig toolchain (zig2nix) and is built and tested against them.
+    scorsi-annai.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/annai.git";
+
     # The common base (options `kiso.*`, generic features), a flake-parts module. Every input it
     # shares with this repo follows ours: one version of each.
     scorsi-kiso = {
