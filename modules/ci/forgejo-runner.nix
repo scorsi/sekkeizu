@@ -1,7 +1,7 @@
 # Forgejo Actions runners, on the host executor: jobs run straight on the machine, as an
 # unprivileged user, with the tools of `hostPackages` in their PATH (Nix included on ishizue).
 #
-# Why the host executor and not podman on ishizue: a single user, private repositories and a 6 GB
+# Why the host executor and not podman on ishizue: a single user, private repositories and an 8 GB
 # VM. Containers would mean a second layer (rootless podman, image pulls onto the persistent disk,
 # 1 GB of tmpfs for layers) to isolate code that only the owner pushes; the job gets the same
 # isolation from the systemd sandbox below (no write access outside its own directories) and from
@@ -104,6 +104,10 @@ in
           home = stateDir;
         };
         users.groups.${user} = { };
+
+        # A nixosTest boots 2-3 VMs of ~400 MB each; on this small host, parallel builds starve them
+        # into timeouts. One build at a time: a flake check's tests run in sequence.
+        nix.settings.max-jobs = 1;
 
         # The registered host name must resolve to this machine, whatever Tailscale DNS does at boot.
         networking.hosts."127.0.0.1" = [ forgejo.host ];

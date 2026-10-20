@@ -76,7 +76,7 @@ in
           # Modest while jiban is still the dev machine; ~8 vCPU / 11-12 GB once it's a pure server.
           # Takes effect at the VM's next start.
           vcpu = 4;
-          memory = 6 * 1024;
+          memory = 8 * 1024;
           diskSize = 64;
           mac = "02:00:00:15:41:01";
         };

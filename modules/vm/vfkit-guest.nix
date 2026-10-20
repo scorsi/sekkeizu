@@ -45,6 +45,10 @@
       # Discards reach the Mac's sparse disk image: freed blocks stop taking space there.
       services.fstrim.enable = true;
 
+      # The guest's RAM is fixed and small (sekkeizu.vms.<vm>.memory): compressed swap in RAM absorbs
+      # peaks (a nix evaluation, nixosTest VMs) instead of the OOM killer, without touching the Mac's disk.
+      zramSwap.enable = true;
+
       # Virtualization.framework NAT: DHCP from macOS's bootpd (192.168.64.0/24), reachable from
       # the Mac only. Everything else goes through Tailscale.
       networking.useNetworkd = true;
