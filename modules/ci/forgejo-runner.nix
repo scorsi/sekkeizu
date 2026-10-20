@@ -176,7 +176,7 @@ in
             RestartSec = 5;
 
             # Jobs are the owner's own code, but a runaway one must not take Forgejo down with it.
-            MemoryMax = "3G";
+            MemoryMax = "4G";
             NoNewPrivileges = true;
             PrivateTmp = true;
             ProtectSystem = "strict";
