@@ -1,5 +1,7 @@
 # Claude Code CLI. The package is unfree in nixpkgs: the darwin half whitelists it
 # (with useGlobalPkgs, nixpkgs config lives at the system level, not in home-manager).
+# The status line is shiori, its own flake: it patches settings.json's statusLine key itself.
+{ inputs, ... }:
 {
   flake.modules.darwin.claude-code = {
     nixpkgs.config.allowUnfreePredicate = pkg: (pkg.pname or "") == "claude-code";
@@ -23,18 +25,6 @@
       ...
     }:
     let
-      # Compiled, so no interpreter is needed at runtime (Claude Code shells out to it on
-      # every status-line refresh).
-      statusline = pkgs.stdenv.mkDerivation {
-        name = "claude-code-statusline";
-        src = ./claude-code-statusline.nim;
-        dontUnpack = true;
-        nativeBuildInputs = [ pkgs.nim ];
-        # The store file name isn't a valid Nim module name.
-        buildPhase = "cp $src main.nim && nim c -d:release --nimcache:$TMPDIR/nimcache -o:claude-code-statusline main.nim";
-        installPhase = "install -D claude-code-statusline $out/bin/claude-code-statusline";
-      };
-
       # Claude Code installs whatever these keys declare on its next start, in the CLI and the
       # desktop app alike. programs.claude-code.{settings,plugins} can't do it: the first turns
       # settings.json into a read-only store link (Claude Code writes to it), the second only
@@ -55,10 +45,6 @@
           "gopls-lsp@claude-plugins-official" = true;
           "lua-lsp@claude-plugins-official" = true;
         };
-        statusLine = {
-          type = "command";
-          command = "${statusline}/bin/claude-code-statusline";
-        };
       };
       settingsPatchJson = pkgs.writeText "claude-code-settings-patch.json" (
         builtins.toJSON settingsPatch
@@ -66,7 +52,10 @@
       settingsFile = "${config.programs.claude-code.configDir}/settings.json";
     in
     {
+      imports = [ inputs.scorsi-shiori.homeModules.shiori ];
+
       programs.claude-code.enable = true;
+      programs.shiori.enable = true;
       # Plugin hooks (e.g. ponytail's UserPromptSubmit) shell out to `node`.
       home.packages = [ pkgs.nodejs ];
 

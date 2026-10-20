@@ -63,6 +63,12 @@
     # pins its own nixpkgs and Zig toolchain (zig2nix) and is built and tested against them.
     scorsi-annai.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/annai.git";
 
+    # The Claude Code status line (modules/home/claude-code.nix).
+    scorsi-shiori = {
+      url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/shiori.git";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # The common base (options `kiso.*`, generic features), a flake-parts module. Every input it
     # shares with this repo follows ours: one version of each.
     scorsi-kiso = {

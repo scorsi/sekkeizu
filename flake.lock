@@ -232,6 +232,7 @@
         "scorsi-annai": "scorsi-annai",
         "scorsi-kanna": "scorsi-kanna",
         "scorsi-kiso": "scorsi-kiso",
+        "scorsi-shiori": "scorsi-shiori",
         "sops-nix": "sops-nix"
       }
     },
@@ -316,6 +317,26 @@
       "original": {
         "type": "git",
         "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kiso.git"
+      }
+    },
+    "scorsi-shiori": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1792523158,
+        "narHash": "sha256-rFQCJl5I2jZZK2U/OZfjGO1K0EF95Jo5IIqx7cnnfv0=",
+        "ref": "refs/heads/main",
+        "rev": "0e84614113f60b2626d254b18d0749ce40d32cee",
+        "revCount": 8,
+        "type": "git",
+        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/shiori.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/shiori.git"
       }
     },
     "sops-nix": {
