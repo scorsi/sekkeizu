@@ -36,8 +36,14 @@ in
         inputs.scorsi-nisshi.nixosModules.default
       ];
 
-      sops.secrets.masu-tls-key = { inherit sopsFile; };
-      sops.secrets.nisshi-tls-key = { inherit sopsFile; };
+      sops.secrets.masu-tls-key = {
+        inherit sopsFile;
+        restartUnits = [ "masu.service" ];
+      };
+      sops.secrets.nisshi-tls-key = {
+        inherit sopsFile;
+        restartUnits = [ "nisshi.service" ];
+      };
 
       services.masu = store "masu" // {
         metrics.listen = "127.0.0.1:9474";

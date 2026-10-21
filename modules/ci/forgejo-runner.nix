@@ -121,7 +121,10 @@ in
           }
         ];
 
-        sops.secrets."forgejo-runner-${name}".owner = user;
+        sops.secrets."forgejo-runner-${name}" = {
+          owner = user;
+          restartUnits = [ "forgejo-runner.service" ];
+        };
         sops.secrets.forgejo-ci-key.owner = user;
         sops.secrets.git-crypt-key = {
           sopsFile = ../../secrets/${name}/git-crypt-key;
@@ -231,13 +234,28 @@ in
       };
 
       # The runner is a Go binary with its own resolver: it reads /etc/hosts, not MagicDNS.
-      system.activationScripts.postActivation.text = lib.mkOrder 1550 "${pkgs.writers.writeNu "forgejo-runner-activate" ''
-        ^/usr/bin/install -d -m 700 -o ${macUser} -g ${macUser} ${stateDir}
-        ${lib.optionalString (forgejo.address != null) ''
-          let hosts = open --raw /etc/hosts | lines | where { |l| not ($l | str ends-with "# sekkeizu-forgejo") }
-          $hosts | append "${forgejo.address} ${forgejo.host} # sekkeizu-forgejo" | str join "\n" | $in + "\n" | save --force /etc/hosts
-        ''}
-      ''}";
+      system.activationScripts.postActivation.text = lib.mkMerge [
+        (lib.mkOrder 1550 "${pkgs.writers.writeNu "forgejo-runner-activate" ''
+          ^/usr/bin/install -d -m 700 -o ${macUser} -g ${macUser} ${stateDir}
+          ${lib.optionalString (forgejo.address != null) ''
+            let hosts = open --raw /etc/hosts | lines | where { |l| not ($l | str ends-with "# sekkeizu-forgejo") }
+            $hosts | append "${forgejo.address} ${forgejo.host} # sekkeizu-forgejo" | str join "\n" | $in + "\n" | save --force /etc/hosts
+          ''}
+        ''}")
+        (lib.mkOrder 1650 config.system.activationScripts.forgejo-runner-secrets.text)
+      ];
+
+      # A file-level fingerprint also restarts the runner when another secret in the same file changes.
+      system.activationScripts.forgejo-runner-secrets.text = ''
+        if [ "$(cat /var/db/forgejo-runner.secrets 2>/dev/null)" != "${
+          config.sops.secrets."forgejo-runner-${name}".sopsFileHash
+        }" ]; then
+          /bin/launchctl kickstart -k system/${config.launchd.daemons.forgejo-runner.serviceConfig.Label}
+          printf '%s\n' '${
+            config.sops.secrets."forgejo-runner-${name}".sopsFileHash
+          }' > /var/db/forgejo-runner.secrets
+        fi
+      '';
 
       launchd.daemons.forgejo-runner.serviceConfig = {
         ProgramArguments = [

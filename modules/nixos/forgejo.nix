@@ -184,7 +184,12 @@ in
       '';
 
       # Read as root by the units below (LoadCredential); the runner's own file also gets an owner in forgejo-runner.nix.
-      sops.secrets = lib.genAttrs secretNames (_: { });
+      sops.secrets = lib.genAttrs secretNames (name: {
+        restartUnits = [
+          "forgejo-runners.service"
+        ]
+        ++ lib.optional (name == "forgejo-admin-password") "forgejo-admin.service";
+      });
 
       systemd.services.forgejo-admin = {
         description = "Forgejo: owner account and SSH keys";
@@ -193,7 +198,7 @@ in
           "forgejo.service"
         ];
         after = [ "forgejo.service" ];
-        # Runs again whenever Forgejo restarts (new password in sops, new key in owner.nix).
+        # Also provision again whenever Forgejo itself restarts.
         partOf = [ "forgejo.service" ];
         environment = env;
         serviceConfig = {
@@ -231,7 +236,11 @@ in
           "multi-user.target"
           "forgejo.service"
         ];
-        after = [ "forgejo.service" ];
+        requires = [ "forgejo-admin.service" ];
+        after = [
+          "forgejo.service"
+          "forgejo-admin.service"
+        ];
         partOf = [ "forgejo.service" ];
         environment = env;
         serviceConfig = {

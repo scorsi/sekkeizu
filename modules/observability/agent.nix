@@ -74,6 +74,7 @@ in
     imports = [
       (agent "nixosModules")
     ];
+    sops.secrets.hikyaku-token.restartUnits = [ "hikyaku.service" ];
     # journald stays the logs' second buffer (/var/log is persistent); the spool must survive too.
     sekkeizu.persist.directories = [
       {
@@ -89,6 +90,14 @@ in
     { config, ... }:
     {
       imports = [ (agent "darwinModules") ];
+      # Darwin has no SOPS restart hooks; run after its secret installation (order 1500).
+      system.activationScripts.hikyaku-secrets.text = ''
+        if [ "$(cat /var/db/hikyaku.secrets 2>/dev/null)" != "${config.sops.secrets.hikyaku-token.sopsFileHash}" ]; then
+          /bin/launchctl kickstart -k system/${config.launchd.daemons.hikyaku.serviceConfig.Label}
+          printf '%s\n' '${config.sops.secrets.hikyaku-token.sopsFileHash}' > /var/db/hikyaku.secrets
+        fi
+      '';
+      system.activationScripts.postActivation.text = lib.mkOrder 1650 config.system.activationScripts.hikyaku-secrets.text;
       # No journald on macOS: kekkai-node's LaunchDaemon writes its log lines to this file.
       services.hikyaku.files = lib.optionalAttrs (config.services.kekkai-node.enable or false) {
         kekkai-node.path = config.launchd.daemons.kekkai-node.serviceConfig.StandardErrorPath;

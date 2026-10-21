@@ -78,7 +78,10 @@ in
     {
       imports = [ inputs.scorsi-annai.nixosModules.default ];
 
-      sops.secrets.hanko-tsig.sopsFile = ../../secrets/hanko/tsig.yaml;
+      sops.secrets.hanko-tsig = {
+        sopsFile = ../../secrets/hanko/tsig.yaml;
+        restartUnits = [ "annai.service" ];
+      };
 
       services.annai = {
         enable = true;

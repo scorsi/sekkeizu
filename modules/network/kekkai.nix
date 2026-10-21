@@ -81,7 +81,10 @@ in
       imports = [ (node "nixosModules") ];
 
       # The daemon runs as its static user (kekkai ADR 0018); sops-nix's default mode is 0400.
-      sops.secrets.kekkai-key.owner = "kekkai";
+      sops.secrets.kekkai-key = {
+        owner = "kekkai";
+        restartUnits = [ "kekkai-node.service" ];
+      };
 
       # kekkai's per-peer filter is the only one on the overlay (docs/migration.md, "not both"):
       # allowInbound above is the single place a port opens to a peer.
@@ -92,5 +95,17 @@ in
       '';
     };
 
-  flake.modules.darwin.kekkai.imports = [ (node "darwinModules") ];
+  flake.modules.darwin.kekkai =
+    { config, ... }:
+    {
+      imports = [ (node "darwinModules") ];
+      # Record the ciphertext fingerprint only after the daemon has restarted with the installed secret.
+      system.activationScripts.kekkai-secrets.text = ''
+        if [ "$(cat /var/db/kekkai-node.secrets 2>/dev/null)" != "${config.sops.secrets.kekkai-key.sopsFileHash}" ]; then
+          /bin/launchctl kickstart -k system/${config.launchd.daemons.kekkai-node.serviceConfig.Label}
+          printf '%s\n' '${config.sops.secrets.kekkai-key.sopsFileHash}' > /var/db/kekkai-node.secrets
+        fi
+      '';
+      system.activationScripts.postActivation.text = lib.mkOrder 1650 config.system.activationScripts.kekkai-secrets.text;
+    };
 }
