@@ -126,5 +126,11 @@ in
       "Ethernet"
       "Wi-Fi"
     ];
+    # TODO(owner): temporary workaround, must not persist; it departs from annai ADR 0002 (scoped
+    # and fallback queries go straight to Quad9). macOS also resolves per interface (Private Relay,
+    # NAT64 probes): those queries are scoped to en1 and cannot reach the bridge-only uchi address;
+    # unanswered, they make Wi-Fi "DNS failure recovery" reassociate every ~20 min, which cuts
+    # ishizue's NAT uplink. Remove once uchi is reachable on that path (bridged ishizue or kekkai).
+    networking.dns = lib.mkAfter [ "9.9.9.9" ];
   };
 }
