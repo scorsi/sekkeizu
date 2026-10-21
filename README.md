@@ -324,6 +324,11 @@ holds values only, never a secret.
   run `sops rotate` on the affected current files and rotate the credentials themselves. Old Git
   ciphertext remains decryptable with the compromised key; re-encryption cannot revoke that history.
 
+On macOS, the first switch without saved ciphertext fingerprints restarts `hikyaku`,
+`kekkai-node` and `forgejo-runner` once. A failed restart aborts activation and skips subsequent
+steps. Its fingerprint is not saved, so rerunning the switch retries it; successful earlier
+restarts are already recorded.
+
 ## Infrastructure (OpenTofu)
 
 What runs outside the house, in plain HCL under `infra/`. Each stack has its own state; modules are
