@@ -81,6 +81,16 @@ in
     {
       services.forgejo = {
         enable = true;
+        # Keep the module's LTS version; a process-local password source avoids exposing it in ps.
+        package = pkgs.forgejo-lts.overrideAttrs (old: {
+          postPatch = (old.postPatch or "") + ''
+            substituteInPlace cmd/admin_user_create.go \
+              --replace-fail 'Name:  "password",' 'Name:  "password", Sources: cli.EnvVars("FORGEJO_ADMIN_PASSWORD"),'
+            substituteInPlace cmd/admin_user_change_password.go \
+              --replace-fail 'Name:    "password",' 'Name:    "password", Sources: cli.EnvVars("FORGEJO_ADMIN_PASSWORD"),'
+            cp ${./forgejo-password_test.go} cmd/sekkeizu_password_test.go
+          '';
+        });
         database.type = "sqlite3";
         lfs.enable = false;
 
@@ -196,13 +206,13 @@ in
             ${helpers}
             def main [] {
               wait-for-forgejo
-              let password = credential admin-password
-
               let users = ^${exe} admin user list | lines | skip 1 | each { str trim | split row --regex '\s+' | get 1? }
-              if ${builtins.toJSON adminUser} in $users {
-                ^${exe} admin user change-password --username ${builtins.toJSON adminUser} --password $password --must-change-password=false
-              } else {
-                ^${exe} admin user create --admin --username ${builtins.toJSON adminUser} --email ${builtins.toJSON owner.email} --password $password --must-change-password=false
+              with-env { FORGEJO_ADMIN_PASSWORD: (credential admin-password) } {
+                if ${builtins.toJSON adminUser} in $users {
+                  ^${exe} admin user change-password --username ${builtins.toJSON adminUser} --must-change-password=false
+                } else {
+                  ^${exe} admin user create --admin --username ${builtins.toJSON adminUser} --email ${builtins.toJSON owner.email} --must-change-password=false
+                }
               }
 
               for k in (open ${keysFile}) {
@@ -253,11 +263,8 @@ in
                   )
                 )
               }) {
-                try {
-                  ^${exe} forgejo-cli actions register --scope "" --name $r.name --labels $r.labels --secret (credential $r.name)
-                } catch {
-                  print --stderr $"runner ($r.name): registration refused \(already registered?\)"
-                }
+                # Forgejo 15 LTS declares secret-stdin as a string flag; its value is ignored.
+                credential $r.name | ^${exe} forgejo-cli actions register --scope "" --name $r.name --labels $r.labels --secret-stdin=true
               }
 
               # CI fetches the private flakes this repo depends on over SSH: one read-only deploy key on
