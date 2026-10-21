@@ -128,6 +128,17 @@ in
                   }
                 }
 
+                # Account identities have no time-based expiry: CAA may still pin an older one.
+                let hanko = "${dir}/ishizue/hanko"
+                let h = ^${lib.getExe pull} -e "${pkgs.openssh}/bin/ssh -F none -i ${key} -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o ConnectTimeout=30" ${user}@ishizue.local:hanko/ $"($hanko)/" | complete
+                print --stderr --no-newline $h.stderr
+                if $h.exit_code != 0 {
+                  $code = $h.exit_code
+                } else if (glob --no-dir $"($hanko)/account-*.key" | is-empty) {
+                  print --stderr "no Hanko account backup"
+                  $code = 101
+                }
+
                 let n = archives $dest | length
                 let result = if $code == 0 { "ok" } else { "FAILED" }
                 let line = $"(date now | format date '%F %T') ($result) exit=($code) \(($n) archives\)"

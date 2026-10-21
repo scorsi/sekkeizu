@@ -211,6 +211,18 @@ that file (and swapping Tailscale certificates for ACME in Caddy).
   Each node's last complete day is retained even if older, and `FORMAT` plus every manifest are
   kept indefinitely: nisshi needs the full manifest chain to verify the retained data. Retention
   unlinks backup data only, never the live stores; an incomplete retained pair blocks pruning.
+- **Hanko account recovery**: `hanko-backup` copies the ACME account key at boot and daily at
+  04:40 into `/persist/backups/hanko/account-<sha256>.key` (`root:backup`, directory `0750`, files
+  `0640`). jiban pulls this directory at 05:15 with the other backups (files `0600`); restic includes
+  it at 06:00. Each account identity is kept indefinitely: CAA may still pin its account URI.
+  On a replacement host, restore the key before enabling Hanko. On an existing host, first stop
+  `hanko.timer`, `hanko-renew.service` and `hanko.service`. Select the key belonging to the account
+  URI pinned in `sekkeizu.acmeAccounts`, verify its SHA-256 against the filename, then install it
+  as `/var/lib/hanko/account.key`, owner and group
+  `hanko`, mode `0600` (state directory `hanko:hanko`, mode `0751`). Do not overwrite an existing
+  key without comparing it and keeping its backup. Start `hanko.timer` only after restoring the
+  identity; a new key would create a different account and fail the pinned CAA policy. Restore
+  the key from a trusted backup, never by creating an ACME account as a recovery test.
 - **Runners** (host executor, no containers): `linux` on ishizue (Nix, git, node, zola, rsync;
   systemd sandbox, writes only to its state directory, `/var/lib/site` and `/var/lib/rirekisho`), `macos` on jiban (LaunchDaemon, hidden
   non-admin `_forgejo-runner` account). Rationale in `modules/ci/forgejo-runner.nix`.

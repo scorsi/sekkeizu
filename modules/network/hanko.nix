@@ -6,6 +6,7 @@
 {
   config,
   inputs,
+  lib,
   ...
 }:
 let
@@ -14,7 +15,18 @@ let
 in
 {
   flake.modules.nixos.hanko =
-    { config, ... }:
+    { config, pkgs, ... }:
+    let
+      backup = pkgs.writeShellApplication {
+        name = "backup-hanko-account";
+        runtimeInputs = [
+          pkgs.coreutils
+          pkgs.diffutils
+          pkgs.openssl
+        ];
+        text = builtins.readFile ../backup/hanko-account.sh;
+      };
+    in
     {
       imports = [ inputs.scorsi-hanko.nixosModules.default ];
 
@@ -50,7 +62,7 @@ in
       # needs it before genkan is deployed.
       users.groups.genkan = { };
 
-      # The account key and the certificates: losing them costs a new account and a re-issuance.
+      # CAA pins this account's URI: restoring its key preserves that identity.
       sekkeizu.persist.directories = [
         {
           directory = "/var/lib/hanko";
@@ -59,5 +71,27 @@ in
           mode = "0751";
         }
       ];
+
+      systemd.services.hanko-backup = {
+        description = "Back up Hanko's ACME account identity";
+        wantedBy = [ "multi-user.target" ];
+        after = [ "hanko.service" ];
+        startAt = "*-*-* 04:40:00";
+        unitConfig.RequiresMountsFor = [
+          "/persist/backups"
+          "/var/lib/hanko"
+        ];
+        serviceConfig = {
+          Type = "oneshot";
+          User = "root";
+          Group = "backup";
+          UMask = "0027";
+          ExecStart = "${lib.getExe backup} ${lib.escapeShellArg config.services.hanko.acme.accountKeyFile} /persist/backups/hanko";
+          ProtectSystem = "strict";
+          ReadWritePaths = [ "/persist/backups" ];
+          PrivateTmp = true;
+          NoNewPrivileges = true;
+        };
+      };
     };
 }
