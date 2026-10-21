@@ -27,9 +27,9 @@ in
       services.hanko = {
         enable = true;
         acme = {
-          # Staging until a certificate went through; production is
-          # https://acme-v02.api.letsencrypt.org/directory (a new account, created on the next run).
-          directory = "https://acme-staging-v02.api.letsencrypt.org/directory";
+          # Trials: https://acme-staging-v02.api.letsencrypt.org/directory. Changing it keeps a
+          # still-valid certificate (hanko's Due ignores the issuer): remove uchi/*.pem to reissue.
+          directory = "https://acme-v02.api.letsencrypt.org/directory";
           acceptTerms = true;
         };
         dns = {
