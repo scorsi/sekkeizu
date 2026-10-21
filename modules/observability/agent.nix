@@ -1,7 +1,7 @@
 # hikyaku, the node agent of the observability base (docs/observability.md), with node_exporter
 # as the host exporter until mihari exists. Pushes to masu and nisshi with the host's own token,
 # pinning the stores' CA (ca.pem). Targets follow what the host runs: node and hikyaku itself
-# everywhere, annai, masu and nisshi wherever their loopback /metrics is on.
+# everywhere, annai, kekkai-node, masu and nisshi wherever their loopback /metrics is on.
 {
   config,
   inputs,
@@ -25,16 +25,23 @@ let
       };
       # A loopback /metrics of a service this host runs, by name; absent when it has none.
       serviceTargets = lib.filterAttrs (_: t: t != null) (
-        lib.genAttrs [ "annai" "masu" "nisshi" ] (
-          name:
-          let
-            listen = config.services.${name}.metrics.listen or null;
-          in
-          if (config.services.${name}.enable or false) && listen != null then
-            { url = "http://${listen}/metrics"; }
-          else
-            null
-        )
+        lib.genAttrs
+          [
+            "annai"
+            "kekkai-node"
+            "masu"
+            "nisshi"
+          ]
+          (
+            name:
+            let
+              listen = config.services.${name}.metrics.listen or null;
+            in
+            if (config.services.${name}.enable or false) && listen != null then
+              { url = "http://${listen}/metrics"; }
+            else
+              null
+          )
       );
     in
     {
@@ -78,5 +85,13 @@ in
     ];
   };
 
-  flake.modules.darwin.observability-agent.imports = [ (agent "darwinModules") ];
+  flake.modules.darwin.observability-agent =
+    { config, ... }:
+    {
+      imports = [ (agent "darwinModules") ];
+      # No journald on macOS: kekkai-node's LaunchDaemon writes its log lines to this file.
+      services.hikyaku.files = lib.optionalAttrs (config.services.kekkai-node.enable or false) {
+        kekkai-node.path = config.launchd.daemons.kekkai-node.serviceConfig.StandardErrorPath;
+      };
+    };
 }

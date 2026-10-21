@@ -44,6 +44,7 @@ in
     { config, ... }:
     let
       address = bridgeAddresses.${config.networking.hostName};
+      kekkaiNode = config.services.kekkai-node.enable or false;
     in
     {
       imports = [ inputs.scorsi-annai.nixosModules.default ];
@@ -51,8 +52,15 @@ in
       services.annai = {
         enable = true;
         mode = "uchi";
-        # The bridge only: not the tailnet, not kekkai (not there yet). Upstreams: annai's (Quad9).
-        listen = [ "${address}:53" ];
+        # The bridge, and ishizue's kekkai address once the node runs there; not the tailnet.
+        # Upstreams: annai's (Quad9).
+        listen = [
+          "${address}:53"
+        ]
+        ++ lib.optionals kekkaiNode [
+          "${kekkai.nodes.ishizue.ipv4}:53"
+          "[${kekkai.nodes.ishizue.ipv6}]:53"
+        ];
         # Scraped by the local hikyaku only (masu metric convention: loopback).
         metrics.listen = "127.0.0.1:9153";
         zones.${zone} = {
@@ -68,7 +76,7 @@ in
           };
           names = {
             "@".ns = [ "annai.${zone}" ];
-            # Where annai will listen once kekkai runs; an NS target cannot be a CNAME.
+            # annai's kekkai address (it listens there wherever kekkai runs); an NS target cannot be a CNAME.
             annai = {
               a = [ kekkai.nodes.ishizue.ipv4 ];
               aaaa = [ kekkai.nodes.ishizue.ipv6 ];
@@ -86,10 +94,11 @@ in
         };
       };
 
-      # The listen address comes from DHCP: binding before the lease fails.
+      # The listen addresses come from DHCP and from kekkai-node (ready once kekkai0 has its
+      # addresses): binding before either fails.
       systemd.services.annai = {
-        wants = [ "network-online.target" ];
-        after = [ "network-online.target" ];
+        wants = [ "network-online.target" ] ++ lib.optional kekkaiNode "kekkai-node.service";
+        after = [ "network-online.target" ] ++ lib.optional kekkaiNode "kekkai-node.service";
       };
 
       # Matched on the bridge address rather than the interface, whose name the repo never fixes.

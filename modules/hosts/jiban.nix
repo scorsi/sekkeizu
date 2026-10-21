@@ -21,6 +21,7 @@ in
       darwin.secrets
       darwin.autologin
       darwin.tailscale
+      darwin.kekkai
       darwin.annai
       darwin.server
       darwin.vfkit-host

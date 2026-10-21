@@ -20,6 +20,7 @@ in
       nixos.fish
       nixos.secrets
       nixos.tailscale
+      nixos.kekkai
       nixos.annai
       nixos.hanko
       nixos.observability-stores

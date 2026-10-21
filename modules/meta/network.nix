@@ -71,6 +71,11 @@ in
             options = {
               ipv4 = mkOption { type = types.str; };
               ipv6 = mkOption { type = types.str; };
+              publicKey = mkOption {
+                type = types.nullOr types.str;
+                default = null;
+                description = "The node's public key (`kekkai pubkey`); null until its key exists.";
+              };
             };
           }
         );
