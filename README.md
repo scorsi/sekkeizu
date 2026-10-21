@@ -321,9 +321,13 @@ infra/
 4. **Secrets file**: `sops secrets/infra/tofu.yaml` with the five keys (`state_passphrase`:
    `openssl rand -base64 36`).
 5. **Apply**, from each stack: `tofu init`, `tofu plan`, `tofu apply`; commit `terraform.tfstate`.
-6. **DNSSEC**: Porkbun → the domain → DNSSEC, enable by hand once the zone is stable. Porkbun's API
-   only manages DS records at the registry for zones signed elsewhere; nothing turns on its own
-   signing.
+6. **DNSSEC and delegation**: annai's `soto` zones are currently unsigned. Leave the domain's
+   DNSSEC section at Porkbun empty: **no DS record at the parent zone**. Before delegating to
+   annai, remove any DS from the previous DNS provider and wait for its TTL to expire, then change
+   the nameservers (and glue records). A stale DS makes validating resolvers reject the unsigned
+   zone. Publish a DS only after every authoritative server serves a signed zone and its DNSKEY
+   has been verified; [Porkbun's DNSSEC form](https://kb.porkbun.com/article/93-how-to-install-dnssec)
+   publishes that DS, it does not sign annai's zones.
 7. **restic's password**: `restic-password` in `secrets/jiban/secrets.yaml` (already set; a new one
    means a new repository). jiban's key reaches the `backup` subaccount at apply (`terraform_data.backup_key`,
    the box's `install-ssh-key` over the subaccount's password), never through the box resource:
