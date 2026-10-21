@@ -45,6 +45,7 @@ in
           homeManager.pay-respects
           homeManager.github
           homeManager.claude-code
+          homeManager.codex
           homeManager.tmux
           homeManager.theme
           homeManager.kanna
