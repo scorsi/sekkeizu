@@ -49,7 +49,7 @@ Adding a feature never requires touching an existing file.
 nix run .#switch   # rebuild + diff against the current generation (sudo prompt included)
 nix run .#check     # nix flake check
 nix run .#fmt       # nix fmt (nixfmt-tree)
-nix run .#rekey-host <host>  # new SSH host key (reinstall): update .sops.yaml + re-encrypt secrets/<host>/
+nix run .#rekey-host -- <host> --public-key <verified-key.pub>  # new host key: update its recipient, including shared secrets
 nix run .#install-ishizue    # on jiban: build ishizue's disk image and start it (once)
 nix run .#deploy-ishizue     # nixos-rebuild switch to ishizue, built inside the VM
 nix develop          # shell with nixfmt, statix, deadnix, shellcheck, just, nvd
@@ -87,8 +87,10 @@ side by side (AirDrop, `scp`, USB stick).
    decryption then takes a touch of either key; the admin key stays in the password manager
    (break-glass, see `.sops.yaml`).
 8. **Re-key**: the reinstall generated a new SSH host key, so the old age recipient is dead.
-   `nix run .#rekey-host jiban`, then commit and push `.sops.yaml` and `secrets/jiban/`
-   (pull them on jiban if it ran elsewhere).
+   On jiban, `nix run .#rekey-host -- jiban` reads the local public host key. From another machine,
+   pass `--public-key <verified-key.pub>` using a key copied from jiban's console or another
+   independently verified source. Review and commit `.sops.yaml` and every changed file under
+   `secrets/`, including shared secrets (pull them on jiban if it ran elsewhere).
 9. **Second switch**: `nix run .#switch` (or `drs`): the secrets now decrypt and `/etc/kcpassword` is installed.
 10. **Immediate screen lock**: `sysadminctl -screenLock immediate -password -` (type the account
     password when prompted). The `askForPassword` default alone is not honoured by recent macOS, and
@@ -147,11 +149,18 @@ Day to day:
    `secrets/ishizue/identity.yaml` (sops, admin key: SSH host key and Tailscale state), written into
    `/persist` offline with `debugfs` before the first boot: same host key (known_hosts, `.sops.yaml`
    unchanged, the secrets decrypt at once), same Tailscale node and IP. Nothing else to do; go to 6.
-4. **Without `identity.yaml`** (a genuinely new machine): a new SSH host key is generated. Forget
-   the old one (`ssh-keygen -R ishizue.local; ssh-keygen -R ishizue`), then `ssh ishizue.local`,
+4. **Without `identity.yaml`** (a genuinely new machine): a new SSH host key is generated. Obtain
+   `/etc/ssh/ssh_host_ed25519_key.pub` through the VM's trusted console and save it as
+   `ishizue-host-key.pub`. Verify its fingerprint (`ssh-keygen -lf ishizue-host-key.pub`) before
+   replacing the old known_hosts entries (`ssh-keygen -R ishizue.local; ssh-keygen -R ishizue`).
+   Check the fingerprint when connecting with `ssh ishizue.local`, then run
    `sudo tailscale up` (touches), disable key expiry in the admin console, update the Tailscale IP
    in `modules-private/meta/endpoints.nix`.
-5. **Re-key** (only after 4): `nix run .#rekey-host ishizue`, commit and push. To keep this new
+5. **Re-key** (only after 4): `nix run .#rekey-host -- ishizue --public-key ishizue-host-key.pub`.
+   Review and commit `.sops.yaml` and all changed secrets, including `secrets/hanko/`.
+   The command updates tracked files selected by SOPS rules and restores their original ciphertext
+   if an update fails. After an interrupted process, inspect `git diff` and rerun it to finish.
+   To keep this new
    identity for the next reinstall, store it in `secrets/ishizue/identity.yaml`
    (`ssh_host_ed25519_key`, `ssh_host_ed25519_key_pub`, `tailscaled_state`: the files under
    `/persist`, piped straight into `sops set --value-stdin`).

@@ -2,8 +2,8 @@
 # (every human edit: a touch per decryption) and the admin key, a break-glass kept only in the
 # password manager, never on disk.
 # jiban: `ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub`
-# ishizue: `ssh-keyscan -t ed25519 ishizue | cut -d' ' -f2,3 | ssh-to-age` (key on its /var volume)
-# torii-cdg: same, with torii-cdg.scorsi.dev (key on /persist)
+# Remote hosts: copy the ed25519 public host key from a trusted console, then use
+# `nix run .#rekey-host -- <host> --public-key <verified-key.pub>`; never trust ssh-keyscan alone.
 # FIDO2: `age-plugin-fido2-hmac -g`, the classic `age1…` recipient; the anchor carries the serial
 #   number printed on the key, since nothing in the recipient tells which device it belongs to.
 # admin: `age-keygen | pbcopy`, straight into the password manager.
