@@ -48,10 +48,17 @@ in
           open --raw $"($env.CREDENTIALS_DIRECTORY)/($name)" | str trim --right --char (char nl)
         }
 
-        # Basic auth over loopback. Returns the HTTP status.
-        def post [path: string, body: record] {
-          (http post --full --allow-errors --user ${adminUser} --password (credential admin-password)
-            --content-type application/json $"${api}/v1/($path)" $body).status
+        source ${./forgejo-keys.nu}
+
+        # Basic auth stays on loopback, with the password read inside the interpreter.
+        def key-request [method: string, path: string, body: record] {
+          let url = $"${api}/v1/($path)"
+          let password = credential admin-password
+          match $method {
+            GET => { http get --full --allow-errors --user ${adminUser} --password $password $url }
+            POST => { http post --full --allow-errors --user ${adminUser} --password $password --content-type application/json $url $body }
+            DELETE => { http delete --full --allow-errors --user ${adminUser} --password $password $url }
+          }
         }
       '';
       # owner.sshKeys entries are "<type> <key> <comment>": the comment becomes the title.
@@ -201,11 +208,13 @@ in
         # Also provision again whenever Forgejo itself restarts.
         partOf = [ "forgejo.service" ];
         environment = env;
+        path = [ pkgs.coreutils ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
           User = cfg.user;
           Group = cfg.group;
+          UMask = "0077";
           LoadCredential = "admin-password:${config.sops.secrets.forgejo-admin-password.path}";
           ExecStart = pkgs.writers.writeNu "forgejo-admin" ''
             ${helpers}
@@ -220,11 +229,7 @@ in
                 }
               }
 
-              for k in (open ${keysFile}) {
-                let status = post "admin/users/${adminUser}/keys" $k
-                # 422: the key is already there.
-                if $status not-in [201 422] { error make { msg: $"adding key '($k.title)': HTTP ($status)" } }
-              }
+              reconcile-owner-keys { |method, path, body| key-request $method $path $body } (open ${keysFile}) ${cfg.stateDir}/sekkeizu-owner-keys.json
             }
           '';
         };
@@ -243,11 +248,13 @@ in
         ];
         partOf = [ "forgejo.service" ];
         environment = env;
+        path = [ pkgs.coreutils ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
           User = cfg.user;
           Group = cfg.group;
+          UMask = "0077";
           LoadCredential = [
             "admin-password:${config.sops.secrets.forgejo-admin-password.path}"
           ]
@@ -278,24 +285,7 @@ in
 
               # CI fetches the private flakes this repo depends on over SSH: one read-only deploy key on
               # each (forgejo-ci-key in sops, written for the runners in forgejo-runner.nix).
-              mut failed = false
-              for repo in ${builtins.toJSON forgejoCi.readRepos} {
-                let status = post $"repos/${adminUser}/($repo)/keys" ${
-                  builtins.toJSON {
-                    title = "forgejo-ci";
-                    key = forgejoCi.readKey;
-                    read_only = true;
-                  }
-                }
-                # 422: the key is already there.
-                if $status == 404 {
-                  print --stderr $"deploy key: ($repo) missing from Forgejo, skipped"
-                } else if $status not-in [201 422] {
-                  print --stderr $"deploy key: ($repo), HTTP ($status)"
-                  $failed = true
-                }
-              }
-              if $failed { exit 1 }
+              reconcile-deploy-keys { |method, path, body| key-request $method $path $body } ${builtins.toJSON adminUser} ${builtins.toJSON forgejoCi.readRepos} ${builtins.toJSON forgejoCi.readKey} ${cfg.stateDir}/sekkeizu-deploy-keys.json
             }
           '';
         };

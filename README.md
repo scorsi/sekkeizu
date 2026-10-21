@@ -250,6 +250,13 @@ commit. Which repositories exist, their settings and their mirrors are declared 
   list in `sekkeizu.forgejoCi`, `modules-private/meta/endpoints.nix`), registered on each repo by the
   `forgejo-runners` oneshot; Forgejo's SSH host key is pinned there too. A new private flake for
   CI = add it to `forgejoCi.readRepos` and deploy.
+  Provisioning reconciles only keys it manages (`sekkeizu:owner:` / `sekkeizu:ci:` titles, or
+  legacy keys adopted by exact title and content and recorded in Forgejo's state directory).
+  On the first deployment, review old owner/deploy keys already removed from configuration:
+  they cannot be identified safely and are preserved. Deploy adoption before removing more
+  legacy keys. A failed API request fails provisioning and is retried on the next run; changing
+  a managed deploy key from write access to read-only requires deletion before recreation, so
+  an API failure between those steps leaves access unavailable until a successful retry.
 - **`switch` as root**: kiso's `switch` fetches the inputs as the user (SSH agent, a touch) before
   `sudo darwin-rebuild`, which then finds them in the store.
 
