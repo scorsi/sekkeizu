@@ -21,6 +21,7 @@ in
       nixos.secrets
       nixos.tailscale
       nixos.annai
+      nixos.hanko
       nixos.observability-stores
       nixos.server
       nixos.observability-agent

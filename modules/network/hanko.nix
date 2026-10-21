@@ -1,0 +1,63 @@
+# hanko, the lab's certificates (docs/migration.md, step 3): Let's Encrypt by DNS-01, the challenge
+# record written by RFC 2136 UPDATE to every annai `soto` address (annai-soto.nix, same TSIG key).
+# The internal wildcard is what genkan serves in step 4; genkan's own group reads it (hanko ADR 0005).
+# A oneshot without /metrics (hanko ADR 0007): its schema v1 lines reach nisshi through hikyaku's
+# journald reader.
+{
+  config,
+  inputs,
+  ...
+}:
+let
+  inherit (config.sekkeizu) domain publicAddresses;
+  soto = publicAddresses.torii-cdg;
+in
+{
+  flake.modules.nixos.hanko =
+    { config, ... }:
+    {
+      imports = [ inputs.scorsi-hanko.nixosModules.default ];
+
+      sops.secrets.hanko-tsig = {
+        sopsFile = ../../secrets/hanko/tsig.yaml;
+        owner = "hanko";
+        mode = "0400";
+      };
+
+      services.hanko = {
+        enable = true;
+        acme = {
+          # Staging until a certificate went through; production is
+          # https://acme-v02.api.letsencrypt.org/directory (a new account, created on the next run).
+          directory = "https://acme-staging-v02.api.letsencrypt.org/directory";
+          acceptTerms = true;
+        };
+        dns = {
+          nameservers = [
+            "${soto.ipv4}:53"
+            "[${soto.ipv6}]:53"
+          ];
+          tsigKeyFile = config.sops.secrets.hanko-tsig.path;
+        };
+        certificates.uchi = {
+          hosts = [ "*.uchi.${domain}" ];
+          reload = [ "genkan.service" ];
+          group = "genkan";
+        };
+      };
+
+      # genkan's own group (genkan's module declares the same, step 4): the certificate directory
+      # needs it before genkan is deployed.
+      users.groups.genkan = { };
+
+      # The account key and the certificates: losing them costs a new account and a re-issuance.
+      sekkeizu.persist.directories = [
+        {
+          directory = "/var/lib/hanko";
+          user = "hanko";
+          group = "hanko";
+          mode = "0751";
+        }
+      ];
+    };
+}

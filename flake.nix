@@ -70,6 +70,10 @@
     # The node agent (modules/observability/agent.nix); its masu and nisshi inputs are test-only.
     scorsi-hikyaku.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/hikyaku.git";
 
+    # The certificates (modules/network/hanko.nix). Not following our nixpkgs: tested against its
+    # own; its annai and nisshi inputs are test-only.
+    scorsi-hanko.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/hanko.git";
+
     # The Claude Code status line (modules/home/claude-code.nix).
     scorsi-shiori = {
       url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/shiori.git";
