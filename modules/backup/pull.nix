@@ -105,6 +105,16 @@ in
                   }
                 }
 
+                # The stores' sealed days (observability-stores): they never change and are never
+                # pruned here, retention is the stores' business.
+                if $code == 0 {
+                  for store in [masu nisshi] {
+                    let r = ^${lib.getExe pkgs.rsync} -rt --chmod=D700,F600 -e "${pkgs.openssh}/bin/ssh -F none -i ${key} -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o ConnectTimeout=30" $"${user}@ishizue.local:($store)/" $"${dir}/ishizue/($store)/" | complete
+                    print --stderr --no-newline $r.stderr
+                    if $r.exit_code != 0 { $code = $r.exit_code }
+                  }
+                }
+
                 let n = archives $dest | length
                 let result = if $code == 0 { "ok" } else { "FAILED" }
                 let line = $"(date now | format date '%F %T') ($result) exit=($code) \(($n) archives\)"

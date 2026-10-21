@@ -17,7 +17,7 @@ let
 in
 {
   flake.modules.nixos.observability-stores =
-    { config, ... }:
+    { config, pkgs, ... }:
     let
       address = bridgeAddresses.${config.networking.hostName};
       store = name: {
@@ -58,6 +58,34 @@ in
             "masu"
             "nisshi"
           ];
+
+      # Backups (backup-source): a day is sealed once its manifest exists, and never changes again
+      # (both storage formats). Hard links into /persist/backups, data before manifest: no extra
+      # space, and a copy outlives the store's retention. On /persist itself, since a link cannot
+      # cross the bind mount of /var/lib/<store>. jiban pulls them at 05:15.
+      systemd.services.observability-backup = {
+        description = "Hard-link the sealed days of masu and nisshi into /persist/backups";
+        startAt = "*-*-* 04:45:00";
+        serviceConfig.Type = "oneshot";
+        script = ''
+          for store in masu nisshi; do
+            src=/persist/var/lib/$store dst=/persist/backups/$store
+            cd "$src"
+            [ -e "$dst/FORMAT" ] || { mkdir -p "$dst"; ln FORMAT "$dst/FORMAT"; }
+            find . -name '*.manifest.json' | while read -r manifest; do
+              data=''${manifest%.manifest.json}.ndjson.zst
+              [ -e "$dst/$manifest" ] && continue
+              mkdir -p "$dst/$(dirname "$manifest")"
+              # A manifest without its data file: retention already deleted the data.
+              if [ -e "$data" ] && [ ! -e "$dst/$data" ]; then ln "$data" "$dst/$data"; fi
+              ln "$manifest" "$dst/$manifest"
+            done
+          done
+          # nisshi writes 0640: backup-source's account reads through an ACL, as for forgejo-dump
+          # (on the shared inodes, so it can read the store's own copies too, never write them).
+          ${pkgs.acl}/bin/setfacl -R -m u:backup:rX /persist/backups/masu /persist/backups/nisshi
+        '';
+      };
 
       # Matched on the bridge address, as annai's port 53: the tailnet never reaches the stores.
       networking.firewall.extraCommands = lib.concatMapStrings (store: ''
