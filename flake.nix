@@ -63,6 +63,11 @@
     # pins its own nixpkgs and Zig toolchain (zig2nix) and is built and tested against them.
     scorsi-annai.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/annai.git";
 
+    # The observability stores (modules/observability/stores.nix). Not following our nixpkgs either:
+    # each pins its own and is tested against it.
+    scorsi-masu.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/masu.git";
+    scorsi-nisshi.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/nisshi.git";
+
     # The Claude Code status line (modules/home/claude-code.nix).
     scorsi-shiori = {
       url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/shiori.git";

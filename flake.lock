@@ -53,6 +53,21 @@
         "type": "github"
       }
     },
+    "crane_2": {
+      "locked": {
+        "lastModified": 1791754810,
+        "narHash": "sha256-cN0Mgk+sQtCJcGWs9H4M0CnLRAuC4I8aCwiBTcBJs6E=",
+        "owner": "ipetkov",
+        "repo": "crane",
+        "rev": "bd63bf1d0a0f6dcacd7549c714a671ee63b0db6a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ipetkov",
+        "repo": "crane",
+        "type": "github"
+      }
+    },
     "disko": {
       "inputs": {
         "nixpkgs": [
@@ -120,6 +135,48 @@
         "nixpkgs-lib": [
           "scorsi-annai",
           "nisshi",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790898470,
+        "narHash": "sha256-zTwuwezD0w3hpga6a6P8emidzAZFyWqlNeRBlpWOOl8=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "024633cd702b10285db5cb19b40ad48d2399ba60",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "flake-parts_4": {
+      "inputs": {
+        "nixpkgs-lib": [
+          "scorsi-masu",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790898470,
+        "narHash": "sha256-zTwuwezD0w3hpga6a6P8emidzAZFyWqlNeRBlpWOOl8=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "024633cd702b10285db5cb19b40ad48d2399ba60",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "flake-parts_5": {
+      "inputs": {
+        "nixpkgs-lib": [
+          "scorsi-nisshi",
           "nixpkgs"
         ]
       },
@@ -309,6 +366,38 @@
         "type": "github"
       }
     },
+    "nixpkgs_3": {
+      "locked": {
+        "lastModified": 1792208400,
+        "narHash": "sha256-c+NgsnPFEfvGOLxJEQkxkpOESw7mPjnh/H9qDVEWFkQ=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "42966a9c76f2cdb95b108c9fac939a27b0b8f2c5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-26.05-darwin",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_4": {
+      "locked": {
+        "lastModified": 1792208400,
+        "narHash": "sha256-c+NgsnPFEfvGOLxJEQkxkpOESw7mPjnh/H9qDVEWFkQ=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "42966a9c76f2cdb95b108c9fac939a27b0b8f2c5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-26.05-darwin",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "preservation": {
       "locked": {
         "lastModified": 1757436102,
@@ -338,6 +427,8 @@
         "scorsi-annai": "scorsi-annai",
         "scorsi-kanna": "scorsi-kanna",
         "scorsi-kiso": "scorsi-kiso",
+        "scorsi-masu": "scorsi-masu",
+        "scorsi-nisshi": "scorsi-nisshi",
         "scorsi-shiori": "scorsi-shiori",
         "sops-nix": "sops-nix"
       }
@@ -427,6 +518,47 @@
         "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kiso.git"
       }
     },
+    "scorsi-masu": {
+      "inputs": {
+        "crane": "crane_2",
+        "flake-parts": "flake-parts_4",
+        "nixpkgs": "nixpkgs_3",
+        "treefmt-nix": "treefmt-nix_3"
+      },
+      "locked": {
+        "lastModified": 1792517727,
+        "narHash": "sha256-s3k2vMEq6gWB2Vw3zAPolUbCsOF6Es9wzJBw/Zgv0SM=",
+        "ref": "refs/heads/main",
+        "rev": "0ac2136b58993636b1a471dae2482b48f608ff01",
+        "revCount": 15,
+        "type": "git",
+        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/masu.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/masu.git"
+      }
+    },
+    "scorsi-nisshi": {
+      "inputs": {
+        "flake-parts": "flake-parts_5",
+        "nixpkgs": "nixpkgs_4",
+        "treefmt-nix": "treefmt-nix_4"
+      },
+      "locked": {
+        "lastModified": 1792517735,
+        "narHash": "sha256-NftySqo4kOWFqaQtM3W01RbmgJrhfJ4x/0R9dMmBMos=",
+        "ref": "refs/heads/main",
+        "rev": "ee4a22128dff66ffd993867e047a7819a74a675e",
+        "revCount": 15,
+        "type": "git",
+        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/nisshi.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/nisshi.git"
+      }
+    },
     "scorsi-shiori": {
       "inputs": {
         "nixpkgs": [
@@ -509,6 +641,48 @@
         "nixpkgs": [
           "scorsi-annai",
           "nisshi",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791885023,
+        "narHash": "sha256-C3alQ2MEt0zVrUSho5NUDo3jmhbff72++bfwoqT9Omo=",
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "rev": "0d6d739a833ba9a9c93034862e4a7b061a062a1c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "treefmt-nix_3": {
+      "inputs": {
+        "nixpkgs": [
+          "scorsi-masu",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791885023,
+        "narHash": "sha256-C3alQ2MEt0zVrUSho5NUDo3jmhbff72++bfwoqT9Omo=",
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "rev": "0d6d739a833ba9a9c93034862e4a7b061a062a1c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "treefmt-nix_4": {
+      "inputs": {
+        "nixpkgs": [
+          "scorsi-nisshi",
           "nixpkgs"
         ]
       },

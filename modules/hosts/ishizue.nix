@@ -21,6 +21,7 @@ in
       nixos.secrets
       nixos.tailscale
       nixos.annai
+      nixos.observability-stores
       nixos.server
       nixos.caddy
       nixos.forgejo
