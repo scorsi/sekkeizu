@@ -107,7 +107,20 @@ in
 
         # A nixosTest boots 2-3 VMs of ~400 MB each; on this small host, parallel builds starve them
         # into timeouts. One build at a time: a flake check's tests run in sequence.
-        nix.settings.max-jobs = 1;
+        nix.settings = {
+          max-jobs = 1;
+          cores = 2;
+        };
+
+        # Builds run under nix-daemon, outside the runner's cgroup. Share one budget, including
+        # manual daemon builds, leaving half of ishizue's 8 GiB / 4 vCPUs for its services.
+        systemd.slices.ci.sliceConfig = {
+          MemoryHigh = "3G";
+          MemoryMax = "4G";
+          MemorySwapMax = 0;
+          CPUQuota = "200%";
+        };
+        systemd.services.nix-daemon.serviceConfig.Slice = "ci.slice";
 
         # The registered host name must resolve to this machine, whatever Tailscale DNS does at boot.
         networking.hosts."127.0.0.1" = [ forgejo.host ];
@@ -178,8 +191,7 @@ in
             Restart = "on-failure";
             RestartSec = 5;
 
-            # Jobs are the owner's own code, but a runaway one must not take Forgejo down with it.
-            MemoryMax = "4G";
+            Slice = "ci.slice";
             NoNewPrivileges = true;
             PrivateTmp = true;
             ProtectSystem = "strict";

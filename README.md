@@ -209,6 +209,11 @@ that file (and swapping Tailscale certificates for ACME in Caddy).
   systemd sandbox, writes only to its state directory, `/var/lib/site` and `/var/lib/rirekisho`), `macos` on jiban (LaunchDaemon, hidden
   non-admin `_forgejo-runner` account). Rationale in `modules/ci/forgejo-runner.nix`.
   Registration is declarative: a shared secret per runner in sops, pre-registered by Forgejo.
+  On ishizue, the runner and nix-daemon share a 4 GiB / 2 CPU budget (no swap), with one Nix
+  build at a time and two build cores. This also limits manual builds using that daemon; Forgejo
+  stays outside the budget. Finish existing builds before deploying the slice change, or reboot:
+  a daemon restart alone can leave old build processes in their previous cgroup. Check the new
+  runner and daemon's `ControlGroup` under `ci.slice` after deployment.
 - **Site**: Zola repository `site` on Forgejo; a push to `main` runs `.forgejo/workflows/deploy.yml`
   (`runs-on: linux`): `zola build`, then `rsync` into `/var/lib/site`, served by Caddy on 8443.
 - **Résumé**: repository `rirekisho` (Astro, its own flake); a push to `main` runs
