@@ -225,6 +225,8 @@ that file (and swapping Tailscale certificates for ACME in Caddy).
   key without comparing it and keeping its backup. Start `hanko.timer` only after restoring the
   identity; a new key would create a different account and fail the pinned CAA policy. Restore
   the key from a trusted backup, never by creating an ACME account as a recovery test.
+  A missing key fails the backup, including at first boot before restoration; the daily timer
+  retries. This also reports a lost identity on an existing host instead of silently skipping it.
 - **Runners** (host executor, no containers): `linux` on ishizue (Nix, git, node, zola, rsync;
   systemd sandbox, writes only to its state directory, `/var/lib/site` and `/var/lib/rirekisho`), `macos` on jiban (LaunchDaemon, hidden
   non-admin `_forgejo-runner` account). Rationale in `modules/ci/forgejo-runner.nix`.
