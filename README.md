@@ -205,6 +205,12 @@ that file (and swapping Tailscale certificates for ACME in Caddy).
   `~/Library/Logs/backup-offsite.log`: `sudo launchctl kickstart system/org.nixos.backup-offsite`.
   Restore: `restic -r sftp://<user>@<box>:23/restic restore latest --target <dir>` with `restic-password`
   from sops. External disk: not done.
+- **Observability retention**: masu and nisshi keep 400 days of data, explicitly configured from
+  `modules/backup/observability-retention-days.json`. Their hardlinked backups on ishizue and
+  pulled copies on jiban use the same UTC day cutoff, after a successful complete backup only.
+  Each node's last complete day is retained even if older, and `FORMAT` plus every manifest are
+  kept indefinitely: nisshi needs the full manifest chain to verify the retained data. Retention
+  unlinks backup data only, never the live stores; an incomplete retained pair blocks pruning.
 - **Runners** (host executor, no containers): `linux` on ishizue (Nix, git, node, zola, rsync;
   systemd sandbox, writes only to its state directory, `/var/lib/site` and `/var/lib/rirekisho`), `macos` on jiban (LaunchDaemon, hidden
   non-admin `_forgejo-runner` account). Rationale in `modules/ci/forgejo-runner.nix`.

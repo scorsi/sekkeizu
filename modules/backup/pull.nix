@@ -23,6 +23,7 @@ let
   puller = "192.168.64.1";
   publicKey = config.sekkeizu.backupPullKey;
   keepDays = 30;
+  storeKeepDays = builtins.fromJSON (builtins.readFile ./observability-retention-days.json);
 in
 {
   flake.modules.nixos.backup-source =
@@ -112,13 +113,18 @@ in
                   }
                 }
 
-                # The stores' sealed days (observability-stores): they never change and are never
-                # pruned here, retention is the stores' business.
+                # Only a successful, complete pull permits retention; manifests keep nisshi's chain.
                 if $code == 0 {
                   for store in [masu nisshi] {
                     let r = ^${lib.getExe pull} -e "${pkgs.openssh}/bin/ssh -F none -i ${key} -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o ConnectTimeout=30" $"${user}@ishizue.local:($store)/" $"${dir}/ishizue/($store)/" | complete
                     print --stderr --no-newline $r.stderr
-                    if $r.exit_code != 0 { $code = $r.exit_code }
+                    if $r.exit_code != 0 {
+                      $code = $r.exit_code
+                    } else {
+                      let retained = ^${pkgs.python3}/bin/python3 ${./observability-archives.py} prune $"${dir}/ishizue/($store)" ${toString storeKeepDays} | complete
+                      print --stderr --no-newline $retained.stderr
+                      if $retained.exit_code != 0 { $code = $retained.exit_code }
+                    }
                   }
                 }
 
