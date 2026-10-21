@@ -320,6 +320,9 @@ holds values only, never a secret.
   physical key), so any human decryption takes a touch. The admin key is the break-glass, kept only
   in the password manager. A new FIDO2 key: generate it, add its classic `age1…` recipient to
   `.sops.yaml` (the anchor names the serial number printed on the key), `sops updatekeys` every file.
+  `rekey-host` changes recipients, not data keys. For a compromised host key, remove its recipient,
+  run `sops rotate` on the affected current files and rotate the credentials themselves. Old Git
+  ciphertext remains decryptable with the compromised key; re-encryption cannot revoke that history.
 
 ## Infrastructure (OpenTofu)
 
