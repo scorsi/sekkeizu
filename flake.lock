@@ -803,11 +803,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1792524540,
-        "narHash": "sha256-u7JgGxIn1+B53TrOSSSQJBryMl4uJSqWd9UUyIIlsRw=",
+        "lastModified": 1792575186,
+        "narHash": "sha256-vykdqhuHk5WyfNfx528Y3/aeAuJPwlHO0PdWj7Gg6vQ=",
         "ref": "refs/heads/main",
-        "rev": "fccfccfb80078a557f231b7efa76037d8caab0b5",
-        "revCount": 9,
+        "rev": "6959360eeacb6ea21750c75f6fe85f5c4435cda9",
+        "revCount": 10,
         "type": "git",
         "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/hanko.git"
       },
