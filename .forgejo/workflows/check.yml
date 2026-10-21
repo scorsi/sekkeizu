@@ -19,6 +19,7 @@ jobs:
       - run: git-crypt unlock /run/secrets/git-crypt-key
       - run: nix fmt -- --ci
       # Builds checks.aarch64-linux (ishizue's system) and evaluates the rest.
+      # TODO: build torii-cdg on an x86_64 builder; evaluation alone misses compilation failures.
       - run: nix flake check -L
 
   macos:
