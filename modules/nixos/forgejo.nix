@@ -1,5 +1,6 @@
 # Forgejo: Git forge, SQLite, behind Caddy. Closed registrations; the owner's account is created
-# by a oneshot (password in sops, SSH keys = owner.sshKeys), and Actions runners are pre-registered
+# by a oneshot (password in sops, set through a temporary API token so it never reaches a
+# command line; SSH keys = owner.sshKeys), and Actions runners are pre-registered
 # with secrets from sops, so a rebuilt machine needs no click in the web UI.
 #
 # Git over SSH uses Forgejo's built-in server on its own port, not the system sshd: that one stays
@@ -49,15 +50,26 @@ in
         }
 
         source ${./forgejo-keys.nu}
+        source ${./forgejo-token.nu}
 
-        # Basic auth stays on loopback, with the password read inside the interpreter.
-        def key-request [method: string, path: string, body: record] {
+        # Runs `action` with a token of the admin user, prefixed per unit so each one only ever
+        # revokes its own.
+        def provision-token [unit: string, scopes: string, action: closure] {
+          let prefix = $"sekkeizu-provision-($unit)-"
+          with-token {
+            ^${exe} admin user generate-access-token --username ${builtins.toJSON adminUser} --token-name $"($prefix)(random uuid)" --scopes $scopes --raw | str trim
+          } { revoke-tokens ${cfg.database.path} ${builtins.toJSON adminUser} $prefix } $action
+        }
+
+        # nu's http client runs in-process: the token stays out of every argv.
+        def api-request [token: string, method: string, path: string, body: record] {
           let url = $"${api}/v1/($path)"
-          let password = credential admin-password
+          let headers = [Authorization $"token ($token)"]
           match $method {
-            GET => { http get --full --allow-errors --user ${adminUser} --password $password $url }
-            POST => { http post --full --allow-errors --user ${adminUser} --password $password --content-type application/json $url $body }
-            DELETE => { http delete --full --allow-errors --user ${adminUser} --password $password $url }
+            GET => { http get --full --allow-errors --headers $headers $url }
+            POST => { http post --full --allow-errors --headers $headers --content-type application/json $url $body }
+            PATCH => { http patch --full --allow-errors --headers $headers --content-type application/json $url $body }
+            DELETE => { http delete --full --allow-errors --headers $headers $url }
           }
         }
       '';
@@ -88,16 +100,6 @@ in
     {
       services.forgejo = {
         enable = true;
-        # Keep the module's LTS version; a process-local password source avoids exposing it in ps.
-        package = pkgs.forgejo-lts.overrideAttrs (old: {
-          postPatch = (old.postPatch or "") + ''
-            substituteInPlace cmd/admin_user_create.go \
-              --replace-fail 'Name:  "password",' 'Name:  "password", Sources: cli.EnvVars("FORGEJO_ADMIN_PASSWORD"),'
-            substituteInPlace cmd/admin_user_change_password.go \
-              --replace-fail 'Name:    "password",' 'Name:    "password", Sources: cli.EnvVars("FORGEJO_ADMIN_PASSWORD"),'
-            cp ${./forgejo-password_test.go} cmd/sekkeizu_password_test.go
-          '';
-        });
         database.type = "sqlite3";
         lfs.enable = false;
 
@@ -208,7 +210,10 @@ in
         # Also provision again whenever Forgejo itself restarts.
         partOf = [ "forgejo.service" ];
         environment = env;
-        path = [ pkgs.coreutils ];
+        path = [
+          pkgs.coreutils
+          pkgs.sqlite
+        ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
@@ -221,15 +226,21 @@ in
             def main [] {
               wait-for-forgejo
               let users = ^${exe} admin user list | lines | skip 1 | each { str trim | split row --regex '\s+' | get 1? }
-              with-env { FORGEJO_ADMIN_PASSWORD: (credential admin-password) } {
-                if ${builtins.toJSON adminUser} in $users {
-                  ^${exe} admin user change-password --username ${builtins.toJSON adminUser} --must-change-password=false
-                } else {
-                  ^${exe} admin user create --admin --username ${builtins.toJSON adminUser} --email ${builtins.toJSON owner.email} --must-change-password=false
-                }
+              if ${builtins.toJSON adminUser} not-in $users {
+                # The random password is replaced right below; it is printed, so keep it out of the journal.
+                ^${exe} admin user create --admin --username ${builtins.toJSON adminUser} --email ${builtins.toJSON owner.email} --random-password --must-change-password=false | ignore
               }
 
-              reconcile-owner-keys { |method, path, body| key-request $method $path $body } (open ${keysFile}) ${cfg.stateDir}/sekkeizu-owner-keys.json
+              # A token, not basic auth: on rotation Forgejo still holds the previous password.
+              provision-token forgejo-admin write:admin,write:user {|token|
+                let user = ${builtins.toJSON adminUser} | url encode --all
+                let body = {password: (credential admin-password), must_change_password: false}
+                let response = api-request $token PATCH $"admin/users/($user)" $body
+                if $response.status != 200 {
+                  error make {msg: $"Forgejo PATCH admin/users/($user): HTTP ($response.status)"}
+                }
+                reconcile-owner-keys { |method, path, body| api-request $token $method $path $body } (open ${keysFile}) ${cfg.stateDir}/sekkeizu-owner-keys.json
+              }
             }
           '';
         };
@@ -248,17 +259,17 @@ in
         ];
         partOf = [ "forgejo.service" ];
         environment = env;
-        path = [ pkgs.coreutils ];
+        path = [
+          pkgs.coreutils
+          pkgs.sqlite
+        ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
           User = cfg.user;
           Group = cfg.group;
           UMask = "0077";
-          LoadCredential = [
-            "admin-password:${config.sops.secrets.forgejo-admin-password.path}"
-          ]
-          ++ map (n: "${n}:${config.sops.secrets."forgejo-runner-${n}".path}") (
+          LoadCredential = map (n: "${n}:${config.sops.secrets."forgejo-runner-${n}".path}") (
             builtins.attrNames forgejoRunners
           );
           ExecStart = pkgs.writers.writeNu "forgejo-runners" ''
@@ -285,7 +296,10 @@ in
 
               # CI fetches the private flakes this repo depends on over SSH: one read-only deploy key on
               # each (forgejo-ci-key in sops, written for the runners in forgejo-runner.nix).
-              reconcile-deploy-keys { |method, path, body| key-request $method $path $body } ${builtins.toJSON adminUser} ${builtins.toJSON forgejoCi.readRepos} ${builtins.toJSON forgejoCi.readKey} ${cfg.stateDir}/sekkeizu-deploy-keys.json
+              # users/<u>/repos sits under the user scope as well as the repository one.
+              provision-token forgejo-runners read:user,write:repository {|token|
+                reconcile-deploy-keys { |method, path, body| api-request $token $method $path $body } ${builtins.toJSON adminUser} ${builtins.toJSON forgejoCi.readRepos} ${builtins.toJSON forgejoCi.readKey} ${cfg.stateDir}/sekkeizu-deploy-keys.json
+              }
             }
           '';
         };
