@@ -93,6 +93,23 @@ def run-tests [] {
     reconcile-owner-keys { |m, p, b| fake-request $m $p $b } [$wanted] ($env.KEY_TEST_STATE | path join missing.json)
   }
   assert equal (writes) []
+
+  let sync_bin = $env.KEY_TEST_STATE | path dirname | path join bin
+  mkdir $sync_bin
+  '#!/bin/sh
+[ "$2" != "$KEY_TEST_SYNC_FAIL" ]
+' | save ($sync_bin | path join sync)
+  ^chmod +x ($sync_bin | path join sync)
+  for failed_path in [$"($env.KEY_TEST_STATE).tmp" ($env.KEY_TEST_STATE | path dirname)] {
+    fixture [{path: user/keys, rows: [$old]}]
+    with-env {PATH: ($env.PATH | prepend $sync_bin), KEY_TEST_SYNC_FAIL: $failed_path} {
+      assert error { owner [$old $wanted] }
+    }
+    assert equal (writes) []
+    assert not ($"($env.KEY_TEST_STATE).tmp" | path exists)
+  }
+
+  fixture [{path: user/keys, rows: [$old]}]
   owner [$old]
   for status in [401 422 500] {
     fault POST user/keys $status

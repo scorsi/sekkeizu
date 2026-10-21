@@ -33,10 +33,8 @@ def save-key-state [state: string, keys: list] {
   try {
     $keys | to json | save --force $temporary
     ^sync -- $temporary
-    if $env.LAST_EXIT_CODE != 0 { error make {msg: "Cannot sync key ownership file"} }
     mv --force $temporary $state
     ^sync -- ($state | path dirname)
-    if $env.LAST_EXIT_CODE != 0 { error make {msg: "Cannot sync key ownership directory"} }
   } catch {|err|
     if ($temporary | path exists) { rm $temporary }
     error make {msg: $"Saving Forgejo key ownership: ($err.msg)"}
