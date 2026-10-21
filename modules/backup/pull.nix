@@ -29,7 +29,17 @@ in
   flake.modules.nixos.backup-source =
     { config, pkgs, ... }:
     let
-      dump = config.services.forgejo.dump;
+      forgejo = config.services.forgejo;
+      dump = forgejo.dump;
+      staging = "/persist/forgejo-dump";
+      publish = pkgs.writeShellApplication {
+        name = "forgejo-dump-publish";
+        runtimeInputs = [
+          pkgs.coreutils
+          pkgs.acl
+        ];
+        text = builtins.readFile ./forgejo-dump-publish.sh;
+      };
     in
     {
       users.users.${user} = {
@@ -46,12 +56,41 @@ in
 
       services.openssh.settings.AllowUsers = [ "${user}@${puller}" ];
 
-      # `forgejo dump` chmods each archive 0600, so neither a group nor a default ACL can open it:
-      # grant read access after every dump instead (the + runs this step as root).
+      assertions = lib.optionals dump.enable [
+        {
+          assertion =
+            dump.file == null
+            || (
+              builtins.baseNameOf dump.file == dump.file
+              && !(builtins.elem dump.file [
+                ""
+                "."
+                ".."
+                "-"
+              ])
+            );
+          message = "Forgejo dump.file must be a basename so the dump stays in private staging.";
+        }
+      ];
+
+      # Staging stays outside rrsync's root; interrupted dumps must never become immutable copies.
+      systemd.tmpfiles.rules = lib.optionals dump.enable [
+        "d ${staging} 0700 ${forgejo.user} ${forgejo.group} ${dump.age} -"
+      ];
       systemd.services.forgejo-dump = lib.mkIf dump.enable {
-        serviceConfig.ExecStartPost = [
-          "+${pkgs.acl}/bin/setfacl -R -m u:${user}:rX ${dump.backupDir}"
-        ];
+        serviceConfig = {
+          ExecStart = lib.mkForce (
+            "${lib.getExe publish} ${
+              lib.escapeShellArgs [
+                staging
+                dump.backupDir
+                user
+              ]
+            } "
+            + "${lib.getExe forgejo.package} dump --type ${dump.type}"
+            + lib.optionalString (dump.file != null) " --file ${lib.escapeShellArg dump.file}"
+          );
+        };
       };
     };
 

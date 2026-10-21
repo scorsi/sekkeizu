@@ -204,7 +204,9 @@ that file (and swapping Tailscale certificates for ACME in Caddy).
   to the Storage Box (`modules/backup/offsite.nix`; 7 daily, 5 weekly, 12 monthly snapshots), logged in
   `~/Library/Logs/backup-offsite.log`: `sudo launchctl kickstart system/org.nixos.backup-offsite`.
   Restore: `restic -r sftp://<user>@<box>:23/restic restore latest --target <dir>` with `restic-password`
-  from sops. External disk: not done.
+  from sops. External disk: not done. Dumps are now written privately outside the exported tree
+  and published atomically only after success. Existing local or pulled dumps from before this
+  change may already be incomplete: inspect them separately; immutable pulls do not repair them.
 - **Observability retention**: masu and nisshi keep 400 days of data, explicitly configured from
   `modules/backup/observability-retention-days.json`. Their hardlinked backups on ishizue and
   pulled copies on jiban use the same UTC day cutoff, after a successful complete backup only.
