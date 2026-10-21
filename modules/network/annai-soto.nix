@@ -80,6 +80,8 @@ in
         ];
         zones = lib.mapAttrs' (apex: records: lib.nameValuePair "${apex}." (zone apex records)) publicZones;
         update.keys.hanko.secretFile = config.sops.secrets.hanko-tsig.path;
+        # Scraped by the local hikyaku only (masu metric convention: loopback).
+        metrics.listen = "127.0.0.1:9153";
       };
 
       # The addresses come from DHCP and router advertisements: binding before them fails.

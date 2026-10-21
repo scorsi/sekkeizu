@@ -53,6 +53,8 @@ in
         mode = "uchi";
         # The bridge only: not the tailnet, not kekkai (not there yet). Upstreams: annai's (Quad9).
         listen = [ "${address}:53" ];
+        # Scraped by the local hikyaku only (masu metric convention: loopback).
+        metrics.listen = "127.0.0.1:9153";
         zones.${zone} = {
           ttl = 300;
           serial = inputs.self.lastModified;
