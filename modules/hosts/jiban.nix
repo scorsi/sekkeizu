@@ -17,6 +17,7 @@ in
       darwin.homebrew
       darwin.defaults
       darwin.claude-code
+      darwin.codex
       darwin.secrets
       darwin.autologin
       darwin.tailscale
