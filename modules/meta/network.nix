@@ -16,8 +16,8 @@ in
       type = types.attrsOf types.str;
       default = { };
       description = ''
-        IPv4 address of each VM on vfkit's NAT bridge, by host name. Fixed by the VM's MAC
-        (`sekkeizu.vms.<name>.mac`) in macOS's DHCP leases (/var/db/dhcpd_leases).
+        IPv4 address of each VM on vfkit's NAT bridge, by host name. Reserved for the VM's MAC
+        (`sekkeizu.vms.<name>.mac`) in macOS's /etc/bootptab by vfkit-host; independent of DHCP leases.
       '';
     };
 

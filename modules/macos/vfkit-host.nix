@@ -14,6 +14,7 @@
 { config, lib, ... }:
 let
   owner = config.kiso.owner.name;
+  inherit (config.sekkeizu) bridgeAddresses;
   home = "/Users/${owner}";
 
   # Short on purpose: the control socket lives here, and macOS caps socket paths at 104 bytes.
@@ -38,7 +39,7 @@ let
       };
       mac = mkOption {
         type = types.strMatching "([0-9a-f]{2}:){5}[0-9a-f]{2}";
-        description = "NIC MAC address: macOS's DHCP server keys the VM's NAT address on it.";
+        description = "NIC MAC address, paired with bridgeAddresses in macOS's static DHCP bindings.";
       };
     };
   };
@@ -70,6 +71,33 @@ in
         default = { };
         description = "VMs to run on this Mac, named after their nixosConfigurations (built on the vfkit-guest feature).";
       };
+
+      # bootpd checks these static bindings before its volatile lease database. A MAC alone
+      # only preserves an existing lease; /etc/bootptab also survives a fresh Mac installation.
+      config.environment.etc.bootptab.text = ''
+        %%
+        ${lib.concatStringsSep "\n" (
+          lib.mapAttrsToList (
+            name: vm: "${name} 1 ${vm.mac} ${bridgeAddresses.${name}} boot"
+          ) config.sekkeizu.vms
+        )}
+      '';
+      config.assertions = [
+        {
+          assertion = lib.all (name: builtins.hasAttr name bridgeAddresses) (
+            builtins.attrNames config.sekkeizu.vms
+          );
+          message = "Each vfkit VM needs a sekkeizu.bridgeAddresses entry for its DHCP reservation.";
+        }
+        {
+          assertion =
+            let
+              addresses = map (name: bridgeAddresses.${name}) (builtins.attrNames config.sekkeizu.vms);
+            in
+            lib.length addresses == lib.length (lib.unique addresses);
+          message = "vfkit DHCP reservations must have distinct IPv4 addresses.";
+        }
+      ];
 
       config.launchd.user.agents = lib.mapAttrs' (
         name: vm:

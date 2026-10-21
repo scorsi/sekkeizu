@@ -106,6 +106,15 @@ it at login, i.e. at boot thanks to auto-login. vCPU, RAM, disk size and MAC are
 Mac side: `sekkeizu.vms.ishizue` in `modules/hosts/jiban.nix`. Reachable over Tailscale, and as
 `ishizue.local` from jiban (NAT bridge, used by deploys).
 
+The bridge address in `sekkeizu.bridgeAddresses` is reserved for the VM's MAC in
+`/etc/bootptab`, managed by `vfkit-host`. A fixed MAC alone does not reserve a DHCP address.
+After first installing or changing this reservation, reboot jiban before relying on it: this
+reloads bootpd and makes the guest obtain a new lease. Do not delete live DHCP leases or assign
+the address manually inside the guest. Check `/etc/bootptab` and, over `ssh ishizue.local`,
+`ip -4 address` against `bridgeAddresses` before checking annai, kekkai and the observability
+stores, whose listeners, firewall rules and clients all use that address. An existing lease
+held by another VM must be resolved before starting the reserved VM.
+
 State, in `~/.local/state/vm/ishizue/`:
 
 - `disk.raw`: the disk (sparse; the guest's weekly fstrim gives freed blocks back to the Mac).

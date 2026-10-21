@@ -55,7 +55,7 @@
       systemd.network.networks."10-uplink" = {
         matchConfig.Type = "ether";
         networkConfig.DHCP = "ipv4";
-        # bootpd keys its lease on the client id: the MAC is fixed per VM, so is the address.
+        # Match vfkit-host's /etc/bootptab reservation, including after macOS loses its leases.
         dhcpV4Config.ClientIdentifier = "mac";
       };
       # <host>.local for the Mac itself: deploys stay on the NAT bridge, as tailscaled on macOS
