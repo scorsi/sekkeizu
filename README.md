@@ -234,8 +234,12 @@ that file (and swapping Tailscale certificates for ACME in Caddy).
 5. **Create the site**: from the `site` checkout,
    `git remote add origin ssh://git@ishizue.<tailnet>.ts.net:2222/<owner>/site.git && git push -u origin main`
    (push-to-create makes the private repository). The workflow runs by itself.
-6. **Rotate a runner secret**: new `openssl rand -hex 20` in `secrets/ishizue/secrets.yaml` (and
-   `secrets/jiban/secrets.yaml` for jiban's), deploy/switch.
+6. **Renew a runner secret**: keep its first 16 ASCII characters (the runner UUID), replace the
+   last 24 with fresh `openssl rand -hex 12`, and update `secrets/ishizue/secrets.yaml` (also
+   `secrets/jiban/secrets.yaml` for jiban's). Deploy Forgejo before restarting that runner: updating
+   the same UUID invalidates its previous secret. Changing the first 16 characters creates a new
+   runner; **the old registration remains valid**. After the replacement connects, explicitly
+   delete the old registration in Site administration → Actions → Runners to revoke it.
 
 Test the macOS runner with a workflow containing `runs-on: macos` and `run: sw_vers`.
 
