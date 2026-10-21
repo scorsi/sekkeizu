@@ -23,6 +23,7 @@ in
       nixos.annai
       nixos.observability-stores
       nixos.server
+      nixos.observability-agent
       nixos.caddy
       nixos.forgejo
       nixos.forgejo-runner

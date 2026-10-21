@@ -26,6 +26,7 @@ in
       darwin.forgejo-runner
       darwin.backup-pull
       darwin.backup-offsite
+      darwin.observability-agent
       darwin.secret-reminders
       # Only needed to build a VM image (`nix run .#install-<vm>`): QEMU VM, 3 GB RAM, 40 GB disk.
       # darwin.linux-builder

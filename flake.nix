@@ -67,6 +67,8 @@
     # each pins its own and is tested against it.
     scorsi-masu.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/masu.git";
     scorsi-nisshi.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/nisshi.git";
+    # The node agent (modules/observability/agent.nix); its masu and nisshi inputs are test-only.
+    scorsi-hikyaku.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/hikyaku.git";
 
     # The Claude Code status line (modules/home/claude-code.nix).
     scorsi-shiori = {

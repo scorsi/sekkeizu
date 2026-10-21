@@ -19,6 +19,7 @@ in
       nixos.secrets
       nixos.annai-soto
       nixos.server
+      nixos.observability-agent
 
       # ─── Machine identity ─────────────────────────────────────────────
       {
