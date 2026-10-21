@@ -278,7 +278,7 @@ commit. Which repositories exist, their settings and their mirrors are declared 
 - **CI reads them** with a read-only deploy key (`forgejo-ci-key` in sops, public half and repo
   list in `sekkeizu.forgejoCi`, `modules-private/meta/endpoints.nix`), registered on each repo by the
   `forgejo-runners` oneshot; Forgejo's SSH host key is pinned there too. A new private flake for
-  CI = add it to `forgejoCi.readRepos` and deploy.
+  CI = create the repository in Forgejo first, then add it to `forgejoCi.readRepos` and deploy.
   Provisioning reconciles only keys it manages (`sekkeizu:owner:` / `sekkeizu:ci:` titles, or
   legacy keys adopted by exact title and content and recorded in Forgejo's state directory).
   On the first deployment, review old owner/deploy keys already removed from configuration:
