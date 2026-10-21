@@ -9,7 +9,12 @@
   ...
 }:
 let
-  inherit (config.sekkeizu) domain publicAddresses publicZones;
+  inherit (config.sekkeizu)
+    acmeAccounts
+    domain
+    publicAddresses
+    publicZones
+    ;
 in
 {
   flake.modules.nixos.annai-soto =
@@ -24,9 +29,24 @@ in
         a = [ address.ipv4 ];
         aaaa = [ address.ipv6 ];
       };
-      # RFC 8657: only DNS-01 (hanko), the only issuance path. TODO(owner): add
-      # `; accounturi=<hanko's ACME account URL>` to both once hanko has created its account.
-      caaValue = "letsencrypt.org; validationmethods=dns-01";
+      # RFC 8657: only DNS-01 (hanko), the only issuance path, pinned to `sekkeizu.acmeAccounts`.
+      caaValues =
+        let
+          base = "letsencrypt.org; validationmethods=dns-01";
+        in
+        if acmeAccounts == [ ] then [ base ] else map (uri: "${base}; accounturi=${uri}") acmeAccounts;
+      caa = lib.concatMap (
+        value:
+        map
+          (tag: {
+            flags = 0;
+            inherit tag value;
+          })
+          [
+            "issue"
+            "issuewild"
+          ]
+      ) caaValues;
 
       zone = apex: records: {
         # Porkbun's TTL for every record of the dns stack: the switch changes no cache behaviour.
@@ -45,18 +65,7 @@ in
           // {
             "@" = (records."@" or { }) // {
               ns = nameservers;
-              caa = [
-                {
-                  flags = 0;
-                  tag = "issue";
-                  value = caaValue;
-                }
-                {
-                  flags = 0;
-                  tag = "issuewild";
-                  value = caaValue;
-                }
-              ];
+              inherit caa;
             };
           }
           # In-bailiwick NS need glue; the other apexes point at them out of bailiwick (annai ADR 0009).

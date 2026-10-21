@@ -44,6 +44,16 @@ in
       '';
     };
 
+    acmeAccounts = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      description = ''
+        ACME account URLs allowed to issue for the public zones (RFC 8657 `accounturi` in their CAA),
+        one per hanko host (hanko ADR 0003). Set by hand from hanko's `acme-account` log event, never
+        automated: pinning stays an out-of-band decision. Empty: CAA allows any Let's Encrypt account.
+      '';
+    };
+
     kekkai = {
       ipv4Prefix = mkOption {
         type = types.str;
