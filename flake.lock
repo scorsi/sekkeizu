@@ -1065,11 +1065,11 @@
         "zig2nix": "zig2nix"
       },
       "locked": {
-        "lastModified": 1792572948,
-        "narHash": "sha256-9E4kISbDZdQY5rOrL0ylcpS6m3jhgz+Gxcyw7eSarIY=",
+        "lastModified": 1792613711,
+        "narHash": "sha256-1Ibce2g9rWWXm/hjnxnMRhstUFhRP5EZK9A4djqckYo=",
         "ref": "refs/heads/main",
-        "rev": "152029704b768b9f9ea0637a5ff6d01ab88632ac",
-        "revCount": 23,
+        "rev": "50a61f84965055ba75d7605553cd8ab5d8b88d19",
+        "revCount": 31,
         "type": "git",
         "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/annai.git"
       },
@@ -1105,11 +1105,11 @@
         "nixpkgs": "nixpkgs_5"
       },
       "locked": {
-        "lastModified": 1792575186,
-        "narHash": "sha256-vykdqhuHk5WyfNfx528Y3/aeAuJPwlHO0PdWj7Gg6vQ=",
+        "lastModified": 1792613659,
+        "narHash": "sha256-e0HFmngxquxit4ZRpZiQIQFsS6tRWMEu1Vdzo57R1Mg=",
         "ref": "refs/heads/main",
-        "rev": "6959360eeacb6ea21750c75f6fe85f5c4435cda9",
-        "revCount": 10,
+        "rev": "57b4305742778b9a8535a2fc7d23858ee6afdec3",
+        "revCount": 16,
         "type": "git",
         "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/hanko.git"
       },
