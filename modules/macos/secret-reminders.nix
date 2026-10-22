@@ -31,11 +31,9 @@ in
       '';
     in
     {
+      # `command` waits for /nix/store (see forgejo-runner.nix).
+      launchd.user.agents.secret-reminders.command = "${check} notify";
       launchd.user.agents.secret-reminders.serviceConfig = {
-        ProgramArguments = [
-          "${check}"
-          "notify"
-        ];
         StartCalendarInterval = [
           {
             Hour = 10;

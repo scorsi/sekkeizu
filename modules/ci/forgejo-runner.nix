@@ -269,15 +269,15 @@ in
         fi
       '';
 
+      # `command`, not ProgramArguments: nix-darwin then waits for /nix/store, mounted after
+      # launchd starts boot jobs (a missing program exits 78 and is never retried).
+      launchd.daemons.forgejo-runner.command = "${startRunner pkgs {
+        inherit name secretFile;
+        configDir = stateDir;
+        ciKeyFile = config.sops.secrets.forgejo-ci-key.path;
+        workDir = "${stateDir}/work";
+      }}";
       launchd.daemons.forgejo-runner.serviceConfig = {
-        ProgramArguments = [
-          "${startRunner pkgs {
-            inherit name secretFile;
-            configDir = stateDir;
-            ciKeyFile = config.sops.secrets.forgejo-ci-key.path;
-            workDir = "${stateDir}/work";
-          }}"
-        ];
         UserName = macUser;
         GroupName = macUser;
         WorkingDirectory = stateDir;

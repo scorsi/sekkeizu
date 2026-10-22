@@ -102,16 +102,17 @@ in
       config.launchd.user.agents = lib.mapAttrs' (
         name: vm:
         lib.nameValuePair (agentName name) {
+          # Waits for /nix/store (see forgejo-runner.nix); `exec` keeps launchd's SIGTERM on vfkit.
+          command = lib.escapeShellArgs [
+            "${nimProgram pkgs "vm-start" ""}/bin/vm-start"
+            (stateDir name)
+            name
+            "${pkgs.vfkit}/bin/vfkit"
+            (toString vm.vcpu)
+            (toString vm.memory)
+            vm.mac
+          ];
           serviceConfig = {
-            ProgramArguments = [
-              "${nimProgram pkgs "vm-start" ""}/bin/vm-start"
-              (stateDir name)
-              name
-              "${pkgs.vfkit}/bin/vfkit"
-              (toString vm.vcpu)
-              (toString vm.memory)
-              vm.mac
-            ];
             RunAtLoad = true;
             # A clean stop (guest poweroff) stays stopped; a crash is restarted.
             KeepAlive.SuccessfulExit = false;
