@@ -51,7 +51,7 @@ nix run .#check     # nix flake check
 nix run .#fmt       # nix fmt (nixfmt-tree)
 nix run .#rekey-host -- <host> --public-key <verified-key.pub>  # new host key: update its recipient, including shared secrets
 nix run .#install-ishizue    # on jiban: build ishizue's disk image and start it (once)
-nix run .#deploy-ishizue     # nixos-rebuild switch to ishizue, built inside the VM
+nix run .#deploy-ishizue     # build inside the VM, then switch in a detached unit (also deploy-torii-cdg)
 nix develop          # shell with nixfmt, statix, deadnix, shellcheck, just, nvd
 ```
 
@@ -137,7 +137,10 @@ Anything installed by hand outside the declared paths is gone at the next reboot
 
 Day to day:
 
-- Deploy: `nix run .#deploy-ishizue` (nixos-rebuild, built inside the VM). Connects as `root@` (key-only,
+- Deploy: `nix run .#deploy-ishizue` (`nixos-rebuild build` inside the VM; the profile and
+  `switch-to-configuration` then run in a transient `sekkeizu-switch-<time>` unit, so a dropped
+  session cannot interrupt them: the app follows its journal, reconnects for up to 3 min and exits
+  with its status). Connects as `root@` (key-only,
   FIDO2 keys, allowed only from the Mac's NAT bridge and Tailscale), one shared SSH connection:
   one touch per deploy. Interactive `sudo` in the VM still uses pam_rssh (a touch each).
 - Rollback: `nix run .#deploy-ishizue -- --rollback`, or for one boot only,

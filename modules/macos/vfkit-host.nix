@@ -208,12 +208,15 @@ in
           type = "app";
           program = toString (
             pkgs.writers.writeNu "deploy-${name}" ''
+              ${builtins.readFile ../flake/nixos-deploy.nu}
               def --wrapped main [...args] {
+                $env.PATH = $env.PATH | prepend ${pkgs.nixos-rebuild}/bin
                 let repo = ^${pkgs.git}/bin/git rev-parse --show-toplevel | str trim
                 # <vm>.local (mDNS over the NAT bridge) rather than Tailscale, which hairpins through
-                # the router from the Mac. Built inside the VM. Same root@ user for build and target so
-                # both share one ControlMaster connection (modules/home/ssh.nix): one FIDO2 touch.
-                exec ${pkgs.nixos-rebuild}/bin/nixos-rebuild switch --flake $"($repo)#${name}" --build-host root@${name}.local --target-host root@${name}.local ...$args
+                # the router from the Mac. Built inside the VM, activated in a detached unit. Same root@
+                # user for build and target so both share one ControlMaster connection
+                # (modules/home/ssh-hosts.nix): one FIDO2 touch.
+                deploy root@${name}.local $"($repo)#${name}" ...$args
               }
             ''
           );
