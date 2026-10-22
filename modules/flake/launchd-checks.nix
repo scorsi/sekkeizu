@@ -4,26 +4,21 @@ let
   jobs = launchd.daemons // launchd.agents // launchd.user.agents;
   # launchd starts boot jobs before /nix is mounted: a job that execs from the store without
   # waiting exits 78 and is never retried (`command` in nix-darwin adds the wait).
-  # shortcut: fixed upstream (hikyaku 3df9bc4) but not pinned yet; drop the name when its input
-  # is bumped.
-  pending = [ "hikyaku" ];
-  unguarded = lib.subtractLists pending (
-    lib.attrNames (
-      lib.filterAttrs (
-        _: job:
-        let
-          args = job.serviceConfig.ProgramArguments or [ ];
-        in
-        lib.any (lib.hasInfix "/nix/store") args
-        && !(
-          lib.take 2 args == [
-            "/bin/sh"
-            "-c"
-          ]
-          && lib.hasPrefix "/bin/wait4path /nix/store && " (lib.elemAt args 2)
-        )
-      ) jobs
-    )
+  unguarded = lib.attrNames (
+    lib.filterAttrs (
+      _: job:
+      let
+        args = job.serviceConfig.ProgramArguments or [ ];
+      in
+      lib.any (lib.hasInfix "/nix/store") args
+      && !(
+        lib.take 2 args == [
+          "/bin/sh"
+          "-c"
+        ]
+        && lib.hasPrefix "/bin/wait4path /nix/store && " (lib.elemAt args 2)
+      )
+    ) jobs
   );
 in
 {
