@@ -55,43 +55,43 @@
     # Neovim and its config, a repo of its own (kiso's `kanna` feature). Pinned here so that
     # `--override-input scorsi-kanna path:…` keeps working from this repo.
     scorsi-kanna = {
-      url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kanna.git";
+      url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kanna.git";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # The DNS server of the homelab (modules/network/annai.nix). Not following our nixpkgs: annai
     # pins its own nixpkgs and Zig toolchain (zig2nix) and is built and tested against them.
-    scorsi-annai.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/annai.git";
+    scorsi-annai.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/annai.git";
 
     # The observability stores (modules/observability/stores.nix). Not following our nixpkgs either:
     # each pins its own and is tested against it.
-    scorsi-masu.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/masu.git";
-    scorsi-nisshi.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/nisshi.git";
+    scorsi-masu.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/masu.git";
+    scorsi-nisshi.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/nisshi.git";
     # The node agent (modules/observability/agent.nix); its masu and nisshi inputs are test-only.
-    scorsi-hikyaku.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/hikyaku.git";
+    scorsi-hikyaku.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/hikyaku.git";
 
     # The certificates (modules/network/hanko.nix). Not following our nixpkgs: tested against its
     # own; its annai and nisshi inputs are test-only.
-    scorsi-hanko.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/hanko.git";
+    scorsi-hanko.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/hanko.git";
 
     # The overlay network (modules/network/kekkai.nix). Not following our nixpkgs: tested against
     # its own; its masu and nisshi inputs are test-only.
-    scorsi-kekkai.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kekkai.git";
+    scorsi-kekkai.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kekkai.git";
 
     # The reverse proxy (modules/network/genkan.nix). Not following our nixpkgs: tested against its
     # own; its masu and nisshi inputs are test-only.
-    scorsi-genkan.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/genkan.git";
+    scorsi-genkan.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/genkan.git";
 
     # The Claude Code status line (modules/home/claude-code.nix).
     scorsi-shiori = {
-      url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/shiori.git";
+      url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/shiori.git";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # The common base (options `kiso.*`, generic features), a flake-parts module. Every input it
     # shares with this repo follows ours: one version of each.
     scorsi-kiso = {
-      url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kiso.git";
+      url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kiso.git";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";

@@ -1071,11 +1071,11 @@
         "rev": "c06509312c761e4eb185d384605c7a3ca5d26185",
         "revCount": 32,
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/annai.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/annai.git"
       },
       "original": {
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/annai.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/annai.git"
       }
     },
     "scorsi-genkan": {
@@ -1091,11 +1091,11 @@
         "rev": "029e0723c90e8d952ec40a0a286194b695b0262a",
         "revCount": 18,
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/genkan.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/genkan.git"
       },
       "original": {
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/genkan.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/genkan.git"
       }
     },
     "scorsi-hanko": {
@@ -1111,11 +1111,11 @@
         "rev": "57b4305742778b9a8535a2fc7d23858ee6afdec3",
         "revCount": 16,
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/hanko.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/hanko.git"
       },
       "original": {
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/hanko.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/hanko.git"
       }
     },
     "scorsi-hikyaku": {
@@ -1134,11 +1134,11 @@
         "rev": "3df9bc4282941ab13be72cf0949e267540c994a6",
         "revCount": 30,
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/hikyaku.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/hikyaku.git"
       },
       "original": {
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/hikyaku.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/hikyaku.git"
       }
     },
     "scorsi-kanna": {
@@ -1154,11 +1154,11 @@
         "rev": "b2460fba5f8af3256d4a41166ba8ec2a29840b65",
         "revCount": 17,
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kanna.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kanna.git"
       },
       "original": {
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kanna.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kanna.git"
       }
     },
     "scorsi-kekkai": {
@@ -1177,11 +1177,11 @@
         "rev": "c660f9f1a53f653bb40d46e5b2a9f0b6f930f3db",
         "revCount": 55,
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kekkai.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kekkai.git"
       },
       "original": {
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kekkai.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kekkai.git"
       }
     },
     "scorsi-kiso": {
@@ -1221,11 +1221,11 @@
         "rev": "a51fe022691ee0ceb9afeffb6fdb785f3ebefdfa",
         "revCount": 8,
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kiso.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kiso.git"
       },
       "original": {
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kiso.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kiso.git"
       }
     },
     "scorsi-masu": {
@@ -1242,11 +1242,11 @@
         "rev": "0ac2136b58993636b1a471dae2482b48f608ff01",
         "revCount": 15,
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/masu.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/masu.git"
       },
       "original": {
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/masu.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/masu.git"
       }
     },
     "scorsi-nisshi": {
@@ -1262,11 +1262,11 @@
         "rev": "ee4a22128dff66ffd993867e047a7819a74a675e",
         "revCount": 15,
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/nisshi.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/nisshi.git"
       },
       "original": {
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/nisshi.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/nisshi.git"
       }
     },
     "scorsi-shiori": {
@@ -1282,11 +1282,11 @@
         "rev": "5e3b9cc981a902bec7a370404cbd25d8aec92016",
         "revCount": 14,
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/shiori.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/shiori.git"
       },
       "original": {
         "type": "git",
-        "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/shiori.git"
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/shiori.git"
       }
     },
     "sops-nix": {
