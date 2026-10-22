@@ -57,7 +57,7 @@ def main [] {
   assert equal $r.exit_code 3 $r.stderr
   assert ($r.stderr | str contains "retrying")
   assert equal (open --raw reconnect/sshopts | str trim) "-o ControlPath=/tmp/cm-test"
-  assert equal (open --raw reconnect/rebuild | str trim) "build --no-link --flake .#host --build-host root@host --target-host root@host --show-trace"
+  assert equal (open --raw reconnect/rebuild | str trim) "build --flake .#host --build-host root@host --target-host root@host --show-trace"
   let calls = open --raw reconnect/calls | lines
   assert ($calls.0 =~ '^/bin/sh -s -- sekkeizu-switch-\d{8}-\d{6} /nix/store/abc-nixos-system$')
   assert ($calls.1 =~ '^/bin/sh -s -- sekkeizu-switch-\d{8}-\d{6}$')

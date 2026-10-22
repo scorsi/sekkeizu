@@ -79,8 +79,10 @@ def --wrapped deploy [host: string, flake: string, ...args: string] {
   if $control != none {
     $env.NIX_SSHOPTS = $"($env.NIX_SSHOPTS? | default '') -o ControlPath=($control)" | str trim
   }
+  # No --no-link: with --build-host, nixos-rebuild-ng also passes build flags to `nix eval`, which
+  # rejects it; the build host keeps a `result` link in root's home, harmless.
   let toplevel = if "--rollback" in $args { "" } else {
-    ^nixos-rebuild build --no-link --flake $flake --build-host $host --target-host $host ...$args | str trim
+    ^nixos-rebuild build --flake $flake --build-host $host --target-host $host ...$args | str trim
   }
   let unit = $"sekkeizu-switch-(date now | format date '%Y%m%d-%H%M%S')"
   if (deploy-remote $host $deploy_launch $unit $toplevel) == null {
