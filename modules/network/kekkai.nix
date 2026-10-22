@@ -44,8 +44,7 @@ let
   # The peers of each node and what each may open on it (kekkai ADR 0011: default deny, ICMP and
   # replies always pass). ishizue: annai uchi and SSH. jiban: nothing, every flow between the two
   # starts on jiban (deploys, backup pull, hikyaku, the remote builder). The gate: SSH from jiban.
-  # Nothing opens to the gate yet: its hikyaku keeps spooling until masu's and nisshi's ports on
-  # ishizue are opened to it (a later step, modules-private/meta/observability.nix).
+  # The gate's hikyaku pushes to masu and nisshi on ishizue (observability/stores.nix).
   allowInbound = {
     ishizue = {
       jiban = [
@@ -53,7 +52,10 @@ let
         "tcp/53"
         "tcp/22"
       ];
-      ${gate} = [ ];
+      ${gate} = [
+        "tcp/9472"
+        "tcp/9473"
+      ];
     };
     jiban = {
       ishizue = [ ];

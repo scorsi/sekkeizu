@@ -1,7 +1,8 @@
 # masu (metrics) and nisshi (logs), the stores of the observability base (docs/observability.md),
 # on ishizue: persistent, not exposed. They listen on the vfkit bridge address, for the agents of
-# ishizue and jiban (torii-cdg spools until kekkai links the hosts), and accept each host's token
-# as `node:<host>`. Their own /metrics stay on loopback, for ishizue's hikyaku.
+# ishizue and jiban, and on ishizue's kekkai address for torii-cdg's (network/kekkai.nix opens the
+# ports to it), and accept each host's token as `node:<host>`. Their own /metrics stay on
+# loopback, for ishizue's hikyaku.
 {
   config,
   inputs,
@@ -9,7 +10,7 @@
   ...
 }:
 let
-  inherit (config.sekkeizu) bridgeAddresses observability;
+  inherit (config.sekkeizu) bridgeAddresses kekkai observability;
   tokens = lib.mapAttrs' (
     host: hash: lib.nameValuePair hash "node:${host}"
   ) observability.tokenHashes;
@@ -21,10 +22,14 @@ in
     { config, pkgs, ... }:
     let
       address = bridgeAddresses.${config.networking.hostName};
+      overlay = kekkai.nodes.${config.networking.hostName}.ipv4;
       store = name: {
         enable = true;
         inherit retentionDays;
-        listen = [ "${address}:${toString observability.stores.${name}.port}" ];
+        listen = map (a: "${a}:${toString observability.stores.${name}.port}") [
+          address
+          overlay
+        ];
         tls = {
           certFile = "${../../modules-private/observability/${name}.pem}";
           keyFile = config.sops.secrets."${name}-tls-key".path;
@@ -46,6 +51,14 @@ in
         inherit sopsFile;
         restartUnits = [ "nisshi.service" ];
       };
+
+      # kekkai0 and its address exist only while kekkai-node runs (a non-persistent TUN): without
+      # this, a store starting while kekkai is down fails to bind and loses its bridge listener too.
+      # A listener bound early serves the address whenever it is (re)added.
+      boot.kernel.sysctl."net.ipv4.ip_nonlocal_bind" = 1;
+      # At boot systemd-sysctl precedes sysinit.target; at a switch that sets it, only this orders them.
+      systemd.services.masu.after = [ "systemd-sysctl.service" ];
+      systemd.services.nisshi.after = [ "systemd-sysctl.service" ];
 
       services.masu = store "masu" // {
         metrics.listen = "127.0.0.1:9474";
