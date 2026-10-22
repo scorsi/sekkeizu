@@ -9,7 +9,7 @@
   ...
 }:
 let
-  inherit (config.sekkeizu) observability;
+  inherit (config.sekkeizu) bridgeAddresses kekkai observability;
 
   agent =
     platform:
@@ -76,6 +76,25 @@ in
       (agent "nixosModules")
     ];
     sops.secrets.hikyaku-token.restartUnits = [ "hikyaku.service" ];
+    # hikyaku scrapes loopback and pushes to the stores' host, at either of its addresses.
+    systemd.services.hikyaku.serviceConfig = {
+      IPAddressDeny = "any";
+      IPAddressAllow = [
+        "localhost"
+      ]
+      ++ lib.unique (
+        lib.concatMap (
+          store:
+          let
+            host = observability.stores.${store}.host;
+          in
+          [
+            bridgeAddresses.${host}
+            kekkai.nodes.${host}.ipv4
+          ]
+        ) (lib.attrNames observability.stores)
+      );
+    };
     # journald stays the logs' second buffer (/var/log is persistent); the spool must survive too.
     sekkeizu.persist.directories = [
       {

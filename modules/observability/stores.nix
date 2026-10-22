@@ -27,6 +27,19 @@ in
       archives = "${pkgs.python3}/bin/python3 ${../backup/observability-archives.py}";
       # How long jiban may miss pulls before a day exists nowhere but in the store itself.
       keepDays = 90;
+      unit = {
+        # At boot systemd-sysctl precedes sysinit.target; at a switch that sets it, only this orders them.
+        after = [ "systemd-sysctl.service" ];
+        # Only the agents talk to a store (the bridge, kekkai), and hikyaku scrapes it on loopback.
+        serviceConfig = {
+          IPAddressDeny = "any";
+          IPAddressAllow = [
+            "localhost"
+            subnet
+            kekkai.ipv4Prefix
+          ];
+        };
+      };
       store = name: {
         enable = true;
         inherit retentionDays;
@@ -60,9 +73,8 @@ in
       # this, a store starting while kekkai is down fails to bind and loses its bridge listener too.
       # A listener bound early serves the address whenever it is (re)added.
       boot.kernel.sysctl."net.ipv4.ip_nonlocal_bind" = 1;
-      # At boot systemd-sysctl precedes sysinit.target; at a switch that sets it, only this orders them.
-      systemd.services.masu.after = [ "systemd-sysctl.service" ];
-      systemd.services.nisshi.after = [ "systemd-sysctl.service" ];
+      systemd.services.masu = unit;
+      systemd.services.nisshi = unit;
 
       services.masu = store "masu" // {
         metrics.listen = "127.0.0.1:9474";
