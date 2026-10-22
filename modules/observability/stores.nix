@@ -23,6 +23,7 @@ in
     let
       address = bridgeAddresses.${config.networking.hostName};
       overlay = kekkai.nodes.${config.networking.hostName}.ipv4;
+      subnet = "${lib.concatStringsSep "." (lib.take 3 (lib.splitString "." address))}.0/24";
       archives = "${pkgs.python3}/bin/python3 ${../backup/observability-archives.py}";
       # How long jiban may miss pulls before a day exists nowhere but in the store itself.
       keepDays = 90;
@@ -128,9 +129,29 @@ in
         '';
       };
 
-      # Matched on the bridge address, as annai's port 53: the tailnet never reaches the stores.
-      networking.firewall.extraCommands = lib.concatMapStrings (store: ''
-        iptables -A nixos-fw -d ${address} -p tcp --dport ${toString store.port} -j nixos-fw-accept
-      '') (lib.attrValues observability.stores);
+      # From the bridge's subnet to the bridge address only (jiban and ishizue's own agents; vfkit's
+      # NAT hands out a /24). Trusted interfaces are accepted before any of these rules, so the
+      # stores' ports are refused on them first, except loopback (ishizue's own hikyaku) and kekkai0,
+      # where kekkai's own allowInbound (network/kekkai.nix) already limits which peer reaches them.
+      networking.firewall.extraCommands = lib.concatMapStrings (
+        store:
+        let
+          port = toString store.port;
+        in
+        ''
+          iptables -A nixos-fw -s ${subnet} -d ${address} -p tcp --dport ${port} -j nixos-fw-accept
+        ''
+        +
+          lib.concatMapStrings
+            (iface: ''
+              iptables -I nixos-fw -i ${iface} -p tcp --dport ${port} -j nixos-fw-refuse
+            '')
+            (
+              lib.subtractLists [
+                "lo"
+                "kekkai0"
+              ] config.networking.firewall.trustedInterfaces
+            )
+      ) (lib.attrValues observability.stores);
     };
 }
