@@ -1,4 +1,4 @@
-# The résumé (rirekisho repository), served like the site: its Forgejo Actions workflow builds the
+# The résumé (rirekisho repository): its Forgejo Actions workflow builds the
 # pages and PDFs and copies them into `dir`; genkan serves that directory as static files, on the
 # overlay only for now. The runner's account can write there and nowhere else (forgejo-runner.nix).
 #

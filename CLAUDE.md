@@ -27,7 +27,7 @@ repo is and how it's laid out.
 
 1. **Repo boundary.** sekkeizu describes WHERE things run and HOW they are configured: hosts,
    features, services, network, secrets, infrastructure. Application code (in-house components,
-   the site's content, editor config like kanna) lives in its own repo, exposes a flake and is
+   the résumé's content, editor config like kanna) lives in its own repo, exposes a flake and is
    consumed here as a pinned input.
 2. **Trust levels.** The publishable common base is `kiso` (`github:scorsi/kiso`, public, a
    flakeModule: nix, shell, git, ssh, tmux, tooling, options `kiso.*`), developed in

@@ -25,7 +25,7 @@ modules/
   meta/    the values of kiso's options (owner.nix), this repo's options (services, expiring secrets)
   home/    home-manager features of this repo (ssh-hosts, gh, Claude Code); the generic ones are kiso's
   macos/   nix-darwin-only features (headless server, auto-login, VM host, linux builder, reminders)
-  nixos/   NixOS-only features (server, Forgejo, site, rirekisho)
+  nixos/   NixOS-only features (server, Forgejo, rirekisho)
   ci/      Forgejo Actions runners (NixOS and macOS)
   backup/  off-VM copies (jiban pulls ishizue's backups)
   network/ Tailscale, kekkai, annai, hanko, genkan
@@ -188,7 +188,6 @@ keeps 443 closed. Git over SSH stays on the Tailscale name until the kekkai swit
 | --------- | ----------------------------------------- | ----------------------------- |
 | Forgejo   | `https://forgejo.uchi.<domain>`           | genkan → 127.0.0.1:3000       |
 | Git (SSH) | `ssh://git@ishizue.<tailnet>.ts.net:2222` | Forgejo's built-in SSH server |
-| Site      | `https://site.uchi.<domain>`              | genkan, static files          |
 | Résumé    | `https://rirekisho.uchi.<domain>`         | genkan, static files          |
 
 Addresses are declared once, in `modules-private/meta/endpoints.nix` (`sekkeizu.services.*`);
@@ -228,8 +227,8 @@ genkan's sites, annai's records, Forgejo's `ROOT_URL` and the runners read them 
   the key from a trusted backup, never by creating an ACME account as a recovery test.
   A missing key fails the backup, including at first boot before restoration; the daily timer
   retries. This also reports a lost identity on an existing host instead of silently skipping it.
-- **Runners** (host executor, no containers): `linux` on ishizue (Nix, git, node, zola, rsync;
-  systemd sandbox, writes only to its state directory, `/var/lib/site` and `/var/lib/rirekisho`), `macos` on jiban (LaunchDaemon, hidden
+- **Runners** (host executor, no containers): `linux` on ishizue (Nix, git, node, rsync;
+  systemd sandbox, writes only to its state directory and `/var/lib/rirekisho`), `macos` on jiban (LaunchDaemon, hidden
   non-admin `_forgejo-runner` account). Rationale in `modules/ci/forgejo-runner.nix`.
   Registration is declarative: a shared secret per runner in sops, pre-registered by Forgejo.
   On ishizue, the runner and nix-daemon share a 4 GiB / 2 CPU budget (no swap), with one Nix
@@ -237,8 +236,6 @@ genkan's sites, annai's records, Forgejo's `ROOT_URL` and the runners read them 
   stays outside the budget. Finish existing builds before deploying the slice change, or reboot:
   a daemon restart alone can leave old build processes in their previous cgroup. Check the new
   runner and daemon's `ControlGroup` under `ci.slice` after deployment.
-- **Site**: Zola repository `site` on Forgejo; a push to `main` runs `.forgejo/workflows/deploy.yml`
-  (`runs-on: linux`): `zola build`, then `rsync` into `/var/lib/site`, served by genkan.
 - **Résumé**: repository `rirekisho` (Astro, its own flake); a push to `main` runs
   `.forgejo/workflows/build.yml`: build and PDFs in its dev shell, then `rsync` into
   `/var/lib/rirekisho`, served by genkan. Overlay only until it gets a public front.
@@ -253,10 +250,7 @@ genkan's sites, annai's records, Forgejo's `ROOT_URL` and the runners read them 
 4. **Log in**: user = `owner.name`, password:
    `sops -d --extract '["forgejo-admin-password"]' secrets/ishizue/secrets.yaml`
    (the `forgejo-admin` unit resets the account to that password at each Forgejo start).
-5. **Create the site**: from the `site` checkout,
-   `git remote add origin ssh://git@ishizue.<tailnet>.ts.net:2222/<owner>/site.git && git push -u origin main`
-   (push-to-create makes the private repository). The workflow runs by itself.
-6. **Renew a runner secret**: keep its first 16 ASCII characters (the runner UUID), replace the
+5. **Renew a runner secret**: keep its first 16 ASCII characters (the runner UUID), replace the
    last 24 with fresh `openssl rand -hex 12`, and update `secrets/ishizue/secrets.yaml` (also
    `secrets/jiban/secrets.yaml` for jiban's). Deploy Forgejo before restarting that runner: updating
    the same UUID invalidates its previous secret. Changing the first 16 characters creates a new

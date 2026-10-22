@@ -29,7 +29,6 @@ in
       nixos.genkan
       nixos.forgejo
       nixos.forgejo-runner
-      nixos.site
       nixos.rirekisho
       nixos.backup-source
 
