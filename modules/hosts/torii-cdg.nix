@@ -18,6 +18,8 @@ in
       nixos.fish
       nixos.secrets
       nixos.annai-soto
+      nixos.kekkai
+      nixos.kekkai-gate
       nixos.server
       nixos.observability-agent
 

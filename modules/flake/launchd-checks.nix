@@ -4,12 +4,9 @@ let
   jobs = launchd.daemons // launchd.agents // launchd.user.agents;
   # launchd starts boot jobs before /nix is mounted: a job that execs from the store without
   # waiting exits 78 and is never retried (`command` in nix-darwin adds the wait).
-  # shortcut: fixed upstream (kekkai bdbd9c6, hikyaku 3df9bc4) but not pinned yet; drop each
-  # name when its input is bumped.
-  pending = [
-    "hikyaku"
-    "kekkai-node"
-  ];
+  # shortcut: fixed upstream (hikyaku 3df9bc4) but not pinned yet; drop the name when its input
+  # is bumped.
+  pending = [ "hikyaku" ];
   unguarded = lib.subtractLists pending (
     lib.attrNames (
       lib.filterAttrs (

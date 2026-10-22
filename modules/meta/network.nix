@@ -63,6 +63,14 @@ in
         type = types.str;
         description = "kekkai's ULA /48 (RFC 4193, kekkai ADR 0010).";
       };
+      lighthousePublicKey = mkOption {
+        type = types.str;
+        description = "The lighthouse's own public key (kekkai ADR 0017), distinct from its host's node key.";
+      };
+      relayPublicKey = mkOption {
+        type = types.str;
+        description = "The relay's own public key (kekkai ADR 0017), distinct from its host's node key.";
+      };
       nodes = mkOption {
         description = "kekkai nodes by name: one /32 and one /128 each, inside the prefixes above.";
         default = { };

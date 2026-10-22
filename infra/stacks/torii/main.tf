@@ -42,9 +42,10 @@ module "torii" {
   region  = var.region
   iso_url = var.iso_url
   # 22: SSH, to install and reach the machine. Each service opens its ports when it lands
-  # (docs/migration.md); 53: annai soto, the public nameservers (modules/network/annai-soto.nix).
+  # (docs/migration.md); 53: annai soto, the public nameservers (modules/network/annai-soto.nix);
+  # 4800-4802: kekkai's lighthouse, relay and node (modules/network/kekkai.nix).
   tcp_ports = ["22", "53"]
-  udp_ports = ["53"]
+  udp_ports = ["53", "4800:4802"]
 }
 
 output "name" {
