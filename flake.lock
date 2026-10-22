@@ -1171,11 +1171,11 @@
         "treefmt-nix": "treefmt-nix_11"
       },
       "locked": {
-        "lastModified": 1792681068,
-        "narHash": "sha256-mwvo1BZTOKOY4xCibxEnx7VxkIdFH1q2A4PujnknYqg=",
+        "lastModified": 1792692697,
+        "narHash": "sha256-OOnCC3pdEeIVkOpaNDh34szYVTSc1TNWoWLKvSnA5S0=",
         "ref": "refs/heads/main",
-        "rev": "0f22ea5c2d78ff2939aca95927ced7178759ccf1",
-        "revCount": 45,
+        "rev": "c660f9f1a53f653bb40d46e5b2a9f0b6f930f3db",
+        "revCount": 55,
         "type": "git",
         "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kekkai.git"
       },
