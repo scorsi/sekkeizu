@@ -113,11 +113,11 @@ in
         };
 
         # Builds run under nix-daemon, outside the runner's cgroup. Share one budget, including
-        # manual daemon builds, leaving half of ishizue's 8 GiB / 4 vCPUs for its services.
+        # manual daemon builds, leaving ~3 of ishizue's 8 GiB and 2 of its 4 vCPUs for its services.
+        # No MemoryHigh: past it, unswappable memory throttles forever; a breach must OOM-kill, visibly.
         systemd.slices.ci.sliceConfig = {
-          MemoryHigh = "3G";
-          MemoryMax = "4G";
-          MemorySwapMax = 0;
+          MemoryMax = "5G";
+          MemorySwapMax = "2G";
           CPUQuota = "200%";
         };
         systemd.services.nix-daemon.serviceConfig.Slice = "ci.slice";

@@ -236,11 +236,12 @@ genkan's sites, annai's records, Forgejo's `ROOT_URL` and the runners read them 
   systemd sandbox, writes only to its state directory and `/var/lib/rirekisho`), `macos` on jiban (LaunchDaemon, hidden
   non-admin `_forgejo-runner` account). Rationale in `modules/ci/forgejo-runner.nix`.
   Registration is declarative: a shared secret per runner in sops, pre-registered by Forgejo.
-  On ishizue, the runner and nix-daemon share a 4 GiB / 2 CPU budget (no swap), with one Nix
-  build at a time and two build cores. This also limits manual builds using that daemon; Forgejo
-  stays outside the budget. Finish existing builds before deploying the slice change, or reboot:
-  a daemon restart alone can leave old build processes in their previous cgroup. Check the new
-  runner and daemon's `ControlGroup` under `ci.slice` after deployment.
+  On ishizue, the runner and nix-daemon share a 5 GiB / 2 CPU budget (plus up to 2 GiB of swap,
+  OOM kill beyond), with one Nix build at a time and two build cores. This also limits manual
+  builds using that daemon; Forgejo stays outside the budget. Finish existing builds before
+  deploying the slice change, or reboot: a daemon restart alone can leave old build processes in
+  their previous cgroup. Check the new runner and daemon's `ControlGroup` under `ci.slice` after
+  deployment.
 - **Résumé**: repository `rirekisho` (Astro, its own flake); a push to `main` runs
   `.forgejo/workflows/build.yml`: build and PDFs in its dev shell, then `rsync` into
   `/var/lib/rirekisho`, served by genkan. Overlay only until it gets a public front.
