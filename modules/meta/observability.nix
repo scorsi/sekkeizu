@@ -40,5 +40,10 @@ in
       type = types.attrsOf (types.strMatching "[0-9a-f]{64}");
       description = "Hex SHA-256 of each host's hikyaku token, by host name (= the node name).";
     };
+    readerTokenHashes = mkOption {
+      type = types.listOf (types.strMatching "[0-9a-f]{64}");
+      default = [ ];
+      description = "Hex SHA-256 of the operator's tokens, role `reader` in both stores: `/v1/status` only, never a push.";
+    };
   };
 }
