@@ -1,12 +1,28 @@
 # The observability base (docs/observability.md): where masu and nisshi listen, the names their
-# certificates carry, and the SHA-256 of each host's hikyaku token. The hashes are not secrets
-# (masu ADR 0007, nisshi ADR 0008); the tokens are in secrets/<host>/hikyaku.yaml.
+# certificates carry, and the SHA-256 of each host's hikyaku token and of the operator's reader
+# token. The hashes are not secrets (masu ADR 0007, nisshi ADR 0008); the tokens are in
+# secrets/<host>/hikyaku.yaml and secrets/jiban/observability-reader.yaml.
 #
 # Values in modules-private/meta/observability.nix, certificates in modules-private/observability/.
 #
-# Certificates: ca.pem signed masu.pem and nisshi.pem (10 years, from
-# 2026-10-21) and was then destroyed: replacing them means a new CA, both leaves and every agent's
-# caFile at once. Replaced by hanko certificates later (masu ADR 0007, nisshi ADR 0008).
+# Certificates: ca.pem signed masu.pem and nisshi.pem, valid until 2036-10-18, and was then
+# destroyed. Replacing a leaf (lost or compromised key) needs no flag day, with an overlapping CA:
+# a new CA; every agent's caFile holds both CAs (PEMs concatenated) and is deployed; the new CA signs new leaves
+# for both stores, deployed with their keys; once every agent pushes again, the old CA leaves
+# caFile. No reminder before expiry: hanshou will alert on it. Replaced by hanko certificates
+# later (masu ADR 0007, nisshi ADR 0008).
+#
+# RPO: 12 h on jiban (ishizue exports at 04:45 and 16:45, the open day as a committed prefix;
+# jiban pulls 30 min later), 24 h off site (restic, daily). backup/pull.nix, observability/stores.nix.
+#
+# Trust boundaries: an agent's token cannot read /v1/status, the reader token cannot push. Root
+# on ishizue reaches both stores and their export. Root on jiban (hikyaku runs as root there, the
+# pull as the owner) reaches the hypervisor, every pulled backup and the Mac's secrets: a
+# dedicated pull account is future work (backup/pull.nix).
+#
+# /v1/status shows an agent's state as of its last successful push (nisshi keeps it in memory
+# only, lost at restart): read `paused` and the rest against the last receive time, never as a
+# live probe of the agent.
 { lib, ... }:
 let
   inherit (lib) mkOption types;
