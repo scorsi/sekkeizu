@@ -1,5 +1,5 @@
 # The static site: built by a Forgejo Actions workflow in the `site` repository, which copies the
-# result into `dir`; Caddy serves that directory on its own port. The directory survives reboots,
+# result into `dir`; genkan serves that directory as static files. The directory survives reboots,
 # and the runner's account can write there and nowhere else (see forgejo-runner.nix).
 { config, ... }:
 let
@@ -33,10 +33,6 @@ in
         };
       };
 
-      services.caddy.virtualHosts.${site.url}.extraConfig = ''
-        root * ${dir}
-        encode zstd gzip
-        file_server
-      '';
+      services.genkan.sites.${site.host}.root = dir;
     };
 }

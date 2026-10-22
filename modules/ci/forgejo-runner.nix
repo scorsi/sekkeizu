@@ -122,8 +122,12 @@ in
         };
         systemd.services.nix-daemon.serviceConfig.Slice = "ci.slice";
 
-        # The registered host name must resolve to this machine, whatever Tailscale DNS does at boot.
-        networking.hosts."127.0.0.1" = [ forgejo.host ];
+        # Forgejo's names must resolve to this machine: ishizue asks Quad9, not annai (annai.nix), and
+        # Tailscale DNS may not be up at boot.
+        networking.hosts."127.0.0.1" = lib.unique [
+          forgejo.host
+          forgejoSsh.host
+        ];
 
         sekkeizu.persist.directories = [
           {
@@ -245,7 +249,8 @@ in
         owner = macUser;
       };
 
-      # The runner is a Go binary with its own resolver: it reads /etc/hosts, not MagicDNS.
+      # The runner is a Go binary with its own resolver: pinned in /etc/hosts, it does not depend on
+      # annai answering first (jiban's 9.9.9.9 fallback knows nothing of uchi, annai.nix).
       system.activationScripts.postActivation.text = lib.mkMerge [
         (lib.mkOrder 1550 "${pkgs.writers.writeNu "forgejo-runner-activate" ''
           ^/usr/bin/install -d -m 700 -o ${macUser} -g ${macUser} ${stateDir}

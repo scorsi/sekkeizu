@@ -1,4 +1,4 @@
-# Where each service of the lab can be reached. Everything that needs a service's address (Caddy,
+# Where each service of the lab can be reached. Everything that needs a service's address (genkan,
 # Forgejo's ROOT_URL, the runners, the docs) reads it from here, never from a string of its own:
 # the values live in endpoints.nix, so moving to real domain names is a change in that one file.
 { lib, ... }:
@@ -22,8 +22,8 @@ let
           type = types.nullOr types.str;
           default = null;
           description = ''
-            IP to pin the name to where DNS cannot be trusted: Go programs on macOS (the runner) ignore
-            Tailscale's MagicDNS, which is not the system resolver there.
+            IP to pin the name to where DNS cannot be trusted: jiban's runner (a Go program) would
+            otherwise depend on annai answering before the resolver's fallback.
           '';
         };
         hostKey = mkOption {

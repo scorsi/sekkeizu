@@ -1,4 +1,4 @@
-# Forgejo: Git forge, SQLite, behind Caddy. Closed registrations; the owner's account is created
+# Forgejo: Git forge, SQLite, behind genkan. Closed registrations; the owner's account is created
 # by a oneshot (password in sops, set through a temporary API token so it never reaches a
 # command line; SSH keys = owner.sshKeys), and Actions runners are pre-registered
 # with secrets from sops, so a rebuilt machine needs no click in the web UI.
@@ -188,9 +188,7 @@ in
         };
       };
 
-      services.caddy.virtualHosts.${web.url}.extraConfig = ''
-        reverse_proxy 127.0.0.1:${toString internalPort}
-      '';
+      services.genkan.sites.${web.host}.backend = "http://127.0.0.1:${toString internalPort}";
 
       # Read as root by the units below (LoadCredential); the runner's own file also gets an owner in forgejo-runner.nix.
       sops.secrets = lib.genAttrs secretNames (name: {

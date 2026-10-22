@@ -25,10 +25,10 @@ modules/
   meta/    the values of kiso's options (owner.nix), this repo's options (services, expiring secrets)
   home/    home-manager features of this repo (ssh-hosts, gh, Claude Code); the generic ones are kiso's
   macos/   nix-darwin-only features (headless server, auto-login, VM host, linux builder, reminders)
-  nixos/   NixOS-only features (server, Caddy, Forgejo, site, rirekisho)
+  nixos/   NixOS-only features (server, Forgejo, site, rirekisho)
   ci/      Forgejo Actions runners (NixOS and macOS)
   backup/  off-VM copies (jiban pulls ishizue's backups)
-  network/ Tailscale
+  network/ Tailscale, kekkai, annai, hanko, genkan
   vm/      NixOS guest base for VMs on a Mac (vfkit, EFI)
   flake/   this repo's apps (rekey-host, set-autologin-password); the rest of the plumbing is kiso's
   hosts/   one file per machine: its identity + the features it imports
@@ -179,19 +179,20 @@ Day to day:
 
 ## Forge and web (ishizue)
 
-Everything is reachable only over Tailscale (the firewall trusts `tailscale0` and nothing else).
-One name per machine, `ishizue.<tailnet>.ts.net`, services told apart by port:
+The web services are `<service>.uchi.<domain>` names, which only annai resolves (CNAME to
+`genkan.uchi`, then to ishizue's kekkai address): genkan on 443 with hanko's `*.uchi` wildcard,
+reached over kekkai (its `allowInbound` opens tcp/443 to jiban) and Tailscale; the bridge address
+keeps 443 closed. Git over SSH stays on the Tailscale name until the kekkai switch:
 
-| Service   | Address                                  | Behind                     |
-| --------- | ---------------------------------------- | -------------------------- |
-| Forgejo   | `https://ishizue.<tailnet>.ts.net`       | Caddy → 127.0.0.1:3000     |
+| Service   | Address                                   | Behind                        |
+| --------- | ----------------------------------------- | ----------------------------- |
+| Forgejo   | `https://forgejo.uchi.<domain>`           | genkan → 127.0.0.1:3000       |
 | Git (SSH) | `ssh://git@ishizue.<tailnet>.ts.net:2222` | Forgejo's built-in SSH server |
-| Site      | `https://ishizue.<tailnet>.ts.net:8443`  | Caddy, static files        |
-| Résumé    | `https://ishizue.<tailnet>.ts.net:8444`  | Caddy, static files        |
+| Site      | `https://site.uchi.<domain>`              | genkan, static files          |
+| Résumé    | `https://rirekisho.uchi.<domain>`         | genkan, static files          |
 
-Addresses are declared once, in `modules-private/meta/endpoints.nix` (`sekkeizu.services.*`); Caddy,
-Forgejo's `ROOT_URL` and the runners read them from there. Moving to `git.lab.<domain>` means editing
-that file (and swapping Tailscale certificates for ACME in Caddy).
+Addresses are declared once, in `modules-private/meta/endpoints.nix` (`sekkeizu.services.*`);
+genkan's sites, annai's records, Forgejo's `ROOT_URL` and the runners read them from there.
 
 - **Git over SSH on 2222**: Forgejo's own SSH server, not the system sshd, which stays key-only for
   the owner. No shared `git` account on the system, no `AllowUsers` change; the server only speaks
@@ -237,16 +238,15 @@ that file (and swapping Tailscale certificates for ACME in Caddy).
   a daemon restart alone can leave old build processes in their previous cgroup. Check the new
   runner and daemon's `ControlGroup` under `ci.slice` after deployment.
 - **Site**: Zola repository `site` on Forgejo; a push to `main` runs `.forgejo/workflows/deploy.yml`
-  (`runs-on: linux`): `zola build`, then `rsync` into `/var/lib/site`, served by Caddy on 8443.
+  (`runs-on: linux`): `zola build`, then `rsync` into `/var/lib/site`, served by genkan.
 - **Résumé**: repository `rirekisho` (Astro, its own flake); a push to `main` runs
   `.forgejo/workflows/build.yml`: build and PDFs in its dev shell, then `rsync` into
-  `/var/lib/rirekisho`, served by Caddy on 8444. Tailnet only until it gets a public front.
+  `/var/lib/rirekisho`, served by genkan. Overlay only until it gets a public front.
 
 ### Manual steps, in order
 
-1. **Tailscale admin console → DNS → HTTPS Certificates**: enable. Without it Caddy cannot get
-   its certificate (`tailscale cert` answers "does not support getting TLS certs"); it retries by
-   itself every minute once enabled.
+1. **Certificate**: hanko (`modules/network/hanko.nix`) issues `*.uchi.<domain>` before genkan
+   needs it; until then genkan runs and fails the handshakes (`certificate-not-ready`).
 2. **Deploy ishizue**: `nix run .#deploy-ishizue`.
 3. **Switch jiban**: `nix run .#switch` (creates the `_forgejo-runner` account and the daemon).
    Check in Forgejo → Site administration → Actions → Runners that `ishizue` and `jiban` are idle.

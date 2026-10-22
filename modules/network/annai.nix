@@ -30,13 +30,18 @@ let
     }
   ) kekkai.nodes;
 
-  # <service>.uchi → the node its endpoint names (first label of `host`), when that is a kekkai node.
+  # A web service in the zone → genkan (genkan.nix, on ishizue); any other service → the node its
+  # endpoint names (first label of `host`), when that is a kekkai node (Forgejo's SSH).
+  inZone = host: lib.hasSuffix ".${lib.removeSuffix "." zone}" host;
   serviceNames = lib.concatMapAttrs (
     name: svc:
     let
       node = lib.head (lib.splitString "." svc.host);
     in
-    lib.optionalAttrs (kekkai.nodes ? ${node}) { ${name}.cname = "${node}.kekkai"; }
+    if svc.scheme == "https" && inZone svc.host then
+      { ${lib.removeSuffix ".${lib.removeSuffix "." zone}" svc.host}.cname = "genkan"; }
+    else
+      lib.optionalAttrs (kekkai.nodes ? ${node}) { ${name}.cname = "${node}.kekkai"; }
   ) services;
 in
 {
@@ -81,6 +86,7 @@ in
               a = [ kekkai.nodes.ishizue.ipv4 ];
               aaaa = [ kekkai.nodes.ishizue.ipv6 ];
             };
+            genkan.cname = "ishizue.kekkai";
           }
           // nodeNames
           // serviceNames;

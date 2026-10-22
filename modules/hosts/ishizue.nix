@@ -26,7 +26,7 @@ in
       nixos.observability-stores
       nixos.server
       nixos.observability-agent
-      nixos.caddy
+      nixos.genkan
       nixos.forgejo
       nixos.forgejo-runner
       nixos.site

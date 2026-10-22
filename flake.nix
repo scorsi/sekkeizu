@@ -78,6 +78,10 @@
     # its own; its masu and nisshi inputs are test-only.
     scorsi-kekkai.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/kekkai.git";
 
+    # The reverse proxy (modules/network/genkan.nix). Not following our nixpkgs: tested against its
+    # own; its masu and nisshi inputs are test-only.
+    scorsi-genkan.url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/genkan.git";
+
     # The Claude Code status line (modules/home/claude-code.nix).
     scorsi-shiori = {
       url = "git+ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/shiori.git";

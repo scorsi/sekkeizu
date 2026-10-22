@@ -1,6 +1,6 @@
 # The résumé (rirekisho repository), served like the site: its Forgejo Actions workflow builds the
-# pages and PDFs and copies them into `dir`; Caddy serves that directory on its own port, on the
-# tailnet only for now. The runner's account can write there and nowhere else (forgejo-runner.nix).
+# pages and PDFs and copies them into `dir`; genkan serves that directory as static files, on the
+# overlay only for now. The runner's account can write there and nowhere else (forgejo-runner.nix).
 #
 # The résumé's contact details stay out of its public repository: RIREKISHO_EMAIL and
 # RIREKISHO_PHONE in a dotenv file, readable by the runner only, which rirekisho's workflow reads at
@@ -44,10 +44,6 @@ in
         owner = runner.user;
       };
 
-      services.caddy.virtualHosts.${rirekisho.url}.extraConfig = ''
-        root * ${dir}
-        encode zstd gzip
-        file_server
-      '';
+      services.genkan.sites.${rirekisho.host}.root = dir;
     };
 }

@@ -42,7 +42,7 @@ let
       lib.optional (host != gate) "${bridge.${peer}}:${toString ports.node}";
 
   # The peers of each node and what each may open on it (kekkai ADR 0011: default deny, ICMP and
-  # replies always pass). ishizue: annai uchi and SSH. jiban: nothing, every flow between the two
+  # replies always pass). ishizue: annai uchi, SSH and genkan. jiban: nothing, every flow between the two
   # starts on jiban (deploys, backup pull, hikyaku, the remote builder). The gate: SSH from jiban.
   # The gate's hikyaku pushes to masu and nisshi on ishizue (observability/stores.nix).
   allowInbound = {
@@ -51,6 +51,7 @@ let
         "udp/53"
         "tcp/53"
         "tcp/22"
+        "tcp/443"
       ];
       ${gate} = [
         "tcp/9472"

@@ -1,7 +1,7 @@
 # hikyaku, the node agent of the observability base (docs/observability.md), with node_exporter
 # as the host exporter until mihari exists. Pushes to masu and nisshi with the host's own token,
 # pinning the stores' CA (ca.pem). Targets follow what the host runs: node and hikyaku itself
-# everywhere, annai, kekkai-node, masu and nisshi wherever their loopback /metrics is on.
+# everywhere, annai, genkan, kekkai-node, masu and nisshi wherever their loopback /metrics is on.
 {
   config,
   inputs,
@@ -28,6 +28,7 @@ let
         lib.genAttrs
           [
             "annai"
+            "genkan"
             "kekkai-node"
             "masu"
             "nisshi"
