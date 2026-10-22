@@ -212,11 +212,12 @@ in
               def --wrapped main [...args] {
                 $env.PATH = $env.PATH | prepend ${pkgs.nixos-rebuild}/bin
                 let repo = ^${pkgs.git}/bin/git rev-parse --show-toplevel | str trim
-                # <vm>.local (mDNS over the NAT bridge) rather than Tailscale, which hairpins through
-                # the router from the Mac. Built inside the VM, activated in a detached unit. Same root@
-                # user for build and target so both share one ControlMaster connection
+                # Over kekkai; DEPLOY_HOST=root@${name}.local (mDNS over the NAT bridge) is the fallback
+                # when kekkai or annai is broken. Built inside the VM, activated in a detached unit. Same
+                # root@ user for build and target so both share one ControlMaster connection
                 # (modules/home/ssh-hosts.nix): one FIDO2 touch.
-                deploy root@${name}.local $"($repo)#${name}" ...$args
+                let host = $env.DEPLOY_HOST? | default "root@${name}.kekkai.uchi.${config.sekkeizu.domain}"
+                deploy $host $"($repo)#${name}" ...$args
               }
             ''
           );

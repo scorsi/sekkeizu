@@ -1,5 +1,9 @@
 # SSH client settings for this repo's machines; the client itself (nixpkgs' OpenSSH with FIDO2
 # support, the agent) is kiso's `ssh` feature.
+{ config, ... }:
+let
+  kekkaiName = host: "${host}.kekkai.uchi.${config.sekkeizu.domain}";
+in
 {
   flake.modules.homeManager.ssh-hosts = {
     programs.ssh.settings = {
@@ -11,11 +15,15 @@
       # connection means a single FIDO2 touch. %C hashes local host, host, port and user, so
       # root@ and the owner get separate masters; it also keeps the socket path under macOS's
       # 104-byte limit.
-      "ishizue ishizue.local torii-cdg.scorsi.dev" = {
+      "ishizue ishizue.local torii-cdg.scorsi.dev ${kekkaiName "ishizue"} ${kekkaiName "torii-cdg"}" = {
         ControlMaster = "auto";
         ControlPath = "~/.ssh/cm-%C";
         ControlPersist = "10m";
       };
+      # Same host key whichever path a deploy takes (kekkai, or the fallback name): one known_hosts
+      # entry per host.
+      ${kekkaiName "ishizue"}.HostKeyAlias = "ishizue.local";
+      ${kekkaiName "torii-cdg"}.HostKeyAlias = "torii-cdg.scorsi.dev";
     };
   };
 }

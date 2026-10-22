@@ -51,7 +51,7 @@ nix run .#check     # nix flake check
 nix run .#fmt       # nix fmt (nixfmt-tree)
 nix run .#rekey-host -- <host> --public-key <verified-key.pub>  # new host key: update its recipient, including shared secrets
 nix run .#install-ishizue    # on jiban: build ishizue's disk image and start it (once)
-nix run .#deploy-ishizue     # build inside the VM, then switch in a detached unit (also deploy-torii-cdg)
+nix run .#deploy-ishizue     # over kekkai: build inside the VM, then switch in a detached unit (also deploy-torii-cdg)
 nix develop          # shell with nixfmt, statix, deadnix, shellcheck, just, nvd
 ```
 
@@ -103,8 +103,9 @@ side by side (AirDrop, `scp`, USB stick).
 A classic NixOS machine (own disk, own /nix/store, systemd-boot) booted in EFI mode by vfkit
 (Virtualization.framework). A LaunchAgent of the owner's session (`org.nixos.vm-ishizue`) starts
 it at login, i.e. at boot thanks to auto-login. vCPU, RAM, disk size and MAC are declared on the
-Mac side: `sekkeizu.vms.ishizue` in `modules/hosts/jiban.nix`. Reachable over Tailscale, and as
-`ishizue.local` from jiban (NAT bridge, used by deploys).
+Mac side: `sekkeizu.vms.ishizue` in `modules/hosts/jiban.nix`. Reachable over kekkai
+(`ishizue.kekkai.uchi.<domain>`, used by deploys), Tailscale, and as `ishizue.local` from jiban
+(NAT bridge, the deploy fallback).
 
 The bridge address in `sekkeizu.bridgeAddresses` is reserved for the VM's MAC in
 `/etc/bootptab`, managed by `vfkit-host`. A fixed MAC alone does not reserve a DHCP address.
@@ -140,9 +141,10 @@ Day to day:
 - Deploy: `nix run .#deploy-ishizue` (`nixos-rebuild build` inside the VM; the profile and
   `switch-to-configuration` then run in a transient `sekkeizu-switch-<time>` unit, so a dropped
   session cannot interrupt them: the app follows its journal, reconnects for up to 3 min and exits
-  with its status). Connects as `root@` (key-only,
-  FIDO2 keys, allowed only from the Mac's NAT bridge and Tailscale), one shared SSH connection:
-  one touch per deploy. Interactive `sudo` in the VM still uses pam_rssh (a touch each).
+  with its status). Connects as `root@` over kekkai (key-only, FIDO2 keys, allowed only from the
+  Mac's NAT bridge, Tailscale and kekkai), one shared SSH connection: one touch per deploy. When
+  kekkai or annai is broken: `DEPLOY_HOST=root@ishizue.local nix run .#deploy-ishizue` (the
+  bridge; `DEPLOY_HOST=root@torii-cdg.scorsi.dev` for torii-cdg, its public SSH). Interactive `sudo` in the VM still uses pam_rssh (a touch each).
 - Rollback: `nix run .#deploy-ishizue -- --rollback`, or for one boot only,
   `sudo bootctl set-oneshot nixos-generation-<n>.conf` in the VM, then reboot.
 - Restart: `launchctl kickstart -k gui/$(id -u)/org.nixos.vm-ishizue`. A clean poweroff of the

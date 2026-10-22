@@ -1,7 +1,8 @@
 # ishizue (礎, the foundation stone) — NixOS VM on jiban (vfkit, Virtualization.framework).
 # A host = its identity + the list of features it imports. Nothing else.
 # Resources (vCPU, RAM, disk, MAC) are the Mac's business: `sekkeizu.vms.ishizue` in jiban.nix.
-# Deployed from jiban with `nix run .#deploy-ishizue` (built inside the VM), reached over Tailscale.
+# Deployed from jiban with `nix run .#deploy-ishizue` (built inside the VM), reached over kekkai
+# (DEPLOY_HOST=root@ishizue.local, the NAT bridge, when kekkai is broken).
 { config, inputs, ... }:
 let
   inherit (config.flake.modules) nixos homeManager;
