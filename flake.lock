@@ -1276,11 +1276,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792523158,
-        "narHash": "sha256-rFQCJl5I2jZZK2U/OZfjGO1K0EF95Jo5IIqx7cnnfv0=",
+        "lastModified": 1792691079,
+        "narHash": "sha256-c1XtGvcJjXOg9yyphGncU98shn80mfk5V2qaqh6zK/s=",
         "ref": "refs/heads/main",
-        "rev": "0e84614113f60b2626d254b18d0749ce40d32cee",
-        "revCount": 8,
+        "rev": "5e3b9cc981a902bec7a370404cbd25d8aec92016",
+        "revCount": 14,
         "type": "git",
         "url": "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/shiori.git"
       },

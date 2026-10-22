@@ -55,7 +55,11 @@
       imports = [ inputs.scorsi-shiori.homeModules.shiori ];
 
       programs.claude-code.enable = true;
-      programs.shiori.enable = true;
+      programs.shiori = {
+        enable = true;
+        preset = "nerd-font";
+        settings.palette = "catppuccin-mocha";
+      };
       # Plugin hooks (e.g. ponytail's UserPromptSubmit) shell out to `node`.
       home.packages = [ pkgs.nodejs ];
 
