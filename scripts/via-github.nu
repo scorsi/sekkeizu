@@ -9,18 +9,19 @@
 # through the environment, and Nix still checks every input against the rev and narHash locked in
 # flake.lock, so the result is the same as from Forgejo. The bootstrap script sets the same rule.
 
-const forgejo = "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/"
+# Both names Forgejo's SSH answers on; the Tailscale one goes with Tailscale.
+const forgejo = ["ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/" "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/"]
 const github = "ssh://git@github.com/scorsi/"
 
 def --wrapped main [...command: string] {
   if ($command | is-empty) {
     error make { msg: "usage : nu scripts/via-github.nu <commande> [arguments…]" }
   }
-  with-env {
-    GIT_CONFIG_COUNT: "1"
-    GIT_CONFIG_KEY_0: $"url.($github).insteadOf"
-    GIT_CONFIG_VALUE_0: $forgejo
-  } {
+  # One insteadOf value per name: git accepts several for the same base.
+  let rules = $forgejo | enumerate | reduce --fold { GIT_CONFIG_COUNT: ($forgejo | length | into string) } { |it, acc|
+    $acc | insert $"GIT_CONFIG_KEY_($it.index)" $"url.($github).insteadOf" | insert $"GIT_CONFIG_VALUE_($it.index)" $it.item
+  }
+  with-env $rules {
     run-external ($command | first) ...($command | skip 1)
   }
 }

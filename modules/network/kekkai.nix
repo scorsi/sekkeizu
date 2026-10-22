@@ -42,8 +42,9 @@ let
       lib.optional (host != gate) "${bridge.${peer}}:${toString ports.node}";
 
   # The peers of each node and what each may open on it (kekkai ADR 0011: default deny, ICMP and
-  # replies always pass). ishizue: annai uchi, SSH and genkan. jiban: nothing, every flow between the two
-  # starts on jiban (deploys, backup pull, hikyaku, the remote builder). The gate: SSH from jiban.
+  # replies always pass). ishizue: annai uchi, SSH, genkan and Forgejo's git SSH (2222; the gate never
+  # fetches from Forgejo, deploys copy closures). jiban: nothing, every flow between the two starts on
+  # jiban (deploys, backup pull, hikyaku, the remote builder). The gate: SSH from jiban.
   # The gate's hikyaku pushes to masu and nisshi on ishizue (observability/stores.nix).
   allowInbound = {
     ishizue = {
@@ -52,6 +53,7 @@ let
         "tcp/53"
         "tcp/22"
         "tcp/443"
+        "tcp/2222"
       ];
       ${gate} = [
         "tcp/9472"

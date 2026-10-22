@@ -18,6 +18,11 @@ let
           type = types.str;
           description = "DNS name the service answers on.";
         };
+        aliases = mkOption {
+          type = types.listOf types.str;
+          default = [ ];
+          description = "Other names the service still answers on (pinned like `host` by its clients).";
+        };
         address = mkOption {
           type = types.nullOr types.str;
           default = null;

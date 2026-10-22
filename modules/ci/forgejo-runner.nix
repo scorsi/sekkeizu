@@ -20,6 +20,7 @@ let
   forgejo = services.forgejo;
   forgejoSsh = services.forgejo-ssh;
   user = "forgejo-runner";
+  sshNames = [ forgejoSsh.host ] ++ forgejoSsh.aliases;
 
   # The runner's start script, as its user (HOME = its state directory): writes its config and SSH
   # setup, then becomes the runner.
@@ -59,8 +60,10 @@ let
       let ssh = $"($env.HOME)/.ssh"
       mkdir $ssh
       ^chmod 700 $ssh
-      "[${forgejoSsh.host}]:${toString forgejoSsh.port} ${forgejoSsh.hostKey}\n" | save --force $"($ssh)/known_hosts"
-      "Host ${forgejoSsh.host}\n  IdentityFile ${ciKeyFile}\n  IdentitiesOnly yes\n  StrictHostKeyChecking yes\n" | save --force $"($ssh)/config"
+      "${
+        lib.concatMapStringsSep "," (n: "[${n}]:${toString forgejoSsh.port}") sshNames
+      } ${forgejoSsh.hostKey}\n" | save --force $"($ssh)/known_hosts"
+      "Host ${toString sshNames}\n  IdentityFile ${ciKeyFile}\n  IdentitiesOnly yes\n  StrictHostKeyChecking yes\n" | save --force $"($ssh)/config"
 
       exec ${lib.getExe pkgs.forgejo-runner} daemon --config ${configDir}/config.yaml
     '';
@@ -124,10 +127,7 @@ in
 
         # Forgejo's names must resolve to this machine: ishizue asks Quad9, not annai (annai.nix), and
         # Tailscale DNS may not be up at boot.
-        networking.hosts."127.0.0.1" = lib.unique [
-          forgejo.host
-          forgejoSsh.host
-        ];
+        networking.hosts."127.0.0.1" = lib.unique ([ forgejo.host ] ++ sshNames);
 
         sekkeizu.persist.directories = [
           {

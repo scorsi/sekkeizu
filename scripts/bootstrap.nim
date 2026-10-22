@@ -169,12 +169,15 @@ proc main() =
       break
 
   # The repo's own flakes (inputs scorsi-*) come from Forgejo, which a fresh machine can't reach yet
-  # (no Tailscale): take them from their GitHub mirrors, at the revisions locked in flake.lock. Same
-  # rewrite as scripts/via-github.nu. Fetched now as the user, with the FIDO2 key; every evaluation
-  # below, root's included, then finds them in the store.
-  putEnv("GIT_CONFIG_COUNT", "1")
+  # (no kekkai or annai yet): take them from their GitHub mirrors, at the revisions locked in
+  # flake.lock. Same rewrite as scripts/via-github.nu, for both names Forgejo's SSH answers on (the
+  # Tailscale one goes with Tailscale). Fetched now as the user, with the FIDO2 key; every
+  # evaluation below, root's included, then finds them in the store.
+  putEnv("GIT_CONFIG_COUNT", "2")
   putEnv("GIT_CONFIG_KEY_0", "url.ssh://git@github.com/scorsi/.insteadOf")
-  putEnv("GIT_CONFIG_VALUE_0", "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/")
+  putEnv("GIT_CONFIG_VALUE_0", "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/")
+  putEnv("GIT_CONFIG_KEY_1", "url.ssh://git@github.com/scorsi/.insteadOf")
+  putEnv("GIT_CONFIG_VALUE_1", "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/")
   log "inputs: fetching (GitHub mirrors)"
   sh withNixSsh(nix("flake", "archive", dir))
 

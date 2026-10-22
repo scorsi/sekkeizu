@@ -187,19 +187,21 @@ Day to day:
 The web services are `<service>.uchi.<domain>` names, which only annai resolves (CNAME to
 `genkan.uchi`, then to ishizue's kekkai address): genkan on 443 with hanko's `*.uchi` wildcard,
 reached over kekkai (its `allowInbound` opens tcp/443 to jiban) and Tailscale; the bridge address
-keeps 443 closed. Git over SSH stays on the Tailscale name until the kekkai switch:
+keeps 443 closed. Git over SSH uses the same Forgejo name, straight to ishizue over kekkai (not
+through genkan); the Tailscale name still answers as a fallback until Tailscale is removed:
 
-| Service   | Address                                   | Behind                        |
-| --------- | ----------------------------------------- | ----------------------------- |
-| Forgejo   | `https://forgejo.uchi.<domain>`           | genkan → 127.0.0.1:3000       |
-| Git (SSH) | `ssh://git@ishizue.<tailnet>.ts.net:2222` | Forgejo's built-in SSH server |
-| Résumé    | `https://rirekisho.uchi.<domain>`         | genkan, static files          |
+| Service   | Address                                | Behind                        |
+| --------- | -------------------------------------- | ----------------------------- |
+| Forgejo   | `https://forgejo.uchi.<domain>`        | genkan → 127.0.0.1:3000       |
+| Git (SSH) | `ssh://git@forgejo.uchi.<domain>:2222` | Forgejo's built-in SSH server |
+| Résumé    | `https://rirekisho.uchi.<domain>`      | genkan, static files          |
 
 Addresses are declared once, in `modules-private/meta/endpoints.nix` (`sekkeizu.services.*`);
 genkan's sites, annai's records, Forgejo's `ROOT_URL` and the runners read them from there.
 
 - **Git over SSH on 2222**: Forgejo's own SSH server, not the system sshd, which stays key-only for
-  the owner. No shared `git` account on the system, no `AllowUsers` change; the server only speaks
+  the owner. kekkai's `allowInbound` opens tcp/2222 to jiban; the runners pin its host key for
+  both names. No shared `git` account on the system, no `AllowUsers` change; the server only speaks
   git, with the keys stored in Forgejo (`owner.sshKeys`, added by the `forgejo-admin` unit).
 - **Backups**: `forgejo dump` daily (04:31, uncompressed tar for restic's dedup) in `/persist/backups/forgejo`, 7 days kept. jiban pulls
   them at 05:15 into `~/Backups/ishizue/forgejo/` (30 days kept) as the `backup` account, which
