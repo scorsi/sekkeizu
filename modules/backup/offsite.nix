@@ -3,7 +3,8 @@
 #
 # jiban (`backup-offsite`): a daily launchd job at 06:00, after the 05:15 pull, creates the
 # repository on its first run, backs up the whole tree, then thins the snapshots. One line per run in
-# the log, a notification on failure, like backup-pull.
+# the log, a notification on failure, like backup-pull. Daily on purpose, though the pull runs twice
+# a day: the off-site RPO is 24 h (12 h on jiban).
 #
 # The SSH key is backup-pull-key: one plain ed25519 key for jiban's unattended backup jobs, whose
 # public half goes by hand into the subaccount's .ssh/authorized_keys (README, Infrastructure).

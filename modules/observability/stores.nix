@@ -23,6 +23,9 @@ in
     let
       address = bridgeAddresses.${config.networking.hostName};
       overlay = kekkai.nodes.${config.networking.hostName}.ipv4;
+      archives = "${pkgs.python3}/bin/python3 ${../backup/observability-archives.py}";
+      # How long jiban may miss pulls before a day exists nowhere but in the store itself.
+      keepDays = 90;
       store = name: {
         enable = true;
         inherit retentionDays;
@@ -80,23 +83,48 @@ in
             "nisshi"
           ];
 
-      # Backups (backup-source): a day is sealed once its manifest exists, and never changes again
-      # (both storage formats). Hard links into /persist/backups, data before manifest: no extra
-      # space. Data retention is 400 days (plus each node's last complete day); FORMAT and all
-      # manifests stay, since nisshi verifies its whole chain. On /persist itself, since a link
-      # cannot cross the bind mount of /var/lib/<store>. jiban pulls them at 05:15.
+      # Backups (backup-source), twice a day: RPO 12 h on jiban (modules/meta/observability.nix).
+      # A day is sealed once its manifest exists, and never changes again (both storage formats):
+      # hard links into /persist/backups, data before manifest, no extra space. The open day is a
+      # COPY of its prefix up to the committed length in state.json (`<day>.ndjson.zst.partial`,
+      # replaced each run, dropped once the day is linked): a link would follow the live file, and
+      # the bytes past that length may be torn. Links of days older than `keepDays` are deleted, so
+      # the stores' own retention (400 days of data) frees space again on this disk; jiban and
+      # restic keep every day (pull never deletes), nisshi's whole manifest chain included. On
+      # /persist itself, since a link cannot cross the bind mount of /var/lib/<store>. LAST_RUN
+      # (time, then every exported sealed file) is written last, only after a successful run:
+      # jiban's pull checks it (backup/pull.nix).
+      #
+      # The export directories are root's, 0700 with an ACL for backup-source's account (traverse
+      # and read, as for forgejo-dump): the links share the store's inodes, masu's are 0644, so the
+      # directories alone keep every other account out. Fixed on each run, existing trees included.
       systemd.services.observability-backup = {
-        description = "Hard-link the sealed days of masu and nisshi into /persist/backups";
-        startAt = "*-*-* 04:45:00";
-        serviceConfig.Type = "oneshot";
+        description = "Export the days of masu and nisshi into /persist/backups";
+        startAt = [
+          "*-*-* 04:45:00"
+          "*-*-* 16:45:00"
+        ];
+        path = [
+          pkgs.acl
+          pkgs.coreutils
+          pkgs.findutils
+        ];
+        serviceConfig = {
+          Type = "oneshot";
+          UMask = "0077";
+        };
         script = ''
           for store in masu nisshi; do
-            ${pkgs.python3}/bin/python3 ${../backup/observability-archives.py} link \
-              "/persist/var/lib/$store" "/persist/backups/$store" ${toString retentionDays}
+            out=/persist/backups/$store
+            install -d -m 0700 -o root -g root "$out"
+            # chmod drops the ACL mask; setfacl below recomputes it.
+            find "$out" -type d -exec chown root:root {} + -exec chmod 0700 {} +
+            ${archives} export "/persist/var/lib/$store" "$out" ${toString retentionDays} ${toString keepDays}
+            # On the shared inodes, so backup can read the store's own copies too, never write them.
+            setfacl -R -m u:backup:rX "$out"
+            ${archives} marker "$out"
+            setfacl -m u:backup:r "$out/LAST_RUN"
           done
-          # nisshi writes 0640: backup-source's account reads through an ACL, as for forgejo-dump
-          # (on the shared inodes, so it can read the store's own copies too, never write them).
-          ${pkgs.acl}/bin/setfacl -R -m u:backup:rX /persist/backups/masu /persist/backups/nisshi
         '';
       };
 

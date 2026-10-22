@@ -91,7 +91,9 @@ archive.chmod(0o600)
     assert result.returncode != 0
     assert (source / archive.name).read_bytes() == b"older published archive"
     assert list(staging.iterdir()) == stale
-    pull()
+    # The pull reports the changed source and keeps the received archive.
+    changed = subprocess.run(["bash", puller, f"{source}/", f"{destination}/"], capture_output=True)
+    assert changed.returncode == 102
     assert archive.read_bytes() == b"complete archive"
 
     (source / archive.name).unlink()

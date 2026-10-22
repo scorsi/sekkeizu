@@ -1,16 +1,24 @@
-# Off-VM copies of ishizue's backups, PULLED by jiban: ishizue holds no credential to jiban, so a
-# compromised VM can neither reach nor rewrite the copies.
+# Off-VM copies of ishizue's backups, PULLED by jiban: ishizue holds no credential to jiban. A
+# compromised VM can still send bad NEW files, stop exporting, or rewrite what is replaced at every
+# pull (an open day's .partial, LAST_RUN); it cannot change a file jiban already received: those
+# are final (--ignore-existing), and a source that changed one is reported as a failure, never
+# applied (pull-rsync.sh). restic's earlier snapshots (offsite.nix) are the history beyond that.
 #
 # ishizue (`backup-source`): a `backup` account whose only key (a plain ed25519 key, not FIDO2: an
 # unattended job cannot touch a hardware key) is forced into `rrsync -ro /persist/backups`, and which
 # sshd accepts only from the Mac's end of the vfkit NAT bridge.
 #
-# jiban (`backup-pull`): a daily launchd job rsyncs into `sekkeizu.backups.dir`/ishizue/forgejo,
-# keeps 30 days, logs one line per run with the exit code; a failure also raises a notification.
+# jiban (`backup-pull`): a launchd job, twice a day, rsyncs forgejo, masu, nisshi and hanko into
+# `sekkeizu.backups.dir`/ishizue, each on its own; keeps 30 days of Forgejo dumps; fails a store
+# whose export (LAST_RUN) is older than 14 h or lists a sealed file missing here. One line per run
+# with the failed sources; a failure also raises a notification.
 # The private key is in sops (secrets/jiban/secrets.yaml, `backup-pull-key`) rather than generated
 # on the Mac: it survives a reinstall through `rekey-host`, so its public key
 # (`sekkeizu.backupPullKey`, modules-private/meta/keys.nix) never changes and ishizue needs no redeploy after
 # jiban is rebuilt.
+#
+# Trust: the job runs as the owner, so root (or the owner) on jiban reaches every copy and the
+# key; a dedicated local pull account is future work.
 #
 # `sekkeizu.backups.dir` is the one tree shipped elsewhere: off site by `backup-offsite` (offsite.nix);
 # an external disk is not implemented.
@@ -129,68 +137,78 @@ in
                 | each { |f| ls $f | first }
             }
 
-            def main [] {
-              let dest = "${dest}"
-              mkdir $dest
-
+            # rsync of ishizue's `what` into `into`; returns its exit code (102: the source changed
+            # a file already received here, which was kept).
+            def pull [what: string, into: string] {
+              mkdir $into
               # -F none: none of the interactive settings for ishizue (agent forwarding, shared
               # connection) apply; the host key is still checked against ~/.ssh/known_hosts.
-              let rsync = ^${lib.getExe pull} -e "${pkgs.openssh}/bin/ssh -F none -i ${key} -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o ConnectTimeout=30" ${user}@ishizue.local:forgejo/ $"($dest)/" | complete
-              print --stderr --no-newline $rsync.stderr
-              mut code = $rsync.exit_code
+              let r = ^${lib.getExe pull} -e "${pkgs.openssh}/bin/ssh -F none -i ${key} -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o ConnectTimeout=30" $"${user}@ishizue.local:($what)/" $"($into)/" | complete
+              print --stderr --no-newline $r.stderr
+              $r.exit_code
+            }
 
-              if $code == 0 {
+            # Each source on its own: one failing never keeps the others from being copied.
+            def main [] {
+              mut failed = []
+
+              let dest = "${dest}"
+              let f = pull forgejo $dest
+              if $f != 0 {
+                $failed = $failed | append $"forgejo=($f)"
+              } else if (archives $dest | where modified > ((date now) - 26hr) | is-empty) {
                 # ishizue dumps at 04:31: a successful pull with nothing from the last day is a failure too.
-                if (archives $dest | where modified > ((date now) - 26hr) | is-empty) {
-                  print --stderr "no dump less than 26 h old"
-                  $code = 100
-                } else {
-                  # Pruned only after a good pull: a broken source never empties the copies.
-                  archives $dest | where modified < ((date now) - ${toString keepDays}day) | each { |f| rm $f.name } | ignore
-                }
+                print --stderr "no dump less than 26 h old"
+                $failed = $failed | append "forgejo=100"
+              } else {
+                # Pruned only after a good pull: a broken source never empties the copies.
+                archives $dest | where modified < ((date now) - ${toString keepDays}day) | each { |f| rm $f.name } | ignore
               }
 
-              # Only a successful, complete pull permits retention; manifests keep nisshi's chain.
-              if $code == 0 {
-                for store in [masu nisshi] {
-                  let r = ^${lib.getExe pull} -e "${pkgs.openssh}/bin/ssh -F none -i ${key} -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o ConnectTimeout=30" $"${user}@ishizue.local:($store)/" $"${dir}/ishizue/($store)/" | complete
-                  print --stderr --no-newline $r.stderr
-                  if $r.exit_code != 0 {
-                    $code = $r.exit_code
-                  } else {
-                    let retained = ^${pkgs.python3}/bin/python3 ${./observability-archives.py} prune $"${dir}/ishizue/($store)" ${toString storeKeepDays} | complete
-                    print --stderr --no-newline $retained.stderr
-                    if $retained.exit_code != 0 { $code = $retained.exit_code }
-                  }
+              for store in [masu nisshi] {
+                let into = $"${dir}/ishizue/($store)"
+                let r = pull $store $into
+                if $r != 0 {
+                  $failed = $failed | append $"($store)=($r)"
+                  continue
                 }
+                # Retention only after a fresh, complete pull: the export ran less than 14 h ago
+                # (twice a day) and every sealed file it lists is here. Manifests keep nisshi's chain.
+                let checked = ^${pkgs.python3}/bin/python3 ${./observability-archives.py} pulled $into ${toString storeKeepDays} 14 | complete
+                print --stderr --no-newline $checked.stderr
+                if $checked.exit_code != 0 { $failed = $failed | append $"($store)=check" }
               }
 
               # Account identities have no time-based expiry: CAA may still pin an older one.
               let hanko = "${dir}/ishizue/hanko"
-              let h = ^${lib.getExe pull} -e "${pkgs.openssh}/bin/ssh -F none -i ${key} -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o ConnectTimeout=30" ${user}@ishizue.local:hanko/ $"($hanko)/" | complete
-              print --stderr --no-newline $h.stderr
-              if $h.exit_code != 0 {
-                $code = $h.exit_code
+              let h = pull hanko $hanko
+              if $h != 0 {
+                $failed = $failed | append $"hanko=($h)"
               } else if (glob --no-dir $"($hanko)/account-*.key" | is-empty) {
                 print --stderr "no Hanko account backup"
-                $code = 101
+                $failed = $failed | append "hanko=101"
               }
 
               let n = archives $dest | length
-              let result = if $code == 0 { "ok" } else { "FAILED" }
-              let line = $"(date now | format date '%F %T') ($result) exit=($code) \(($n) archives\)"
+              let result = if ($failed | is-empty) { "ok" } else { $"FAILED ($failed | str join ' ')" }
+              let line = $"(date now | format date '%F %T') ($result) \(($n) archives\)"
               print --stderr $line
               $line | save --force "${status}"
-              exit $code
+              exit (if ($failed | is-empty) { 0 } else { 1 })
             }
           ''}";
           serviceConfig = {
             UserName = owner.name;
             # Appended to by launchd, which nu can't redirect its own stderr to.
             StandardErrorPath = log;
+            # 30 min after each of ishizue's exports (observability/stores.nix).
             StartCalendarInterval = [
               {
                 Hour = 5;
+                Minute = 15;
+              }
+              {
+                Hour = 17;
                 Minute = 15;
               }
             ];
