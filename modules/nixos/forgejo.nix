@@ -188,7 +188,12 @@ in
         };
       };
 
-      services.genkan.sites.${web.host}.backend = "http://127.0.0.1:${toString internalPort}";
+      services.genkan.sites.${web.host} = {
+        backend = "http://127.0.0.1:${toString internalPort}";
+        # The runners poll FetchTask every ~2 s each: 96 % of genkan's request lines. Successful
+        # polls are counted in metrics, not logged; failed ones and every other call still are (genkan ADR 0011).
+        quietPaths = [ "/api/actions/runner.v1.RunnerService/FetchTask" ];
+      };
 
       # Read as root by the units below (LoadCredential); the runner's own file also gets an owner in forgejo-runner.nix.
       sops.secrets = lib.genAttrs secretNames (name: {
