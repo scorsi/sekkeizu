@@ -10,7 +10,7 @@
 #
 # jiban (`backup-pull`): a launchd job, twice a day, rsyncs forgejo, masu, nisshi and hanko into
 # `sekkeizu.backups.dir`/ishizue, each on its own; keeps 30 days of Forgejo dumps; fails a store
-# whose export (LAST_RUN) is older than 14 h or lists a sealed file missing here. One line per run
+# whose export (LAST_RUN) is older than 13 h or lists a sealed file missing here. One line per run
 # with the failed sources; a failure also raises a notification.
 # The private key is in sops (secrets/jiban/secrets.yaml, `backup-pull-key`) rather than generated
 # on the Mac: it survives a reinstall through `rekey-host`, so its public key
@@ -172,9 +172,9 @@ in
                   $failed = $failed | append $"($store)=($r)"
                   continue
                 }
-                # Retention only after a fresh, complete pull: the export ran less than 14 h ago
+                # Retention only after a fresh, complete pull: the export ran less than 13 h ago
                 # (twice a day) and every sealed file it lists is here. Manifests keep nisshi's chain.
-                let checked = ^${pkgs.python3}/bin/python3 ${./observability-archives.py} pulled $into ${toString storeKeepDays} 14 | complete
+                let checked = ^${pkgs.python3}/bin/python3 ${./observability-archives.py} pulled $into ${toString storeKeepDays} 13 | complete
                 print --stderr --no-newline $checked.stderr
                 if $checked.exit_code != 0 { $failed = $failed | append $"($store)=check" }
               }

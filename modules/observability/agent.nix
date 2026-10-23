@@ -110,6 +110,30 @@ in
     { config, ... }:
     {
       imports = [ (agent "darwinModules") ];
+      # A dedicated, hidden, non-admin account (as the Forgejo runner's): the agent only needs its
+      # spool, its token and logs that are world-readable (kekkai-node's), never root.
+      users = {
+        knownGroups = [ "_hikyaku" ];
+        knownUsers = [ "_hikyaku" ];
+        groups._hikyaku = {
+          gid = 402;
+          description = "hikyaku observability agent";
+        };
+        users._hikyaku = {
+          uid = 402;
+          gid = 402;
+          home = "/var/lib/hikyaku";
+          createHome = false;
+          isHidden = true;
+          shell = "/usr/bin/false";
+          description = "hikyaku observability agent";
+        };
+      };
+      services.hikyaku = {
+        user = "_hikyaku";
+        group = "_hikyaku";
+      };
+      sops.secrets.hikyaku-token.owner = "_hikyaku";
       # Darwin has no SOPS restart hooks; run after its secret installation (order 1500).
       system.activationScripts.hikyaku-secrets.text = ''
         if [ "$(cat /var/db/hikyaku.secrets 2>/dev/null)" != "${config.sops.secrets.hikyaku-token.sopsFileHash}" ]; then
