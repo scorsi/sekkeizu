@@ -199,6 +199,15 @@ through genkan); the Tailscale name still answers as a fallback until Tailscale 
 Addresses are declared once, in `modules-private/meta/endpoints.nix` (`sekkeizu.services.*`);
 genkan's sites, annai's records, Forgejo's `ROOT_URL` and the runners read them from there.
 
+**Public exposure**: only the résumé. Its public names (`rirekisho.public` in endpoints.nix:
+`rirekisho.soto.<domain>`, with `rirekisho.<domain>` and `cv.scorsi.me` as CNAMEs to it, records in
+`modules-private/meta/public.nix`) point at torii-cdg, where genkan v1.0 listens on tcp/443 and
+forwards them by SNI, TLS untouched, behind a PROXY v2 header, to ishizue's `edge` listener
+(`<ishizue kekkai IPv4>:8443`, kekkai `allowInbound` from torii-cdg only, PROXY headers trusted from
+torii-cdg's kekkai address only). ishizue terminates TLS with hanko's `rirekisho-public` certificate.
+Only sites that name the `edge` listener are served there (genkan ADR 0013): Forgejo and every other
+`*.uchi` name answer 404 through a public SNI. No git SSH on a public port, no port 80 (genkan v1.1).
+
 - **Git over SSH on 2222**: Forgejo's own SSH server, not the system sshd, which stays key-only for
   the owner. kekkai's `allowInbound` opens tcp/2222 to jiban; the runners pin its host key for
   both names. No shared `git` account on the system, no `AllowUsers` change; the server only speaks
@@ -246,7 +255,7 @@ genkan's sites, annai's records, Forgejo's `ROOT_URL` and the runners read them 
   deployment.
 - **Résumé**: repository `rirekisho` (Astro, its own flake); a push to `main` runs
   `.forgejo/workflows/build.yml`: build and PDFs in its dev shell, then `rsync` into
-  `/var/lib/rirekisho`, served by genkan. Overlay only until it gets a public front.
+  `/var/lib/rirekisho`, served by genkan, on the overlay and publicly through torii-cdg (above).
 
 ### Manual steps, in order
 
@@ -345,9 +354,9 @@ infra/
     vultr-node/     instance, firewall group (given ports and ICMP, v4 and v6), reserved IPv4
     dns-zone/       one Porkbun zone: records, optional null-mail (null MX, SPF -all, DMARC reject)
   stacks/
-    torii/          Vultr, `torii-<region>`, region `cdg` (Paris) by default; only SSH and ICMP open until services land
+    torii/          Vultr, `torii-<region>`, region `cdg` (Paris) by default; ICMP, tcp/22, 53, 443, udp/53, 4800-4802
     storage/        Hetzner Storage Box BX11 (fsn1) for restic, weekly snapshots, subaccount `backup` for jiban
-    dns/            scorsi.dev and scorsi.me; reads torii's addresses from its state
+    dns/            scorsi.dev and scorsi.me at Porkbun: the delegation to annai soto (NS, glue); reads torii's addresses
 ```
 
 - **Tooling**: the `infra` shell (OpenTofu, sops, the FIDO2 age plugin, `tofu-state-key`), loaded by
