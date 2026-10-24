@@ -23,6 +23,14 @@ let
           default = [ ];
           description = "Other names the service still answers on (pinned like `host` by its clients).";
         };
+        public = mkOption {
+          type = types.listOf types.str;
+          default = [ ];
+          description = ''
+            Public names of a web service: their DNS points at torii-cdg, whose genkan forwards them
+            by SNI to ishizue's PROXY listener (genkan.nix). Empty: overlay only.
+          '';
+        };
         address = mkOption {
           type = types.nullOr types.str;
           default = null;

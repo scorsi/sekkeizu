@@ -45,7 +45,8 @@ let
   # replies always pass). ishizue: annai uchi, SSH, genkan and Forgejo's git SSH (2222; the gate never
   # fetches from Forgejo, deploys copy closures). jiban: nothing, every flow between the two starts on
   # jiban (deploys, backup pull, hikyaku, the remote builder). The gate: SSH from jiban.
-  # The gate's hikyaku pushes to masu and nisshi on ishizue (observability/stores.nix).
+  # The gate's hikyaku pushes to masu and nisshi on ishizue (observability/stores.nix); its genkan
+  # forwards the public names to ishizue's PROXY listener (8443, genkan.nix).
   allowInbound = {
     ishizue = {
       jiban = [
@@ -56,6 +57,7 @@ let
         "tcp/2222"
       ];
       ${gate} = [
+        "tcp/8443"
         "tcp/9472"
         "tcp/9473"
       ];

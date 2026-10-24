@@ -20,6 +20,7 @@ in
       nixos.annai-soto
       nixos.kekkai
       nixos.kekkai-gate
+      nixos.genkan-edge
       nixos.server
       nixos.observability-agent
 
