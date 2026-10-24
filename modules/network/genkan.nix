@@ -11,7 +11,8 @@
 #
 # torii-cdg (`genkan-edge`): public `:443`, the public names forwarded raw by SNI to ishizue's
 # `edge` listener over kekkai; no TLS termination, so no certificate. Anything else is closed.
-# No port 80: genkan's redirect listener is v1.1.
+# Public `:80` is genkan's redirect listener (v1.1): 301 to https://, same host and path, answered on
+# torii itself; port 80 never crosses kekkai, ishizue has nothing to open.
 {
   config,
   inputs,
@@ -64,10 +65,15 @@ in
         backend = edge;
         sendProxy = true;
       };
+      # `:80`, both address families. Outside `listeners`: the `default` listener stays.
+      httpRedirect.enable = true;
       metrics.listen = metrics;
     };
 
-    # Vultr's firewall (infra/stacks/torii) opens the same port.
-    networking.firewall.allowedTCPPorts = [ 443 ];
+    # Vultr's firewall (infra/stacks/torii) opens the same ports.
+    networking.firewall.allowedTCPPorts = [
+      80
+      443
+    ];
   };
 }

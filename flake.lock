@@ -1085,11 +1085,11 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1792837592,
-        "narHash": "sha256-ZkK/HAKTu6FNi5o0stAvf+U/hdWOFwXLDArFNRlRaZA=",
+        "lastModified": 1792842483,
+        "narHash": "sha256-tDH5xDluBN4fkjx7kpmWYNDuIj1+774aqJY22jGA92k=",
         "ref": "refs/heads/main",
-        "rev": "14f021fe50852b9db19aefaf43f73de66627b9f5",
-        "revCount": 32,
+        "rev": "ec2b75962a7597f6eb274f8ab1ca3dd1afede048",
+        "revCount": 37,
         "type": "git",
         "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/genkan.git"
       },
