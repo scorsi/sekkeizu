@@ -206,7 +206,9 @@ forwards them by SNI, TLS untouched, behind a PROXY v2 header, to ishizue's `edg
 (`<ishizue kekkai IPv4>:8443`, kekkai `allowInbound` from torii-cdg only, PROXY headers trusted from
 torii-cdg's kekkai address only). ishizue terminates TLS with hanko's `rirekisho-public` certificate.
 Only sites that name the `edge` listener are served there (genkan ADR 0013): Forgejo and every other
-`*.uchi` name answer 404 through a public SNI. No git SSH on a public port, no port 80 (genkan v1.1).
+`*.uchi` name answer 404 through a public SNI. tcp/80 on torii-cdg is genkan's redirect listener
+(v1.1): every request gets a 301 to `https://` on the same host and path, answered on torii; port 80
+never crosses kekkai. No git SSH on a public port.
 
 - **Git over SSH on 2222**: Forgejo's own SSH server, not the system sshd, which stays key-only for
   the owner. kekkai's `allowInbound` opens tcp/2222 to jiban; the runners pin its host key for
@@ -354,7 +356,7 @@ infra/
     vultr-node/     instance, firewall group (given ports and ICMP, v4 and v6), reserved IPv4
     dns-zone/       one Porkbun zone: records, optional null-mail (null MX, SPF -all, DMARC reject)
   stacks/
-    torii/          Vultr, `torii-<region>`, region `cdg` (Paris) by default; ICMP, tcp/22, 53, 443, udp/53, 4800-4802
+    torii/          Vultr, `torii-<region>`, region `cdg` (Paris) by default; ICMP, tcp/22, 53, 80, 443, udp/53, 4800-4802
     storage/        Hetzner Storage Box BX11 (fsn1) for restic, weekly snapshots, subaccount `backup` for jiban
     dns/            scorsi.dev and scorsi.me at Porkbun: the delegation to annai soto (NS, glue); reads torii's addresses
 ```
