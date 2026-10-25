@@ -221,6 +221,11 @@ never crosses kekkai. No git SSH on a public port.
   `sudo launchctl kickstart system/org.nixos.backup-ishizue`. At 06:00, restic copies all of `~/Backups`
   to the Storage Box (`modules/backup/offsite.nix`; 7 daily, 5 weekly, 12 monthly snapshots), logged in
   `~/Library/Logs/backup-offsite.log`: `sudo launchctl kickstart system/org.nixos.backup-offsite`.
+  At 05:45 and 17:45, restic also copies it to the USB hard disk (`modules/backup/local.nix`, same
+  retention, 5% of the data read back on Sundays), logged in `~/Library/Logs/backup-local.log`:
+  `sudo launchctl kickstart system/org.nixos.backup-local`. The disk is the APFS volume `ishizue-backup` with
+  two empty files at its root, `.metadata_never_index` (no Spotlight) and `.backup-local` (without it
+  the job fails rather than write to the SSD); restore with `restic -r /Volumes/ishizue-backup/restic`.
   Restore: `restic -r sftp://<user>@<box>:23/restic restore latest --target <dir>` with `restic-password`
   from sops. External disk: not done. Dumps are now written privately outside the exported tree
   and published atomically only after success. Existing local or pulled dumps from before this

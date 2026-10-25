@@ -20,8 +20,8 @@
 # Trust: the job runs as the owner, so root (or the owner) on jiban reaches every copy and the
 # key; a dedicated local pull account is future work.
 #
-# `sekkeizu.backups.dir` is the one tree shipped elsewhere: off site by `backup-offsite` (offsite.nix);
-# an external disk is not implemented.
+# `sekkeizu.backups.dir` is the one tree shipped elsewhere: off site by `backup-offsite` (offsite.nix),
+# and to the USB disk by `backup-local` (local.nix).
 { config, lib, ... }:
 let
   inherit (config.kiso) owner;

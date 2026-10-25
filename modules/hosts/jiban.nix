@@ -28,6 +28,7 @@ in
       darwin.forgejo-runner
       darwin.backup-pull
       darwin.backup-offsite
+      darwin.backup-local
       darwin.observability-agent
       darwin.observability-reader
       darwin.secret-reminders
