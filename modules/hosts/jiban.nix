@@ -73,7 +73,7 @@ in
         system.stateVersion = stateVersions.darwin;
 
         # GUI apps of this Mac (Homebrew casks; the mechanism is kiso's `homebrew` feature).
-        homebrew.casks = [ ];
+        homebrew.casks = [ "calibre" ];
 
         sops.defaultSopsFile = ../../secrets/${hostName}/secrets.yaml;
         sops.secrets.kcpassword.sopsFile = ../../secrets/${hostName}/kcpassword;
