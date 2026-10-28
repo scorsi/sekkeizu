@@ -14,6 +14,8 @@ keys:
   - &ishizue age13v3z9aq5pmxjyllxcljw3t0mag6afccgf3dgwm65xeug35kkp4fs83mves
   - &jiban age1huncufpm34n6xxjk97fp8dpn5uy66d0ylwzhmrvq0lkz78avwplq59t67f
   - &torii-cdg age1s0ujqtcptk2n5kdcfldrmx8zqjyz9nztpycg7ym9fqc4gfefhs9sph8ln9
+  - &hashira-01 age1g37areklf58ggn7vylxg2spmc888vm3h288np6uwy68m6jm3gy9syxyzm3
+  - &hashira-02 age1yrpud8759cpx7ppv4aq9ypcj5au5t3kjhnn5n3zarf293qph9fzqn32hyk
 creation_rules:
   - path_regex: secrets/jiban/.*
     key_groups:
@@ -33,6 +35,20 @@ creation_rules:
     key_groups:
       - age:
           - *torii-cdg
+          - *fido-thetis-102800549530
+          - *fido-yubikey-34043456
+          - *admin
+  - path_regex: secrets/hashira-01/.*
+    key_groups:
+      - age:
+          - *hashira-01
+          - *fido-thetis-102800549530
+          - *fido-yubikey-34043456
+          - *admin
+  - path_regex: secrets/hashira-02/.*
+    key_groups:
+      - age:
+          - *hashira-02
           - *fido-thetis-102800549530
           - *fido-yubikey-34043456
           - *admin

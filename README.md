@@ -17,6 +17,8 @@ repository with git-crypt (see [Encrypted trees](#encrypted-trees)).
 | --------- | ---------------------- | -------------- |
 | `jiban`   | Mac Mini M4             | macOS (nix-darwin) |
 | `ishizue` | NixOS VM on jiban (vfkit) | NixOS |
+| `torii-cdg` | Vultr instance, Paris | NixOS |
+| `hashira-01`, `hashira-02` | Lenovo ThinkCentre M75q, home LAN | NixOS |
 
 ## Layout
 
@@ -51,7 +53,7 @@ nix run .#check     # nix flake check
 nix run .#fmt       # nix fmt (nixfmt-tree)
 nix run .#rekey-host -- <host> --public-key <verified-key.pub>  # new host key: update its recipient, including shared secrets
 nix run .#install-ishizue    # on jiban: build ishizue's disk image and start it (once)
-nix run .#deploy-ishizue     # over kekkai: build inside the VM, then switch in a detached unit (also deploy-torii-cdg)
+nix run .#deploy-ishizue     # over kekkai: build inside the VM, then switch in a detached unit (also deploy-torii-cdg, deploy-hashira-01, deploy-hashira-02: built on the host)
 nix develop          # shell with nixfmt, statix, deadnix, shellcheck, just, nvd
 ```
 

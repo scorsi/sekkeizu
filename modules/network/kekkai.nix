@@ -15,6 +15,10 @@ let
   inherit (config.kiso) owner;
 
   gate = "torii-cdg";
+  hashira = [
+    "hashira-01"
+    "hashira-02"
+  ];
   public = publicAddresses.${gate};
   ports = {
     lighthouse = 4800;
@@ -29,8 +33,8 @@ let
     inherit (bridgeAddresses) ishizue;
   };
   # Static endpoints of `peer` as seen from `host`: the gate at its public addresses, the bridge
-  # between jiban and ishizue. The gate has none for them: they sit behind NAT, the lighthouse
-  # tells it where they are.
+  # between jiban and ishizue. None for the others: they sit behind NAT (the hashira on the home
+  # LAN's DHCP, no fixed address), the lighthouse tells their peers where they are.
   endpointsOf =
     host: peer:
     if peer == gate then
@@ -39,14 +43,15 @@ let
         "[${public.ipv6}]:${toString ports.node}"
       ]
     else
-      lib.optional (host != gate) "${bridge.${peer}}:${toString ports.node}";
+      lib.optional (bridge ? ${host} && bridge ? ${peer}) "${bridge.${peer}}:${toString ports.node}";
 
   # The peers of each node and what each may open on it (kekkai ADR 0011: default deny, ICMP and
   # replies always pass). ishizue: annai uchi, SSH, genkan and Forgejo's git SSH (2222; the gate never
   # fetches from Forgejo, deploys copy closures). jiban: nothing, every flow between the two starts on
   # jiban (deploys, backup pull, hikyaku, the remote builder). The gate: SSH from jiban.
-  # The gate's hikyaku pushes to masu and nisshi on ishizue (observability/stores.nix); its genkan
-  # forwards the public names to ishizue's PROXY listener (8443, genkan.nix).
+  # The gate's and the hashira's hikyaku push to masu and nisshi on ishizue (observability/stores.nix);
+  # the gate's genkan forwards the public names to ishizue's PROXY listener (8443, genkan.nix).
+  # The hashira: SSH from jiban (deploys), nothing else yet.
   allowInbound = {
     ishizue = {
       jiban = [
@@ -61,16 +66,25 @@ let
         "tcp/9472"
         "tcp/9473"
       ];
-    };
+    }
+    // lib.genAttrs hashira (_: [
+      "tcp/9472"
+      "tcp/9473"
+    ]);
     jiban = {
       ishizue = [ ];
       ${gate} = [ ];
-    };
+    }
+    // lib.genAttrs hashira (_: [ ]);
     ${gate} = {
       jiban = [ "tcp/22" ];
       ishizue = [ ];
     };
-  };
+  }
+  // lib.genAttrs hashira (_: {
+    jiban = [ "tcp/22" ];
+    ishizue = [ ];
+  });
 
   # The lighthouse's and relay's peer list: every node with a key.
   servicePeers = lib.mapAttrs (_: n: { inherit (n) publicKey; }) (
