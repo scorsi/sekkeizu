@@ -42,6 +42,7 @@ in
           homeManager.nushell
           homeManager.ssh
           homeManager.ssh-hosts
+          homeManager.kindle
           homeManager.git
           homeManager.git-crypt
           homeManager.sops-fido2

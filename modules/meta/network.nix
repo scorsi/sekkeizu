@@ -21,6 +21,12 @@ in
       '';
     };
 
+    lanAddresses = mkOption {
+      type = types.attrsOf types.str;
+      default = { };
+      description = "IPv4 address of each home-LAN device that is not a lab host, by name (fixed lease on the router).";
+    };
+
     publicAddresses = mkOption {
       default = { };
       description = "Public IPv4 and IPv6 of each internet-facing host, by host name: infra/stacks/torii's outputs.";
