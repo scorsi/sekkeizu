@@ -181,19 +181,19 @@ Day to day:
 7. **Drop the linux builder**: comment `darwin.linux-builder` again, `nix run .#switch`
    (nix-darwin deletes its disk).
 
-## Forge and web (ishizue)
+## Forge and web
 
 The web services are `<service>.uchi.<domain>` names, which only annai resolves (CNAME to
-`genkan.uchi`, then to ishizue's kekkai address): genkan on 443 with hanko's `*.uchi` wildcard,
-reached over kekkai (its `allowInbound` opens tcp/443 to jiban); the bridge address
-keeps 443 closed. Git over SSH uses the same Forgejo name, straight to ishizue over kekkai (not
-through genkan):
+`genkan.uchi`, then to hashira-02's kekkai address): genkan on 443 with hanko's `*.uchi` wildcard,
+reached over kekkai (its `allowInbound` opens tcp/443 to jiban); the LAN keeps 443 closed. Git over
+SSH uses the same Forgejo name: genkan's tcp passthrough on 2222 forwards it raw, with a PROXY v2
+header, to Forgejo's own SSH server on ishizue over kekkai:
 
-| Service   | Address                                | Behind                        |
-| --------- | -------------------------------------- | ----------------------------- |
-| Forgejo   | `https://forgejo.uchi.<domain>`        | genkan → 127.0.0.1:3000       |
-| Git (SSH) | `ssh://git@forgejo.uchi.<domain>:2222` | Forgejo's built-in SSH server |
-| Résumé    | `https://rirekisho.uchi.<domain>`      | genkan, static files          |
+| Service   | Address                                | Behind                                        |
+| --------- | -------------------------------------- | --------------------------------------------- |
+| Forgejo   | `https://forgejo.uchi.<domain>`        | genkan → ishizue:3000 over kekkai             |
+| Git (SSH) | `ssh://git@forgejo.uchi.<domain>:2222` | genkan passthrough → Forgejo's SSH server     |
+| Résumé    | `https://rirekisho.uchi.<domain>`      | genkan, static files (built by hashira-02's runner) |
 
 Addresses are declared once, in `modules-private/meta/endpoints.nix` (`sekkeizu.services.*`);
 genkan's sites, annai's records, Forgejo's `ROOT_URL` and the runners read them from there.

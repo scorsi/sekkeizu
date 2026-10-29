@@ -126,6 +126,9 @@ in
             SSH_DOMAIN = ssh.host;
             SSH_PORT = ssh.port;
             SSH_LISTEN_PORT = ssh.port;
+            # Only reached through genkan's passthrough (genkan.nix), which sends the client's address
+            # in a PROXY header; a connection without one is refused.
+            SSH_SERVER_USE_PROXY_PROTOCOL = true;
             # Signed out, the generic landing page is all there is to see: go straight to the form.
             LANDING_PAGE = "login";
           };

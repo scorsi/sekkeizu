@@ -54,6 +54,8 @@ in
       passthrough.forgejo-ssh = {
         listener = "forgejo-ssh";
         backend = "${forgejo}:${toString services.forgejo-ssh.port}";
+        # Forgejo's SSH server expects it (SSH_SERVER_USE_PROXY_PROTOCOL): its logs show the client.
+        sendProxy = true;
       };
       certificates.uchi = {
         hosts = [ "*.uchi.${domain}" ];
