@@ -20,6 +20,7 @@ in
       nixos.kekkai
       nixos.server
       nixos.observability-agent
+      nixos.das
 
       # ─── Machine identity ─────────────────────────────────────────────
       {

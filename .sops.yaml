@@ -61,6 +61,14 @@ creation_rules:
           - *fido-thetis-102800549530
           - *fido-yubikey-34043456
           - *admin
+  # The DAS's LUKS key: the storage's, readable by whichever host carries the DAS (modules/nixos/das.nix).
+  - path_regex: secrets/das/.*
+    key_groups:
+      - age:
+          - *hashira-01
+          - *fido-thetis-102800549530
+          - *fido-yubikey-34043456
+          - *admin
   - path_regex: secrets/infra/.*
     key_groups:
       - age:
