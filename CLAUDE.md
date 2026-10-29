@@ -36,8 +36,8 @@ repo is and how it's laid out.
    "Encrypted trees"), and nothing Nix reads from `modules-private/` may be a secret (it lands in the
    store). A work PC imports only kiso. Keep every generic feature movable: no reference to the homelab (host names,
    tailnet, IPs, domains, services) inside it — and nothing of the sort ever goes into kiso.
-3. **Destructive tests.** First check that a recent backup exists (`~/Backups/ishizue/`,
-   `/persist/backups/` on ishizue). Leave no temporary file behind (`.bak`, copies, decrypted
+3. **Destructive tests.** First check that a recent backup exists (the host's azukari snapshots,
+   README "Backups"). Leave no temporary file behind (`.bak`, copies, decrypted
    secrets). Report any operation that touched real data, even when it turned out harmless.
 4. **Sources.** Forgejo is the default source of the owner's flakes (inputs `scorsi-*` are
    `git+ssh` on Forgejo); GitHub mirrors are the recovery path only (`scripts/via-github.nu`,

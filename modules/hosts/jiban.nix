@@ -25,9 +25,6 @@ in
       darwin.server
       darwin.vfkit-host
       darwin.forgejo-runner
-      darwin.backup-pull
-      darwin.backup-offsite
-      darwin.backup-local
       darwin.hikyaku
       darwin.node-exporter
       darwin.masu-reader

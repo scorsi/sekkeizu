@@ -26,8 +26,7 @@ let
     node = 4802;
   };
 
-  # Each node's address on the bridge. jiban is bootpd's gateway there (also in nixos/server.nix
-  # and backup/pull.nix).
+  # Each node's address on the bridge. jiban is bootpd's gateway there (also in nixos/server.nix).
   bridge = {
     jiban = "192.168.64.1";
     inherit (bridgeAddresses) ishizue;
@@ -47,7 +46,7 @@ let
 
   # The peers of each node and what each may open on it (kekkai ADR 0011: default deny, ICMP and
   # replies always pass). ishizue: annai uchi and SSH from jiban, Forgejo's HTTP and SSH ports from
-  # genkan's node. jiban: nothing, every flow between the two starts on jiban (deploys, backup pull,
+  # genkan's node. jiban: nothing, every flow between the two starts on jiban (deploys,
   # hikyaku, the remote builder). The gate: SSH from jiban. The hashira: SSH from jiban (deploys);
   # every node's hikyaku pushes to masu and nisshi on hashira-01 (observability/masu.nix, nisshi.nix);
   # hashira-02 runs genkan: the web port and Forgejo's git SSH (2222) for jiban and ishizue's runner,

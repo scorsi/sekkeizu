@@ -14,17 +14,14 @@ let
   tokens =
     lib.mapAttrs' (host: hash: lib.nameValuePair hash "node:${host}") observability.tokenHashes
     // lib.genAttrs observability.stores.masu.readerTokenHashes (_: "reader");
-  retentionDays = builtins.fromJSON (builtins.readFile ../backup/observability-retention-days.json);
+  retentionDays = builtins.fromJSON (builtins.readFile ./retention-days.json);
 in
 {
   flake.modules.nixos.masu =
-    { config, pkgs, ... }:
+    { config, ... }:
     let
       overlay = kekkai.nodes.${config.networking.hostName}.ipv4;
       port = observability.stores.masu.port;
-      archives = "${pkgs.python3}/bin/python3 ${../backup/observability-archives.py}";
-      # How long the export keeps a day's links; masu's own retention frees it afterwards.
-      keepDays = 90;
     in
     {
       imports = [ inputs.scorsi-masu.nixosModules.default ];
@@ -67,41 +64,6 @@ in
           mode = "0750";
         }
       ];
-
-      # Export for the backups, twice a day (modules/meta/observability.nix). A day is sealed once
-      # its manifest exists, and never changes again (both storage formats): hard links into
-      # /persist/backups, data before manifest, no extra space. The open day is a COPY of its prefix
-      # up to the committed length in state.json (`<day>.ndjson.zst.partial`, replaced each run,
-      # dropped once the day is linked): a link would follow the live file, and the bytes past that
-      # length may be torn. Links of days older than `keepDays` are deleted, so masu's own
-      # retention (400 days of data) frees space again on this disk. On /persist itself, since a
-      # link cannot cross the bind mount of /var/lib/masu. LAST_RUN (time, then every exported
-      # sealed file) is written last, only after a successful run.
-      #
-      # The export directory is root's, 0700: the links share masu's inodes, which are 0644, so the directory alone keeps
-      # every other account out. Fixed on each run, existing trees included.
-      systemd.services.masu-backup = {
-        description = "Export the days of masu into /persist/backups";
-        startAt = [
-          "*-*-* 04:45:00"
-          "*-*-* 16:45:00"
-        ];
-        path = [
-          pkgs.coreutils
-          pkgs.findutils
-        ];
-        serviceConfig = {
-          Type = "oneshot";
-          UMask = "0077";
-        };
-        script = ''
-          out=/persist/backups/masu
-          install -d -m 0700 -o root -g root "$out"
-          find "$out" -type d -exec chown root:root {} + -exec chmod 0700 {} +
-          ${archives} export "/persist/var/lib/masu" "$out" ${toString retentionDays} ${toString keepDays}
-          ${archives} marker "$out"
-        '';
-      };
 
       # Trusted interfaces are accepted before any rule, so the port is refused on them
       # first, except loopback (the host's own hikyaku) and kekkai0, where kekkai's own allowInbound

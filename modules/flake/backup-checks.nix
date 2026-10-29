@@ -3,23 +3,19 @@
   perSystem =
     { pkgs, ... }:
     {
-      checks.backup-pull =
-        pkgs.runCommand "backup-pull-test"
+      checks.backup-exports =
+        pkgs.runCommand "backup-exports-test"
           {
             nativeBuildInputs = [
-              pkgs.bash
-              pkgs.python3
-              pkgs.rsync
+              pkgs.nushell
+              pkgs.coreutils
+              pkgs.openssl
             ];
           }
           ''
-            python3 ${../backup/pull-rsync-test.py} ${../backup/pull-rsync.sh}
-            touch "$out"
-          '';
-      checks.observability-backups =
-        pkgs.runCommand "observability-backups-test" { nativeBuildInputs = [ pkgs.python3 ]; }
-          ''
-            python3 -B ${../backup/observability-archives-test.py} ${../backup/observability-archives.py} ${../backup/observability-retention-days.json}
+            cp ${../backup/observability-export.nu} observability-export.nu
+            nu --no-config-file ${../backup/observability-export-test.nu}
+            HANKO_ACCOUNT_SCRIPT=${../backup/hanko-account.nu} nu --no-config-file ${../backup/hanko-account-test.nu}
             touch "$out"
           '';
     };

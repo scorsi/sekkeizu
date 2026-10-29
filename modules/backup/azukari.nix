@@ -1,13 +1,13 @@
-# azukari, the lab's object store (its own repo, consumed as `scorsi-azukari`): the store on
-# hashira-01 (`azukari-server`), one `backup` bucket on a single DAS disk, and on each node a daily
-# `azukari-backup` run (`azukari-backup`) that sends what the node's services export under
-# /persist/backups/<export> (azukari ADR 0020, 0021). Both sides authenticate with hanko-ca's SVIDs
-# (hanko-ca.nix): the store accepts the nodes' `azukari-backup` IDs, the nodes pin the store's ID.
+# azukari, the lab's object store and its only backup (its own repo, consumed as `scorsi-azukari`):
+# the store on hashira-01 (`azukari-server`), one `backup` bucket on a single DAS disk, and on each
+# node a daily `azukari-backup` run (`azukari-backup`) that sends what the node's services export
+# under /persist/backups/<export> (azukari ADR 0020, 0021). Both sides authenticate with hanko-ca's
+# SVIDs (hanko-ca.nix): the store accepts the nodes' `azukari-backup` IDs, the nodes pin the store's ID.
 #
-# Runs next to the earlier backups (backup/pull.nix, the masu and nisshi exports) until a restore
-# from azukari has been compared with them; the exports here take names of their own so the two
-# systems never share a directory. hashira-01 does not back up yet: masu's and nisshi's exports are
-# hard links to their stores' 0640 files, in the stores' own groups, which azukari-backup cannot read.
+# No copy leaves the store's disk until azukari replicates (owner, 2026-10-29): the earlier pull to
+# jiban and its restic copies (Storage Box, USB disk) are gone; their last repositories stay
+# readable with `restic-password` (README, Backups). The exports' names differ from the earlier
+# directories under /persist/backups (forgejo, hanko, masu, nisshi), left in place, never reused.
 #
 # Data keys: secrets/<host>/azukari.yaml (`azukari-data-key`, 32 random bytes as 64 hex, azukari
 # ADR 0006). Losing one loses that node's backups: it is in sops only, with the FIDO2 and admin
@@ -21,6 +21,8 @@ let
   trustDomain = "uchi.${domain}";
   storeHost = "hashira-01";
   # After kekkai (4800-4802) and hanko-ca (4900); kekkai.nix opens it to the backing-up nodes.
+  # hashira-01's own run reaches its kekkai address over loopback, which neither kekkai's rules
+  # nor the firewall filter.
   port = 5000;
   # The 1 TB disk (modules/nixos/das.nix), the healthiest; no service keeps live data on the DAS.
   disk = "/mnt/das/ZN1374ZM";
@@ -101,17 +103,17 @@ in
       hanko = config.services.hanko-node;
       # The host's hanko-node holds an ACME account (hanko.nix): its key is exported.
       acme = lib.any (c: c.issuer == "acme") (lib.attrValues (hanko.certificates or { }));
-      # shortcut: the same script as hanko.nix's hanko-backup, until both move to Nushell (the old
-      # backups' removal).
-      hankoAccount = pkgs.writeShellApplication {
-        name = "export-hanko-account";
-        runtimeInputs = [
-          pkgs.coreutils
-          pkgs.diffutils
-          pkgs.openssl
-        ];
-        text = builtins.readFile ./hanko-account.sh;
-      };
+      # The observability stores on this host (observability/masu.nix, nisshi.nix).
+      stores = lib.filter (store: config.services.${store}.enable or false) [
+        "masu"
+        "nisshi"
+      ];
+      exportHankoAccount = pkgs.writers.writeNu "export-hanko-account" (
+        builtins.readFile ./hanko-account.nu
+      );
+      exportDays = pkgs.writers.writeNu "export-observability-days" (
+        builtins.readFile ./observability-export.nu
+      );
     in
     {
       imports = [ inputs.scorsi-azukari.nixosModules.azukari-backup ];
@@ -135,7 +137,7 @@ in
 
         exports = {
           # A full dump, replaced at every run; the store dedups what did not change. Same command
-          # and environment as nixpkgs' forgejo-dump, which keeps running for backup/pull.nix.
+          # and environment as nixpkgs' forgejo-dump.
           forgejo-dump = lib.mkIf forgejo.enable {
             inherit (forgejo) user group;
             command = ''
@@ -146,13 +148,27 @@ in
               chmod 0640 forgejo.tar
             '';
           };
-          # Every account key ever used, by digest: an older one may still be pinned in CAA.
           hanko-account = lib.mkIf acme {
             user = "hanko";
-            command = ''${lib.getExe hankoAccount} ${lib.escapeShellArg hanko.acme.accountKeyFile} "$EXPORT_DIR"'';
+            command = ''${exportHankoAccount} ${lib.escapeShellArg hanko.acme.accountKeyFile} "$EXPORT_DIR"'';
           };
-        };
+        }
+        # The stores' closed days, hard-linked (azukari ADR 0022): from /persist itself, since a link
+        # cannot cross the bind mount of /var/lib/<store>, and with /persist writable as a whole
+        # (ADR 0023). Same ext4 filesystem on hashira-01 (m75q.nix); the script checks it anyway.
+        // lib.genAttrs' stores (
+          store:
+          lib.nameValuePair "${store}-days" {
+            user = store;
+            writablePaths = [ "/persist" ];
+            command = ''${exportDays} /persist/var/lib/${store} "$EXPORT_DIR" azukari-export-${store}-days'';
+          }
+        );
       };
+
+      # The module only creates the base (`d`); the old pull left it 0700 root:root, which export
+      # users could not traverse.
+      systemd.tmpfiles.rules = [ "z ${cfg.exportsDir} 0711 root root -" ];
 
       systemd.services = {
         azukari-backup.unitConfig.RequiresMountsFor = [ cfg.exportsDir ];
@@ -178,11 +194,15 @@ in
             cfg.exportsDir
             "/var/lib/hanko"
           ];
+          path = [ pkgs.openssl ];
         };
-      };
-
-      # azukari's module creates the base only when absent: fix an existing one (backup/pull.nix's
-      # `backup` account joins the group to keep crossing it).
-      systemd.tmpfiles.rules = [ "z ${cfg.exportsDir} 0750 root azukari-backup -" ];
+      }
+      // lib.genAttrs' stores (
+        store:
+        lib.nameValuePair "azukari-export-${store}-days" {
+          after = [ "${store}.service" ];
+          unitConfig.RequiresMountsFor = [ cfg.exportsDir ];
+        }
+      );
     };
 }

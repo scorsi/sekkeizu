@@ -3,30 +3,14 @@
 # The internal wildcard is what genkan serves in step 4; genkan's own group reads it (hanko ADR 0005).
 # A oneshot without /metrics (hanko ADR 0007): its schema v1 lines reach nisshi through hikyaku's
 # journald reader.
-{
-  config,
-  inputs,
-  lib,
-  ...
-}:
+{ config, inputs, ... }:
 let
   inherit (config.sekkeizu) domain publicAddresses;
   soto = publicAddresses.torii-cdg;
 in
 {
   flake.modules.nixos.hanko =
-    { config, pkgs, ... }:
-    let
-      backup = pkgs.writeShellApplication {
-        name = "backup-hanko-account";
-        runtimeInputs = [
-          pkgs.coreutils
-          pkgs.diffutils
-          pkgs.openssl
-        ];
-        text = builtins.readFile ../backup/hanko-account.sh;
-      };
-    in
+    { config, ... }:
     {
       # Keyed: hanko's module is an anonymous function the module system cannot deduplicate, and
       # hanko-internal (hanko-ca.nix) imports it too on the hosts that run both.
@@ -69,7 +53,8 @@ in
       # needs it before genkan is deployed.
       users.groups.genkan = { };
 
-      # CAA pins this account's URI: restoring its key preserves that identity.
+      # CAA pins this account's URI: restoring its key preserves that identity. azukari backs the key
+      # up (backup/azukari.nix, export `hanko-account`).
       sekkeizu.persist.directories = [
         {
           directory = "/var/lib/hanko";
@@ -78,26 +63,5 @@ in
           mode = "0751";
         }
       ];
-
-      systemd.services.hanko-backup = {
-        description = "Back up Hanko's ACME account identity";
-        wantedBy = [ "multi-user.target" ];
-        after = [ "hanko-node.service" ];
-        startAt = "*-*-* 04:40:00";
-        unitConfig.RequiresMountsFor = [
-          "/persist/backups"
-          "/var/lib/hanko"
-        ];
-        serviceConfig = {
-          Type = "oneshot";
-          User = "root";
-          UMask = "0027";
-          ExecStart = "${lib.getExe backup} ${lib.escapeShellArg config.services.hanko-node.acme.accountKeyFile} /persist/backups/hanko";
-          ProtectSystem = "strict";
-          ReadWritePaths = [ "/persist/backups" ];
-          PrivateTmp = true;
-          NoNewPrivileges = true;
-        };
-      };
     };
 }

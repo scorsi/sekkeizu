@@ -29,7 +29,7 @@ modules/
   macos/   nix-darwin-only features (headless server, auto-login, VM host, linux builder, reminders)
   nixos/   NixOS-only features (server, Forgejo, rirekisho)
   ci/      Forgejo Actions runners (NixOS and macOS)
-  backup/  off-VM copies (jiban pulls ishizue's backups)
+  backup/  azukari: the object store on hashira-01 and each node's backup exports
   network/ kekkai, annai, hanko, genkan
   vm/      NixOS guest base for VMs on a Mac (vfkit, EFI)
   flake/   this repo's apps (rekey-host, set-autologin-password); the rest of the plumbing is kiso's
@@ -213,42 +213,38 @@ never crosses kekkai. No git SSH on a public port.
   the owner. kekkai's `allowInbound` opens tcp/2222 to jiban; the runners pin its host key for
   both names. No shared `git` account on the system, no `AllowUsers` change; the server only speaks
   git, with the keys stored in Forgejo (`owner.sshKeys`, added by the `forgejo-admin` unit).
-- **Backups**: `forgejo dump` daily (04:31, uncompressed tar for restic's dedup) in `/persist/backups/forgejo`, 7 days kept. jiban pulls
-  them at 05:15 into `~/Backups/ishizue/forgejo/` (30 days kept) as the `backup` account, which
-  can only run `rrsync -ro /persist/backups` and only from the NAT bridge (`modules/backup/pull.nix`).
-  One line per run in `~/Library/Logs/backup-ishizue.log`, a notification on failure. Run it now:
-  `sudo launchctl kickstart system/org.nixos.backup-ishizue`. At 06:00, restic copies all of `~/Backups`
-  to the Storage Box (`modules/backup/offsite.nix`; 7 daily, 5 weekly, 12 monthly snapshots), logged in
-  `~/Library/Logs/backup-offsite.log`: `sudo launchctl kickstart system/org.nixos.backup-offsite`.
-  At 05:45 and 17:45, restic also copies it to the USB hard disk (`modules/backup/local.nix`, same
-  retention, 5% of the data read back on Sundays), logged in `~/Library/Logs/backup-local.log`:
-  `sudo launchctl kickstart system/org.nixos.backup-local`. The disk is the APFS volume `ishizue-backup` with
-  two empty files at its root, `.metadata_never_index` (no Spotlight) and `.backup-local` (without it
-  the job fails rather than write to the SSD); restore with `restic -r /Volumes/ishizue-backup/restic`.
-  Restore: `restic -r sftp://<user>@<box>:23/restic restore latest --target <dir>` with `restic-password`
-  from sops. External disk: not done. Dumps are now written privately outside the exported tree
-  and published atomically only after success. Existing local or pulled dumps from before this
-  change may already be incomplete: inspect them separately; immutable pulls do not repair them.
-- **Observability retention**: masu and nisshi keep 400 days of data, explicitly configured from
-  `modules/backup/observability-retention-days.json`. Their hardlinked backups on ishizue and
-  pulled copies on jiban use the same UTC day cutoff, after a successful complete backup only.
-  Each node's last complete day is retained even if older, and `FORMAT` plus every manifest are
-  kept indefinitely: nisshi needs the full manifest chain to verify the retained data. Retention
-  unlinks backup data only, never the live stores; an incomplete retained pair blocks pruning.
-- **Hanko account recovery**: `hanko-backup` copies the ACME account key at boot and daily at
-  04:40 into `/persist/backups/hanko/account-<sha256>.key` (`root:backup`, directory `0750`, files
-  `0640`). jiban pulls this directory at 05:15 with the other backups (files `0600`); restic includes
-  it at 06:00. Each account identity is kept indefinitely: CAA may still pin its account URI.
+- **Backups**: azukari (`modules/backup/azukari.nix`). Each backed-up node runs `azukari-backup`
+  daily (timer with a 1 h random delay), which first runs the node's exports into
+  `/persist/backups/<export>`, then sends them to the store on hashira-01 (bucket `backup`, DAS disk
+  ZN1374ZM). Exports: `forgejo-dump` on ishizue (`forgejo dump`, one tar replaced each run),
+  `hanko-account` on hashira-02 (hanko's ACME account key, `account.key`), `masu-days` and
+  `nisshi-days` on hashira-01 (each store's closed days, hard-linked; the open day is never
+  exported, so the last day lags until it closes). Every snapshot is kept (no retention yet), and
+  nothing leaves that disk until azukari replicates. Run now: `systemctl start azukari-backup`;
+  list: `sudo -u azukari-backup <azukari-backup> snapshots /etc/azukari/azukari-backup.toml`
+  (the binary is in the unit's `ExecStart`); restore with `restore <snapshot> <empty dir>`, or
+  `restore --verify` to read everything back without writing. The earlier directories under
+  `/persist/backups` (`forgejo`, `hanko`, `masu`, `nisshi`) are no longer written: remove them by
+  hand once a restore from azukari has been checked. The former restic repositories (Storage Box,
+  USB volume `ishizue-backup`) keep their last snapshots: `restic -r sftp://<user>@<box>:23/restic`
+  or `restic -r /Volumes/ishizue-backup/restic`, with `restic-password` and `backup-pull-key` from
+  `secrets/jiban/secrets.yaml`.
+- **Observability retention**: masu and nisshi keep 400 days of data, configured from
+  `modules/observability/retention-days.json`. The `masu-days` and `nisshi-days` exports mirror
+  what the store holds: a day the store drops leaves the export too, and stays in earlier azukari
+  snapshots.
+- **Hanko account recovery**: the `hanko-account` export holds the current ACME account key; hanko
+  never replaces it by itself (hanko ADR-0008), and earlier keys stay in earlier snapshots.
   On a replacement host, restore the key before enabling Hanko. On an existing host, first stop
   `hanko-node.timer`, `hanko-node-renew.service` and `hanko-node.service`. Select the key belonging to the account
-  URI pinned in `sekkeizu.acmeAccounts`, verify its SHA-256 against the filename, then install it
+  URI pinned in `sekkeizu.acmeAccounts`, then install it
   as `/var/lib/hanko/account.key`, owner and group
   `hanko`, mode `0600` (state directory `hanko:hanko`, mode `0751`). Do not overwrite an existing
   key without comparing it and keeping its backup. Start `hanko-node.timer` only after restoring the
   identity; a new key would create a different account and fail the pinned CAA policy. Restore
   the key from a trusted backup, never by creating an ACME account as a recovery test.
-  A missing key fails the backup, including at first boot before restoration; the daily timer
-  retries. This also reports a lost identity on an existing host instead of silently skipping it.
+  A missing key fails the export, hence the backup run, including at first boot before
+  restoration. This also reports a lost identity on an existing host instead of silently skipping it.
 - **Runners** (host executor, no containers): one label per Nix system plus the machine's name:
   `aarch64-linux` on ishizue, `x86_64-linux` on hashira-01 and hashira-02 (Nix, git, node, rsync;
   systemd sandbox, writes only to its state directory), `aarch64-darwin` on jiban (LaunchDaemon,

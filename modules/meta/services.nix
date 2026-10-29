@@ -78,7 +78,7 @@ in
 
     backupPullKey = mkOption {
       type = types.str;
-      description = "Public half of jiban's backup-pull key (private half: backup-pull-key in sops), see backup/pull.nix.";
+      description = "Public half of jiban's former backup-pull key (private half: backup-pull-key in sops): the Storage Box subaccount still trusts it, for restoring the last restic repository (README, Backups).";
     };
 
     forgejoCi = {

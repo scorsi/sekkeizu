@@ -12,8 +12,8 @@
 # caFile. No reminder before expiry: hanshou will alert on it. Replaced by hanko certificates
 # later (masu ADR 0007, nisshi ADR 0008).
 #
-# Backups: the stores' host exports at 04:45 and 16:45 (the open day as a committed prefix) into
-# /persist/backups (masu-backup and nisshi-backup, observability/masu.nix and nisshi.nix); nothing copies that export off the host yet.
+# Backups: azukari's daily run on the stores' host exports their closed days, the open day never
+# (exports masu-days and nisshi-days, backup/azukari.nix); the store keeps them on that host's DAS.
 #
 # Trust boundaries: an agent's token cannot read /v1/status, the reader token cannot push. Root
 # on the stores' host reaches both stores and their export.

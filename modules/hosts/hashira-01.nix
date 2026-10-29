@@ -27,6 +27,7 @@ in
       nixos.forgejo-runner
       nixos.hanko-internal
       nixos.azukari-server
+      nixos.azukari-backup
 
       # ─── Machine identity ─────────────────────────────────────────────
       {
