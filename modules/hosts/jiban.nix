@@ -30,7 +30,8 @@ in
       darwin.backup-local
       darwin.hikyaku
       darwin.node-exporter
-      darwin.observability-reader
+      darwin.masu-reader
+      darwin.nisshi-reader
       darwin.secret-reminders
       # Only needed to build a VM image (`nix run .#install-<vm>`): QEMU VM, 3 GB RAM, 40 GB disk.
       # darwin.linux-builder
