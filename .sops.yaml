@@ -69,6 +69,13 @@ creation_rules:
           - *fido-thetis-102800549530
           - *fido-yubikey-34043456
           - *admin
+  # LUKS recovery passphrases of the hosts' disks: humans only, never the host itself.
+  - path_regex: secrets/recovery/.*
+    key_groups:
+      - age:
+          - *fido-thetis-102800549530
+          - *fido-yubikey-34043456
+          - *admin
   - path_regex: secrets/infra/.*
     key_groups:
       - age:
