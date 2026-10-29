@@ -1271,11 +1271,11 @@
         "nixpkgs": "nixpkgs_6"
       },
       "locked": {
-        "lastModified": 1793295774,
-        "narHash": "sha256-o+IYvL2XidZK/oOe0/Br4fiHDcDQ2rCyCNkq+M+RA2A=",
+        "lastModified": 1793307550,
+        "narHash": "sha256-Xiwz2CiT/Ukg8FXx8aubnUSI7/y46zs1C0Zi3WUELzA=",
         "ref": "refs/heads/main",
-        "rev": "5f515e6d4053ef3a0706989d72cd50ca4c5ae50b",
-        "revCount": 34,
+        "rev": "e73ae2212a85a090e70f9c984b5428927c5a62c8",
+        "revCount": 39,
         "type": "git",
         "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/hanko.git"
       },
