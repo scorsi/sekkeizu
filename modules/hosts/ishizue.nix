@@ -22,13 +22,10 @@ in
       nixos.secrets
       nixos.kekkai
       nixos.annai
-      nixos.hanko
       nixos.server
       nixos.observability-agent
-      nixos.genkan
       nixos.forgejo
       nixos.forgejo-runner
-      nixos.rirekisho
       nixos.backup-source
 
       # ─── User features ────────────────────────────────────────────────

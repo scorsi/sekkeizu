@@ -7,8 +7,8 @@
 # The résumé's contact details stay out of its public repository: RIREKISHO_EMAIL and
 # RIREKISHO_PHONE in a dotenv file, readable by the runner only, which rirekisho's workflow reads at
 # build time (/run/secrets/rirekisho-env, sops-nix's default path for this name).
-# Edit: `sops edit secrets/ishizue/rirekisho.env` (values unquoted, spaces allowed). Locally, for a
-# PDF with them: `sops exec-env secrets/ishizue/rirekisho.env 'pnpm build && pnpm pdf'`.
+# Edit: `sops edit secrets/hashira-02/rirekisho.env` (values unquoted, spaces allowed). Locally, for a
+# PDF with them: `sops exec-env secrets/hashira-02/rirekisho.env 'pnpm build && pnpm pdf'`.
 { config, lib, ... }:
 let
   inherit (config.sekkeizu) services;
@@ -39,7 +39,7 @@ in
       };
 
       sops.secrets.rirekisho-env = {
-        sopsFile = ../../secrets/ishizue/rirekisho.env;
+        sopsFile = ../../secrets/${config.networking.hostName}/rirekisho.env;
         format = "dotenv";
         # The whole file, not one of its keys.
         key = "";

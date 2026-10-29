@@ -46,15 +46,19 @@ let
       lib.optional (bridge ? ${host} && bridge ? ${peer}) "${bridge.${peer}}:${toString ports.node}";
 
   # The peers of each node and what each may open on it (kekkai ADR 0011: default deny, ICMP and
-  # replies always pass). ishizue: annai uchi, SSH, genkan and Forgejo's git SSH (2222; the gate never
-  # fetches from Forgejo, deploys copy closures). jiban: nothing, every flow between the two starts on
-  # jiban (deploys, backup pull, hikyaku, the remote builder). The gate: SSH from jiban.
-  # The gate's genkan forwards the public names to ishizue's PROXY listener (8443, genkan.nix).
-  # The hashira: SSH from jiban (deploys); every node's hikyaku pushes to masu and nisshi on
-  # hashira-01 (observability/stores.nix).
+  # replies always pass). ishizue: annai uchi and SSH from jiban, Forgejo's HTTP and SSH ports from
+  # genkan's node. jiban: nothing, every flow between the two starts on jiban (deploys, backup pull,
+  # hikyaku, the remote builder). The gate: SSH from jiban. The hashira: SSH from jiban (deploys);
+  # every node's hikyaku pushes to masu and nisshi on hashira-01 (observability/stores.nix);
+  # hashira-02 runs genkan: the web port and Forgejo's git SSH (2222) for jiban and ishizue's runner,
+  # the PROXY listener (8443, genkan.nix) for the gate's genkan.
   stores = [
     "tcp/9472"
     "tcp/9473"
+  ];
+  web = [
+    "tcp/443"
+    "tcp/2222"
   ];
   allowInbound = {
     ishizue = {
@@ -62,12 +66,14 @@ let
         "udp/53"
         "tcp/53"
         "tcp/22"
-        "tcp/443"
+      ];
+      ${gate} = [ ];
+      hashira-01 = [ ];
+      hashira-02 = [
+        "tcp/3000"
         "tcp/2222"
       ];
-      ${gate} = [ "tcp/8443" ];
-    }
-    // lib.genAttrs hashira (_: [ ]);
+    };
     jiban = {
       ishizue = [ ];
       ${gate} = [ ];
@@ -85,9 +91,9 @@ let
       hashira-02 = stores;
     };
     hashira-02 = {
-      jiban = [ "tcp/22" ];
-      ishizue = [ ];
-      ${gate} = [ ];
+      jiban = [ "tcp/22" ] ++ web;
+      ishizue = web;
+      ${gate} = [ "tcp/8443" ];
       hashira-01 = [ ];
     };
   };

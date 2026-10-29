@@ -8,8 +8,8 @@
 # unattended job cannot touch a hardware key) is forced into `rrsync -ro /persist/backups`, and which
 # sshd accepts only from the Mac's end of the vfkit NAT bridge.
 #
-# jiban (`backup-pull`): a launchd job, twice a day, rsyncs forgejo and hanko into
-# `sekkeizu.backups.dir`/ishizue, each on its own; keeps 30 days of Forgejo dumps. One line per run
+# jiban (`backup-pull`): a launchd job, twice a day, rsyncs forgejo into
+# `sekkeizu.backups.dir`/ishizue; keeps 30 days of Forgejo dumps. One line per run
 # with the failed sources; a failure also raises a notification.
 # The private key is in sops (secrets/jiban/secrets.yaml, `backup-pull-key`) rather than generated
 # on the Mac: it survives a reinstall through `rekey-host`, so its public key
@@ -161,16 +161,6 @@ in
               } else {
                 # Pruned only after a good pull: a broken source never empties the copies.
                 archives $dest | where modified < ((date now) - ${toString keepDays}day) | each { |f| rm $f.name } | ignore
-              }
-
-              # Account identities have no time-based expiry: CAA may still pin an older one.
-              let hanko = "${dir}/ishizue/hanko"
-              let h = pull hanko $hanko
-              if $h != 0 {
-                $failed = $failed | append $"hanko=($h)"
-              } else if (glob --no-dir $"($hanko)/account-*.key" | is-empty) {
-                print --stderr "no Hanko account backup"
-                $failed = $failed | append "hanko=101"
               }
 
               let n = archives $dest | length

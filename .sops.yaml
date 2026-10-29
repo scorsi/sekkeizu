@@ -57,7 +57,7 @@ creation_rules:
     key_groups:
       - age:
           - *torii-cdg
-          - *ishizue
+          - *hashira-02
           - *fido-thetis-102800549530
           - *fido-yubikey-34043456
           - *admin

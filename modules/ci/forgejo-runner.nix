@@ -125,8 +125,8 @@ in
         };
         systemd.services.nix-daemon.serviceConfig.Slice = "ci.slice";
 
-        # Forgejo's names must resolve to this machine: ishizue asks Quad9, not annai (annai.nix).
-        networking.hosts."127.0.0.1" = lib.unique ([ forgejo.host ] ++ sshNames);
+        # Forgejo's names → genkan's kekkai address: the nodes ask Quad9, not annai (annai.nix).
+        networking.hosts.${forgejo.address} = lib.unique ([ forgejo.host ] ++ sshNames);
 
         sekkeizu.persist.directories = [
           {

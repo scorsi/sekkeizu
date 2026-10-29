@@ -72,6 +72,9 @@ in
         }
       ];
 
+      # The export root, for the backups to pick up; backup-source no longer creates it on this host.
+      systemd.tmpfiles.rules = [ "d /persist/backups 0700 root root -" ];
+
       systemd.services.hanko-backup = {
         description = "Back up Hanko's ACME account identity";
         wantedBy = [ "multi-user.target" ];
@@ -84,7 +87,6 @@ in
         serviceConfig = {
           Type = "oneshot";
           User = "root";
-          Group = "backup";
           UMask = "0027";
           ExecStart = "${lib.getExe backup} ${lib.escapeShellArg config.services.hanko.acme.accountKeyFile} /persist/backups/hanko";
           ProtectSystem = "strict";
