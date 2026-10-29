@@ -170,24 +170,48 @@
                 };
               };
             };
-            testScript = ''
-              machine.start()
-              machine.wait_for_unit("hikyaku.service")
-              machine.wait_for_unit("forgejo-runners.service")
-              assert machine.succeed("cat /run/loaded-token") == "before-token"
-              assert machine.succeed("cat /run/runner-password") == "before-password"
-              switch = machine.succeed("readlink -f /run/current-system/specialisation/rotated").strip() + "/bin/switch-to-configuration test"
-              machine.succeed(switch)
-              machine.wait_for_unit("forgejo-runners.service")
-              assert machine.succeed("cat /run/loaded-token") == "after-token"
-              assert machine.succeed("cat /run/runner-password") == "after-password"
-              assert machine.succeed("wc -l < /run/reader-starts").strip() == "2"
-              machine.succeed(switch)
-              assert machine.succeed("wc -l < /run/reader-starts").strip() == "2"
-              machine.succeed("touch /run/fail-admin")
-              machine.fail("systemctl restart forgejo-admin.service forgejo-runners.service")
-              machine.fail("systemctl is-active --quiet forgejo-runners.service")
-            '';
+            # The NixOS test driver only runs Python: it boots the VM and hands over to Nushell.
+            testScript =
+              let
+                check = pkgs.writeText "secret-restarts.nu" ''
+                  def wait-active [unit: string] {
+                    for _ in 1..60 {
+                      if (do { ^systemctl is-active --quiet $unit } | complete).exit_code == 0 { return }
+                      sleep 1sec
+                    }
+                    error make {msg: $"($unit) is not active"}
+                  }
+                  def expect [file: string, want: string] {
+                    let got = open --raw $file | str trim
+                    if $got != $want { error make {msg: $"($file): ($got), expected ($want)"} }
+                  }
+                  def starts [] { open --raw /run/reader-starts | lines | length }
+
+                  expect /run/loaded-token before-token
+                  expect /run/runner-password before-password
+                  let switch = $"(^readlink -f /run/current-system/specialisation/rotated | str trim)/bin/switch-to-configuration"
+                  ^$switch test
+                  wait-active forgejo-runners.service
+                  expect /run/loaded-token after-token
+                  expect /run/runner-password after-password
+                  if (starts) != 2 { error make {msg: "hikyaku did not restart exactly once"} }
+                  ^$switch test
+                  if (starts) != 2 { error make {msg: "an unchanged secret restarted hikyaku"} }
+                  touch /run/fail-admin
+                  if (do { ^systemctl restart forgejo-admin.service forgejo-runners.service } | complete).exit_code == 0 {
+                    error make {msg: "a failing forgejo-admin did not fail the restart"}
+                  }
+                  if (do { ^systemctl is-active --quiet forgejo-runners.service } | complete).exit_code == 0 {
+                    error make {msg: "forgejo-runners stayed active without its admin"}
+                  }
+                '';
+              in
+              ''
+                machine.start()
+                machine.wait_for_unit("hikyaku.service")
+                machine.wait_for_unit("forgejo-runners.service")
+                machine.succeed("${pkgs.nushell}/bin/nu --no-config-file ${check}")
+              '';
           };
       };
   };
