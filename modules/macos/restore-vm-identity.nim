@@ -1,6 +1,5 @@
 ## A VM keeps the same identity across reinstalls when secrets/<vm>/identity.yaml exists (sops,
-## admin key): SSH host key (so no re-key of secrets/<vm>/) and Tailscale state (same node, same
-## IP). macOS can't mount ext4, so the files are written into the fresh image offline, with
+## admin key): its SSH host key, so no re-key of secrets/<vm>/. macOS can't mount ext4, so the files are written into the fresh image offline, with
 ## debugfs, before its first boot. Decrypted only into a private temporary directory, removed on
 ## exit and on Ctrl-C. Usage: restore-vm-identity <disk.raw> <identity.yaml>
 import std/[os, osproc, posix, streams, strutils, tempfiles]
@@ -12,10 +11,8 @@ const
   # sops key, path relative to /persist, mode.
   files = [
     ("ssh_host_ed25519_key", "/etc/ssh/ssh_host_ed25519_key", "0100600"),
-    ("ssh_host_ed25519_key_pub", "/etc/ssh/ssh_host_ed25519_key.pub", "0100644"),
-    ("tailscaled_state", "/var/lib/tailscale/tailscaled.state", "0100600")]
-  dirs = [("/etc", "040755"), ("/etc/ssh", "040755"), ("/var", "040755"),
-          ("/var/lib", "040755"), ("/var/lib/tailscale", "040700")]
+    ("ssh_host_ed25519_key_pub", "/etc/ssh/ssh_host_ed25519_key.pub", "0100644")]
+  dirs = [("/etc", "040755"), ("/etc/ssh", "040755")]
 
 var seed = ""
 
@@ -87,6 +84,6 @@ proc main() =
     restore(paramStr(1), paramStr(2))
   finally:
     cleanup()
-  echo "identity restored into the image (SSH host key, Tailscale state)"
+  echo "identity restored into the image (SSH host key)"
 
 main()

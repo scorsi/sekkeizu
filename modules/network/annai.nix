@@ -4,7 +4,7 @@
 # services.nix (annai ADR 0005); kekkai addresses answer before kekkai runs, on purpose.
 #
 # nixos.annai: the server. darwin.annai: points the Mac's resolver at it — ALL its DNS, so jiban
-# resolves nothing but *.ts.net (Tailscale's /etc/resolver/ts.net) and *.local while ishizue is down.
+# resolves nothing but *.local while ishizue is down.
 {
   config,
   inputs,
@@ -57,7 +57,7 @@ in
       services.annai = {
         enable = true;
         mode = "uchi";
-        # The bridge, and ishizue's kekkai address once the node runs there; not the tailnet.
+        # The bridge, and ishizue's kekkai address once the node runs there.
         # Upstreams: annai's (Quad9).
         listen = [
           "${address}:53"

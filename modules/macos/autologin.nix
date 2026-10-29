@@ -4,7 +4,7 @@
 # Does NOT work with FileVault enabled: macOS ignores /etc/kcpassword and stops at the pre-boot unlock screen.
 # Since the session is open without anyone typing a password, the screen is locked right away:
 # the display is put to sleep at login and waking it demands the password. Only the GUI session
-# is locked; launchd daemons (sshd, tailscaled) and SSH logins are unaffected.
+# is locked; launchd daemons (sshd, kekkai) and SSH logins are unaffected.
 { config, lib, ... }:
 let
   inherit (config.kiso) owner;

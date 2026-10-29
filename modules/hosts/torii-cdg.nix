@@ -32,7 +32,7 @@ in
         system.configurationRevision = inputs.self.rev or inputs.self.dirtyRev or null;
         system.stateVersion = stateVersions.nixos;
 
-        # Not on the tailnet: root deploys come from the internet, FIDO2 keys only (docs/migration.md).
+        # Root deploys come from the internet, FIDO2 keys only (docs/migration.md).
         services.openssh.settings.AllowUsers = [ "root" ];
       }
     ];

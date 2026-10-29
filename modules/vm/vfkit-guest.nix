@@ -50,7 +50,7 @@
       zramSwap.enable = true;
 
       # Virtualization.framework NAT: DHCP from macOS's bootpd (192.168.64.0/24), reachable from
-      # the Mac only. Everything else goes through Tailscale.
+      # the Mac only. Everything else goes through kekkai.
       networking.useNetworkd = true;
       systemd.network.networks."10-uplink" = {
         matchConfig.Type = "ether";
@@ -58,8 +58,7 @@
         # Match vfkit-host's /etc/bootptab reservation, including after macOS loses its leases.
         dhcpV4Config.ClientIdentifier = "mac";
       };
-      # <host>.local for the Mac itself: deploys stay on the NAT bridge, as tailscaled on macOS
-      # binds to the default interface and would hairpin through the router.
+      # <host>.local for the Mac itself: the deploy fallback over the NAT bridge when kekkai is down.
       services.avahi = {
         enable = true;
         publish = {

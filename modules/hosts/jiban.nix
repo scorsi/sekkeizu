@@ -20,7 +20,6 @@ in
       darwin.codex
       darwin.secrets
       darwin.autologin
-      darwin.tailscale
       darwin.kekkai
       darwin.annai
       darwin.server

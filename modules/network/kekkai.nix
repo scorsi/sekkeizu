@@ -1,7 +1,7 @@
 # kekkai, the lab's overlay (kekkai v0.5, review gate 2 passed: kekkai ADR 0021). jiban and
 # ishizue keep their direct path over vfkit's NAT bridge with static endpoints; torii-cdg, the
 # public gate, is a node too and carries the lighthouse and relay (feature `kekkai-gate`) that
-# every node uses. Tailscale stays until the kekkai switch (docs/migration.md, step 5).
+# every node uses.
 # Keys: secrets/<host>/kekkai.yaml (private), sekkeizu.kekkai.nodes.<host>.publicKey, and the
 # lighthouse's and relay's own keys in sekkeizu.kekkai (kekkai ADR 0005, 0017).
 {

@@ -125,8 +125,7 @@ in
         };
         systemd.services.nix-daemon.serviceConfig.Slice = "ci.slice";
 
-        # Forgejo's names must resolve to this machine: ishizue asks Quad9, not annai (annai.nix), and
-        # Tailscale DNS may not be up at boot.
+        # Forgejo's names must resolve to this machine: ishizue asks Quad9, not annai (annai.nix).
         networking.hosts."127.0.0.1" = lib.unique ([ forgejo.host ] ++ sshNames);
 
         sekkeizu.persist.directories = [
@@ -303,7 +302,7 @@ in
         };
         RunAtLoad = true;
         KeepAlive = true;
-        # Starts before the network and Tailscale are up at boot: wait a bit between attempts.
+        # Starts before the network is up at boot: wait a bit between attempts.
         ThrottleInterval = 15;
         StandardOutPath = "${stateDir}/runner.log";
         StandardErrorPath = "${stateDir}/runner.log";

@@ -194,7 +194,7 @@ in
 
                 ^launchctl kickstart $agent
                 if ($identity | path exists) {
-                  print "${name} installed and started, with its identity (SSH host key, Tailscale node)."
+                  print "${name} installed and started, with its identity (SSH host key)."
                 } else {
                   print "${name} installed and started (first boot: partition grown, new SSH host key)."
                 }

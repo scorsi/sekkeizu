@@ -20,7 +20,6 @@ in
       nixos.home-manager
       nixos.fish
       nixos.secrets
-      nixos.tailscale
       nixos.kekkai
       nixos.annai
       nixos.hanko

@@ -12,16 +12,14 @@ in
         PasswordAuthentication = false;
         KbdInteractiveAuthentication = false;
         # Root only for deploys (one SSH session = one touch, no per-sudo touches), and only from
-        # the Mac's NAT bridge, Tailscale (CGNAT range) or kekkai's overlay, with the FIDO2 keys below.
-        # The overlay entries admit any node: kekkai's per-peer allow_inbound (modules/network/kekkai.nix)
-        # is what limits port 22 to jiban. They replace the Tailscale one when Tailscale goes
-        # (docs/migration.md, step 5).
+        # the Mac's NAT bridge or kekkai's overlay, with the FIDO2 keys below. The overlay entries
+        # admit any node: kekkai's per-peer allow_inbound (modules/network/kekkai.nix) is what limits
+        # port 22 to jiban.
         PermitRootLogin = "prohibit-password";
         AuthenticationMethods = "publickey";
         AllowUsers = [
           owner.name
           "root@192.168.64.1"
-          "root@100.64.0.0/10"
           "root@${kekkai.ipv4Prefix}"
           "root@${kekkai.ipv6Prefix}"
         ];

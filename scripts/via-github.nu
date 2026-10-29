@@ -9,8 +9,8 @@
 # through the environment, and Nix still checks every input against the rev and narHash locked in
 # flake.lock, so the result is the same as from Forgejo. The bootstrap script sets the same rule.
 
-# Both names Forgejo's SSH answers on; the Tailscale one goes with Tailscale.
-const forgejo = ["ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/" "ssh://git@ishizue.tail9883f3.ts.net:2222/scorsi/"]
+# The name Forgejo's SSH answers on.
+const forgejo = ["ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/"]
 const github = "ssh://git@github.com/scorsi/"
 
 def --wrapped main [...command: string] {

@@ -30,7 +30,7 @@ modules/
   nixos/   NixOS-only features (server, Forgejo, rirekisho)
   ci/      Forgejo Actions runners (NixOS and macOS)
   backup/  off-VM copies (jiban pulls ishizue's backups)
-  network/ Tailscale, kekkai, annai, hanko, genkan
+  network/ kekkai, annai, hanko, genkan
   vm/      NixOS guest base for VMs on a Mac (vfkit, EFI)
   flake/   this repo's apps (rekey-host, set-autologin-password); the rest of the plumbing is kiso's
   hosts/   one file per machine: its identity + the features it imports
@@ -77,28 +77,27 @@ side by side (AirDrop, `scp`, USB stick).
    installs the Command Line Tools, pulls the key handle (`ssh-keygen -K`: PIN, then touch),
    clones sekkeizu and kanna (`~/repositories/kanna`, the live Neovim config), fetches the flake
    inputs from their GitHub mirrors (Forgejo isn't reachable yet) and runs the first switch. Until
-   Tailscale is up (step 6), run Nix commands through `nu scripts/via-github.nu …`. That switch can complain that sops cannot
-   decrypt `kcpassword`: expected, the host key is new (step 8 fixes it).
+   kekkai is up (second switch, step 8), run Nix commands through `nu scripts/via-github.nu …`. That switch can complain that sops cannot
+   decrypt `kcpassword`: expected, the host key is new (step 7 fixes it).
 4. **One `ssh-keygen -K` per additional key**: plug the next FIDO2 key, then
    `cd ~/.ssh && ssh-keygen -K` (the bootstrap only handled the first one).
 5. **Screen Sharing**: System Settings → General → Sharing → Screen Sharing on (not declarative).
    Remote Login (sshd) is declared.
-6. **Tailscale**: `sudo tailscale up`, then in the admin console disable key expiry for the machine.
-7. **sops identities**: put the two `AGE-PLUGIN-FIDO2-HMAC-1…` lines from the password manager into
-   `~/.config/sops/age/keys.txt` (on the machine where step 8 runs; `jiban` itself is fine). Each
+6. **sops identities**: put the two `AGE-PLUGIN-FIDO2-HMAC-1…` lines from the password manager into
+   `~/.config/sops/age/keys.txt` (on the machine where step 7 runs; `jiban` itself is fine). Each
    decryption then takes a touch of either key; the admin key stays in the password manager
    (break-glass, see `.sops.yaml`).
-8. **Re-key**: the reinstall generated a new SSH host key, so the old age recipient is dead.
+7. **Re-key**: the reinstall generated a new SSH host key, so the old age recipient is dead.
    On jiban, `nix run .#rekey-host -- jiban` reads the local public host key. From another machine,
    pass `--public-key <verified-key.pub>` using a key copied from jiban's console or another
    independently verified source. Review and commit `.sops.yaml` and every changed file under
    `secrets/`, including shared secrets (pull them on jiban if it ran elsewhere).
-9. **Second switch**: `nix run .#switch` (or `drs`): the secrets now decrypt and `/etc/kcpassword` is installed.
-10. **Immediate screen lock**: `sysadminctl -screenLock immediate -password -` (type the account
+8. **Second switch**: `nix run .#switch` (or `drs`): the secrets now decrypt and `/etc/kcpassword` is installed.
+9. **Immediate screen lock**: `sysadminctl -screenLock immediate -password -` (type the account
     password when prompted). The `askForPassword` default alone is not honoured by recent macOS, and
     the command needs the password, so it cannot be declared. Check with `sysadminctl -screenLock status`.
-11. **Reboot** and check: auto-login works, the screen is locked (password asked), `tailscale status`
-    and `ssh jiban` still answer.
+10. **Reboot** and check: auto-login works, the screen is locked (password asked), and `ssh jiban`
+    still answers.
 
 ## ishizue (NixOS VM on jiban)
 
@@ -106,7 +105,7 @@ A classic NixOS machine (own disk, own /nix/store, systemd-boot) booted in EFI m
 (Virtualization.framework). A LaunchAgent of the owner's session (`org.nixos.vm-ishizue`) starts
 it at login, i.e. at boot thanks to auto-login. vCPU, RAM, disk size and MAC are declared on the
 Mac side: `sekkeizu.vms.ishizue` in `modules/hosts/jiban.nix`. Reachable over kekkai
-(`ishizue.kekkai.uchi.<domain>`, used by deploys), Tailscale, and as `ishizue.local` from jiban
+(`ishizue.kekkai.uchi.<domain>`, used by deploys) and as `ishizue.local` from jiban
 (NAT bridge, the deploy fallback).
 
 The bridge address in `sekkeizu.bridgeAddresses` is reserved for the VM's MAC in
@@ -130,8 +129,8 @@ State, in `~/.local/state/vm/ishizue/`:
 
 `/` is a 1 GB tmpfs, rebuilt empty at every boot. The disk (ext4, label `nixos`) is mounted on
 `/persist` and carries `/nix` (bind of `/persist/nix`) and everything declared to survive. Each
-feature adds its own state to `sekkeizu.persist.directories` / `.files` (tailscale keeps
-`/var/lib/tailscale`…); `modules/nixos/impermanence.nix` aggregates them (via
+feature adds its own state to `sekkeizu.persist.directories` / `.files` (forgejo-runner keeps
+its state directory…); `modules/nixos/impermanence.nix` aggregates them (via
 [preservation](https://github.com/nix-community/preservation)) and keeps the machine-id, the
 uid/gid map, `/var/lib/systemd`, `/var/log` and the owner's whole home. The SSH host key lives
 directly at `/persist/etc/ssh/ssh_host_ed25519_key` (sops decrypts before the bind mounts exist).
@@ -144,7 +143,7 @@ Day to day:
   `switch-to-configuration` then run in a transient `sekkeizu-switch-<time>` unit, so a dropped
   session cannot interrupt them: the app follows its journal, reconnects for up to 3 min and exits
   with its status). Connects as `root@` over kekkai (key-only, FIDO2 keys, allowed only from the
-  Mac's NAT bridge, Tailscale and kekkai), one shared SSH connection: one touch per deploy. When
+  Mac's NAT bridge and kekkai), one shared SSH connection: one touch per deploy. When
   kekkai or annai is broken: `DEPLOY_HOST=root@ishizue.local nix run .#deploy-ishizue` (the
   bridge; `DEPLOY_HOST=root@torii-cdg.scorsi.dev` for torii-cdg, its public SSH). Interactive `sudo` in the VM still uses pam_rssh (a touch each).
 - Rollback: `nix run .#deploy-ishizue -- --rollback`, or for one boot only,
@@ -162,23 +161,21 @@ Day to day:
    an existing disk without `-- --force`. The builder's disk is 40 GB (sparse, recreated at each
    start).
 3. **First boot** (~15 s): the partition grows. The identity comes from
-   `secrets/ishizue/identity.yaml` (sops, admin key: SSH host key and Tailscale state), written into
+   `secrets/ishizue/identity.yaml` (sops, admin key: SSH host key), written into
    `/persist` offline with `debugfs` before the first boot: same host key (known_hosts, `.sops.yaml`
-   unchanged, the secrets decrypt at once), same Tailscale node and IP. Nothing else to do; go to 6.
+   unchanged, the secrets decrypt at once). Nothing else to do; go to 6.
 4. **Without `identity.yaml`** (a genuinely new machine): a new SSH host key is generated. Obtain
    `/etc/ssh/ssh_host_ed25519_key.pub` through the VM's trusted console and save it as
    `ishizue-host-key.pub`. Verify its fingerprint (`ssh-keygen -lf ishizue-host-key.pub`) before
    replacing the old known_hosts entries (`ssh-keygen -R ishizue.local; ssh-keygen -R ishizue`).
-   Check the fingerprint when connecting with `ssh ishizue.local`, then run
-   `sudo tailscale up` (touches), disable key expiry in the admin console, update the Tailscale IP
-   in `modules-private/meta/endpoints.nix`.
+   Check the fingerprint when connecting with `ssh ishizue.local`.
 5. **Re-key** (only after 4): `nix run .#rekey-host -- ishizue --public-key ishizue-host-key.pub`.
    Review and commit `.sops.yaml` and all changed secrets, including `secrets/hanko/`.
    The command updates tracked files selected by SOPS rules and restores their original ciphertext
    if an update fails. After an interrupted process, inspect `git diff` and rerun it to finish.
    To keep this new
    identity for the next reinstall, store it in `secrets/ishizue/identity.yaml`
-   (`ssh_host_ed25519_key`, `ssh_host_ed25519_key_pub`, `tailscaled_state`: the files under
+   (`ssh_host_ed25519_key`, `ssh_host_ed25519_key_pub`: the files under
    `/persist`, piped straight into `sops set --value-stdin`).
 6. **Deploy**: `nix run .#deploy-ishizue`, built inside the VM.
 7. **Drop the linux builder**: comment `darwin.linux-builder` again, `nix run .#switch`
@@ -188,9 +185,9 @@ Day to day:
 
 The web services are `<service>.uchi.<domain>` names, which only annai resolves (CNAME to
 `genkan.uchi`, then to ishizue's kekkai address): genkan on 443 with hanko's `*.uchi` wildcard,
-reached over kekkai (its `allowInbound` opens tcp/443 to jiban) and Tailscale; the bridge address
+reached over kekkai (its `allowInbound` opens tcp/443 to jiban); the bridge address
 keeps 443 closed. Git over SSH uses the same Forgejo name, straight to ishizue over kekkai (not
-through genkan); the Tailscale name still answers as a fallback until Tailscale is removed:
+through genkan):
 
 | Service   | Address                                | Behind                        |
 | --------- | -------------------------------------- | ----------------------------- |
