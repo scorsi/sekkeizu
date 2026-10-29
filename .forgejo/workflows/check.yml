@@ -1,5 +1,6 @@
-# Runs on the two host runners (modules/ci/forgejo-runner.nix): ishizue checks what Linux can build
-# and the formatting, jiban runs the macOS checks and builds its system. Nothing is switched.
+# Runs on the host runners (modules/ci/forgejo-runner.nix): an x86_64-linux one (hashira) checks
+# what Linux can build and the formatting, jiban runs the macOS checks and builds its system.
+# Nothing is switched.
 # The encrypted trees (.gitattributes) are checked, then unlocked with the runners' git-crypt key.
 on:
   push:
@@ -12,18 +13,17 @@ defaults:
 
 jobs:
   linux:
-    runs-on: linux
+    runs-on: x86_64-linux
     steps:
       - uses: https://code.forgejo.org/actions/checkout@v4
       - run: scripts/hooks/pre-commit
       - run: git-crypt unlock /run/secrets/git-crypt-key
       - run: nix fmt -- --ci
-      # Builds checks.aarch64-linux (ishizue's system) and evaluates the rest.
-      # TODO: build torii-cdg on an x86_64 builder; evaluation alone misses compilation failures.
+      # Builds checks.x86_64-linux (the runner's system) and evaluates the rest.
       - run: nix flake check -L
 
   macos:
-    runs-on: macos
+    runs-on: aarch64-darwin
     steps:
       - uses: https://code.forgejo.org/actions/checkout@v4
       - run: git-crypt unlock /run/secrets/git-crypt-key

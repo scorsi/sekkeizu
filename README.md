@@ -249,9 +249,10 @@ never crosses kekkai. No git SSH on a public port.
   the key from a trusted backup, never by creating an ACME account as a recovery test.
   A missing key fails the backup, including at first boot before restoration; the daily timer
   retries. This also reports a lost identity on an existing host instead of silently skipping it.
-- **Runners** (host executor, no containers): `linux` on ishizue (Nix, git, node, rsync;
-  systemd sandbox, writes only to its state directory and `/var/lib/rirekisho`), `macos` on jiban (LaunchDaemon, hidden
-  non-admin `_forgejo-runner` account). Rationale in `modules/ci/forgejo-runner.nix`.
+- **Runners** (host executor, no containers): one label per Nix system plus the machine's name:
+  `aarch64-linux` on ishizue, `x86_64-linux` on hashira-01 and hashira-02 (Nix, git, node, rsync;
+  systemd sandbox, writes only to its state directory), `aarch64-darwin` on jiban (LaunchDaemon,
+  hidden non-admin `_forgejo-runner` account). Rationale in `modules/ci/forgejo-runner.nix`.
   Registration is declarative: a shared secret per runner in sops, pre-registered by Forgejo.
   On ishizue, the runner and nix-daemon share a 5 GiB / 2 CPU budget (plus up to 2 GiB of swap,
   OOM kill beyond), with one Nix build at a time and two build cores. This also limits manual

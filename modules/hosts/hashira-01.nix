@@ -24,6 +24,7 @@ in
       nixos.hikyaku
       nixos.node-exporter
       nixos.das
+      nixos.forgejo-runner
 
       # ─── Machine identity ─────────────────────────────────────────────
       {
@@ -32,6 +33,8 @@ in
         time.timeZone = "Europe/Paris";
         system.configurationRevision = inputs.self.rev or inputs.self.dirtyRev or null;
         system.stateVersion = stateVersions.nixos;
+
+        sops.defaultSopsFile = ../../secrets/${hostName}/secrets.yaml;
 
         # Deploy fallback when kekkai is down: root from the home LAN too (FIDO2 keys only).
         services.openssh.settings.AllowUsers = [ "root@192.168.1.0/24" ];
