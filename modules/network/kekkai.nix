@@ -68,7 +68,8 @@ let
         "tcp/22"
       ];
       ${gate} = [ ];
-      hashira-01 = [ ];
+      # hanko-ca (hanko-ca.nix): the hosts it issues SVIDs to.
+      hashira-01 = [ "tcp/4900" ];
       hashira-02 = [
         "tcp/3000"
         "tcp/2222"

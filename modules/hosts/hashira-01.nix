@@ -25,6 +25,7 @@ in
       nixos.node-exporter
       nixos.das
       nixos.forgejo-runner
+      nixos.hanko-internal
 
       # ─── Machine identity ─────────────────────────────────────────────
       {

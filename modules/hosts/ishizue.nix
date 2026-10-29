@@ -22,6 +22,7 @@ in
       nixos.secrets
       nixos.kekkai
       nixos.annai
+      nixos.hanko-ca
       nixos.server
       nixos.hikyaku
       nixos.node-exporter
