@@ -94,7 +94,8 @@ let
       jiban = [ "tcp/22" ] ++ web;
       ishizue = web;
       ${gate} = [ "tcp/8443" ];
-      hashira-01 = [ ];
+      # Its Forgejo runner reaches Forgejo through genkan (HTTPS and the SSH passthrough).
+      hashira-01 = web;
     };
   };
 
