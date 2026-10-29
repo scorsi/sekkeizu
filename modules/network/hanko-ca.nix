@@ -9,12 +9,16 @@ let
   caHost = "ishizue";
   port = 4900;
 
-  # host -> service -> group that reads the SVID (the unit's user: azukari-backup runs as root).
+  # host -> service -> group that reads the SVID (the unit's own static group, azukari ADR 0020).
+  # azukari-backup runs on every host with an export under /persist/backups: Forgejo on ishizue,
+  # masu and nisshi on hashira-01, hanko's ACME account on hashira-02.
   services = {
+    ishizue.azukari-backup = "azukari-backup";
     hashira-01 = {
       azukari-server = "azukari";
-      azukari-backup = "root";
+      azukari-backup = "azukari-backup";
     };
+    hashira-02.azukari-backup = "azukari-backup";
   };
   idOf = host: service: "spiffe://${trustDomain}/${host}/${service}";
 in
@@ -40,7 +44,8 @@ in
           host: svcs: lib.nameValuePair kekkai.nodes.${host}.ipv4 (map (idOf host) (lib.attrNames svcs))
         ) services;
       };
-      # kekkai.nix opens tcp/4900 on ishizue to every host listed in `services`.
+      # kekkai.nix opens tcp/4900 on ishizue to every other host listed in `services`; ishizue's own
+      # hanko-node reaches it over loopback, which the firewall does not filter.
     };
 
   flake.modules.nixos.hanko-internal =
@@ -49,7 +54,13 @@ in
       host = config.networking.hostName;
     in
     {
-      imports = [ inputs.scorsi-hanko.nixosModules.default ];
+      # Same key as in hanko.nix: one import on hosts running both.
+      imports = [
+        {
+          key = "scorsi-hanko/node";
+          imports = [ inputs.scorsi-hanko.nixosModules.default ];
+        }
+      ];
 
       services.hanko-node = {
         enable = true;
@@ -61,10 +72,9 @@ in
         }) services.${host};
       };
 
-      # The consumers' groups exist before their services are deployed.
-      users.groups = lib.genAttrs (lib.filter (g: g != "root") (lib.attrValues services.${host})) (
-        _: { }
-      );
+      # The consumers' groups exist before their services are deployed: hanko's module creates the
+      # SVID directories with them but declares none (azukari's modules declare the same, empty).
+      users.groups = lib.genAttrs (lib.attrValues services.${host}) (_: { });
     };
 
 }

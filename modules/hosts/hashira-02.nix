@@ -22,6 +22,7 @@ in
       nixos.hikyaku
       nixos.node-exporter
       nixos.hanko
+      nixos.hanko-internal
       nixos.genkan
       nixos.forgejo-runner
       nixos.rirekisho

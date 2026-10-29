@@ -28,7 +28,14 @@ in
       };
     in
     {
-      imports = [ inputs.scorsi-hanko.nixosModules.default ];
+      # Keyed: hanko's module is an anonymous function the module system cannot deduplicate, and
+      # hanko-internal (hanko-ca.nix) imports it too on the hosts that run both.
+      imports = [
+        {
+          key = "scorsi-hanko/node";
+          imports = [ inputs.scorsi-hanko.nixosModules.default ];
+        }
+      ];
 
       sops.secrets.hanko-tsig = {
         sopsFile = ../../secrets/hanko/tsig.yaml;

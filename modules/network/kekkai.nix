@@ -73,6 +73,7 @@ let
       hashira-02 = [
         "tcp/3000"
         "tcp/2222"
+        "tcp/4900"
       ];
     };
     jiban = {

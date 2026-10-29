@@ -23,6 +23,7 @@ in
       nixos.kekkai
       nixos.annai
       nixos.hanko-ca
+      nixos.hanko-internal
       nixos.server
       nixos.hikyaku
       nixos.node-exporter
