@@ -36,7 +36,7 @@ in
         mode = "0400";
       };
 
-      services.hanko = {
+      services.hanko-node = {
         enable = true;
         acme = {
           # Trials: https://acme-staging-v02.api.letsencrypt.org/directory. Changing it keeps a
@@ -78,7 +78,7 @@ in
       systemd.services.hanko-backup = {
         description = "Back up Hanko's ACME account identity";
         wantedBy = [ "multi-user.target" ];
-        after = [ "hanko.service" ];
+        after = [ "hanko-node.service" ];
         startAt = "*-*-* 04:40:00";
         unitConfig.RequiresMountsFor = [
           "/persist/backups"
@@ -88,7 +88,7 @@ in
           Type = "oneshot";
           User = "root";
           UMask = "0027";
-          ExecStart = "${lib.getExe backup} ${lib.escapeShellArg config.services.hanko.acme.accountKeyFile} /persist/backups/hanko";
+          ExecStart = "${lib.getExe backup} ${lib.escapeShellArg config.services.hanko-node.acme.accountKeyFile} /persist/backups/hanko";
           ProtectSystem = "strict";
           ReadWritePaths = [ "/persist/backups" ];
           PrivateTmp = true;

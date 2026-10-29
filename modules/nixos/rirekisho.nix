@@ -46,7 +46,7 @@ in
         owner = runner.user;
       };
 
-      services.hanko.certificates.rirekisho-public = {
+      services.hanko-node.certificates.rirekisho-public = {
         hosts = rirekisho.public;
         reload = [ "genkan.service" ];
         group = "genkan";
