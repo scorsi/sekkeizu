@@ -49,9 +49,13 @@ let
   # replies always pass). ishizue: annai uchi, SSH, genkan and Forgejo's git SSH (2222; the gate never
   # fetches from Forgejo, deploys copy closures). jiban: nothing, every flow between the two starts on
   # jiban (deploys, backup pull, hikyaku, the remote builder). The gate: SSH from jiban.
-  # The gate's and the hashira's hikyaku push to masu and nisshi on ishizue (observability/stores.nix);
-  # the gate's genkan forwards the public names to ishizue's PROXY listener (8443, genkan.nix).
-  # The hashira: SSH from jiban (deploys), nothing else yet.
+  # The gate's genkan forwards the public names to ishizue's PROXY listener (8443, genkan.nix).
+  # The hashira: SSH from jiban (deploys); every node's hikyaku pushes to masu and nisshi on
+  # hashira-01 (observability/stores.nix).
+  stores = [
+    "tcp/9472"
+    "tcp/9473"
+  ];
   allowInbound = {
     ishizue = {
       jiban = [
@@ -61,16 +65,9 @@ let
         "tcp/443"
         "tcp/2222"
       ];
-      ${gate} = [
-        "tcp/8443"
-        "tcp/9472"
-        "tcp/9473"
-      ];
+      ${gate} = [ "tcp/8443" ];
     }
-    // lib.genAttrs hashira (_: [
-      "tcp/9472"
-      "tcp/9473"
-    ]);
+    // lib.genAttrs hashira (_: [ ]);
     jiban = {
       ishizue = [ ];
       ${gate} = [ ];
@@ -79,12 +76,21 @@ let
     ${gate} = {
       jiban = [ "tcp/22" ];
       ishizue = [ ];
+    }
+    // lib.genAttrs hashira (_: [ ]);
+    hashira-01 = {
+      jiban = [ "tcp/22" ] ++ stores;
+      ishizue = stores;
+      ${gate} = stores;
+      hashira-02 = stores;
     };
-  }
-  // lib.genAttrs hashira (_: {
-    jiban = [ "tcp/22" ];
-    ishizue = [ ];
-  });
+    hashira-02 = {
+      jiban = [ "tcp/22" ];
+      ishizue = [ ];
+      ${gate} = [ ];
+      hashira-01 = [ ];
+    };
+  };
 
   # The lighthouse's and relay's peer list: every node with a key.
   servicePeers = lib.mapAttrs (_: n: { inherit (n) publicKey; }) (

@@ -9,7 +9,7 @@
   ...
 }:
 let
-  inherit (config.sekkeizu) bridgeAddresses kekkai observability;
+  inherit (config.sekkeizu) observability;
 
   agent =
     platform:
@@ -71,40 +71,31 @@ let
     };
 in
 {
-  flake.modules.nixos.observability-agent = {
-    imports = [
-      (agent "nixosModules")
-    ];
-    sops.secrets.hikyaku-token.restartUnits = [ "hikyaku.service" ];
-    # hikyaku scrapes loopback and pushes to the stores' host, at either of its addresses.
-    systemd.services.hikyaku.serviceConfig = {
-      IPAddressDeny = "any";
-      IPAddressAllow = [
-        "localhost"
-      ]
-      ++ lib.unique (
-        lib.concatMap (
-          store:
-          let
-            host = observability.stores.${store}.host;
-          in
-          [
-            bridgeAddresses.${host}
-            kekkai.nodes.${host}.ipv4
-          ]
-        ) (lib.attrNames observability.stores)
-      );
+  flake.modules.nixos.observability-agent =
+    { config, ... }:
+    {
+      imports = [
+        (agent "nixosModules")
+      ];
+      sops.secrets.hikyaku-token.restartUnits = [ "hikyaku.service" ];
+      # hikyaku scrapes loopback and pushes to the stores' host.
+      systemd.services.hikyaku.serviceConfig = {
+        IPAddressDeny = "any";
+        IPAddressAllow = [
+          "localhost"
+          observability.agents.${config.networking.hostName}.storeAddress
+        ];
+      };
+      # journald stays the logs' second buffer (/var/log is persistent); the spool must survive too.
+      sekkeizu.persist.directories = [
+        {
+          directory = "/var/lib/hikyaku";
+          user = "hikyaku";
+          group = "hikyaku";
+          mode = "0700";
+        }
+      ];
     };
-    # journald stays the logs' second buffer (/var/log is persistent); the spool must survive too.
-    sekkeizu.persist.directories = [
-      {
-        directory = "/var/lib/hikyaku";
-        user = "hikyaku";
-        group = "hikyaku";
-        mode = "0700";
-      }
-    ];
-  };
 
   flake.modules.darwin.observability-agent =
     { config, ... }:

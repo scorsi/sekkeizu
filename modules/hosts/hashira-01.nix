@@ -19,6 +19,7 @@ in
       nixos.secrets
       nixos.kekkai
       nixos.server
+      nixos.observability-stores
       nixos.observability-agent
       nixos.das
 

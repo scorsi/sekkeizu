@@ -1,8 +1,7 @@
-# masu (metrics) and nisshi (logs), the stores of the observability base (docs/observability.md),
-# on ishizue: persistent, not exposed. They listen on the vfkit bridge address, for the agents of
-# ishizue and jiban, and on ishizue's kekkai address for torii-cdg's (network/kekkai.nix opens the
-# ports to it), and accept each host's token as `node:<host>` and the operator's as `reader`. Their
-# own /metrics stay on loopback, for ishizue's hikyaku.
+# masu (metrics) and nisshi (logs), the stores of the observability base (docs/observability.md):
+# persistent, not exposed. They listen on the host's kekkai address only, where every agent pushes
+# (network/kekkai.nix opens the ports to each peer), and accept each host's token as `node:<host>`
+# and the operator's as `reader`. Their own /metrics stay on loopback, for the host's hikyaku.
 {
   config,
   inputs,
@@ -10,33 +9,30 @@
   ...
 }:
 let
-  inherit (config.sekkeizu) bridgeAddresses kekkai observability;
+  inherit (config.sekkeizu) kekkai observability;
   inherit (config.kiso) owner;
   tokens =
     lib.mapAttrs' (host: hash: lib.nameValuePair hash "node:${host}") observability.tokenHashes
     // lib.genAttrs observability.readerTokenHashes (_: "reader");
-  sopsFile = ../../secrets/ishizue/observability.yaml;
   retentionDays = builtins.fromJSON (builtins.readFile ../backup/observability-retention-days.json);
 in
 {
   flake.modules.nixos.observability-stores =
     { config, pkgs, ... }:
     let
-      address = bridgeAddresses.${config.networking.hostName};
       overlay = kekkai.nodes.${config.networking.hostName}.ipv4;
-      subnet = "${lib.concatStringsSep "." (lib.take 3 (lib.splitString "." address))}.0/24";
+      sopsFile = ../../secrets/${config.networking.hostName}/observability.yaml;
       archives = "${pkgs.python3}/bin/python3 ${../backup/observability-archives.py}";
-      # How long jiban may miss pulls before a day exists nowhere but in the store itself.
+      # How long the export keeps a day's links; the stores' own retention frees it afterwards.
       keepDays = 90;
       unit = {
         # At boot systemd-sysctl precedes sysinit.target; at a switch that sets it, only this orders them.
         after = [ "systemd-sysctl.service" ];
-        # Only the agents talk to a store (the bridge, kekkai), and hikyaku scrapes it on loopback.
+        # Only the agents talk to a store (kekkai), and hikyaku scrapes it on loopback.
         serviceConfig = {
           IPAddressDeny = "any";
           IPAddressAllow = [
             "localhost"
-            subnet
             kekkai.ipv4Prefix
           ];
         };
@@ -44,10 +40,7 @@ in
       store = name: {
         enable = true;
         inherit retentionDays;
-        listen = map (a: "${a}:${toString observability.stores.${name}.port}") [
-          address
-          overlay
-        ];
+        listen = [ "${overlay}:${toString observability.stores.${name}.port}" ];
         tls = {
           certFile = "${../../modules-private/observability/${name}.pem}";
           keyFile = config.sops.secrets."${name}-tls-key".path;
@@ -97,21 +90,18 @@ in
             "nisshi"
           ];
 
-      # Backups (backup-source), twice a day: RPO 12 h on jiban (modules/meta/observability.nix).
-      # A day is sealed once its manifest exists, and never changes again (both storage formats):
+      # Exports for the backups, twice a day (modules/meta/observability.nix). A day is sealed once its manifest exists, and never changes again (both storage formats):
       # hard links into /persist/backups, data before manifest, no extra space. The open day is a
       # COPY of its prefix up to the committed length in state.json (`<day>.ndjson.zst.partial`,
       # replaced each run, dropped once the day is linked): a link would follow the live file, and
       # the bytes past that length may be torn. Links of days older than `keepDays` are deleted, so
-      # the stores' own retention (400 days of data) frees space again on this disk; jiban and
-      # restic keep every day (pull never deletes), nisshi's whole manifest chain included. On
-      # /persist itself, since a link cannot cross the bind mount of /var/lib/<store>. LAST_RUN
-      # (time, then every exported sealed file) is written last, only after a successful run:
-      # jiban's pull checks it (backup/pull.nix).
+      # the stores' own retention (400 days of data) frees space again on this disk. On /persist
+      # itself, since a link cannot cross the bind mount of /var/lib/<store>. LAST_RUN (time, then
+      # every exported sealed file) is written last, only after a successful run.
       #
-      # The export directories are root's, 0700 with an ACL for backup-source's account (traverse
-      # and read, as for forgejo-dump): the links share the store's inodes, masu's are 0644, so the
-      # directories alone keep every other account out. Fixed on each run, existing trees included.
+      # The export directories are root's, 0700: the links share the store's inodes, masu's are
+      # 0644, so the directories alone keep every other account out. Fixed on each run, existing
+      # trees included.
       systemd.services.observability-backup = {
         description = "Export the days of masu and nisshi into /persist/backups";
         startAt = [
@@ -119,7 +109,6 @@ in
           "*-*-* 16:45:00"
         ];
         path = [
-          pkgs.acl
           pkgs.coreutils
           pkgs.findutils
         ];
@@ -131,47 +120,35 @@ in
           for store in masu nisshi; do
             out=/persist/backups/$store
             install -d -m 0700 -o root -g root "$out"
-            # chmod drops the ACL mask; setfacl below recomputes it.
             find "$out" -type d -exec chown root:root {} + -exec chmod 0700 {} +
             ${archives} export "/persist/var/lib/$store" "$out" ${toString retentionDays} ${toString keepDays}
-            # On the shared inodes, so backup can read the store's own copies too, never write them.
-            setfacl -R -m u:backup:rX "$out"
             ${archives} marker "$out"
-            setfacl -m u:backup:r "$out/LAST_RUN"
           done
         '';
       };
 
-      # From the bridge's subnet to the bridge address only (jiban and ishizue's own agents; vfkit's
-      # NAT hands out a /24). Trusted interfaces are accepted before any of these rules, so the
-      # stores' ports are refused on them first, except loopback (ishizue's own hikyaku) and kekkai0,
-      # where kekkai's own allowInbound (network/kekkai.nix) already limits which peer reaches them.
+      # Trusted interfaces are accepted before any rule, so the stores' ports are refused on them
+      # first, except loopback (the host's own hikyaku) and kekkai0, where kekkai's own allowInbound
+      # (network/kekkai.nix) already limits which peer reaches them.
       networking.firewall.extraCommands = lib.concatMapStrings (
         store:
-        let
-          port = toString store.port;
-        in
-        ''
-          iptables -A nixos-fw -s ${subnet} -d ${address} -p tcp --dport ${port} -j nixos-fw-accept
-        ''
-        +
-          lib.concatMapStrings
-            (iface: ''
-              iptables -I nixos-fw -i ${iface} -p tcp --dport ${port} -j nixos-fw-refuse
-            '')
-            (
-              lib.subtractLists [
-                "lo"
-                "kekkai0"
-              ] config.networking.firewall.trustedInterfaces
-            )
+        lib.concatMapStrings
+          (iface: ''
+            iptables -I nixos-fw -i ${iface} -p tcp --dport ${toString store.port} -j nixos-fw-refuse
+          '')
+          (
+            lib.subtractLists [
+              "lo"
+              "kekkai0"
+            ] config.networking.firewall.trustedInterfaces
+          )
       ) (lib.attrValues observability.stores);
     };
 
   # The operator's reader token on jiban, for the manual silence check (/v1/status: last receive
   # time per agent, refreshed by a successful push only):
   #   curl --cacert modules-private/observability/ca.pem \
-  #     --resolve masu.internal:9472:<ishizue's bridge address> \
+  #     --resolve masu.internal:9472:<the stores' host kekkai address> \
   #     -H "Authorization: Bearer $(cat /run/secrets/observability-reader-token)" \
   #     https://masu.internal:9472/v1/status | jq
   # nisshi alike on nisshi.internal:9473.

@@ -23,7 +23,6 @@ in
       nixos.kekkai
       nixos.annai
       nixos.hanko
-      nixos.observability-stores
       nixos.server
       nixos.observability-agent
       nixos.genkan

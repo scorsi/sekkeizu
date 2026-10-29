@@ -8,9 +8,8 @@
 # unattended job cannot touch a hardware key) is forced into `rrsync -ro /persist/backups`, and which
 # sshd accepts only from the Mac's end of the vfkit NAT bridge.
 #
-# jiban (`backup-pull`): a launchd job, twice a day, rsyncs forgejo, masu, nisshi and hanko into
-# `sekkeizu.backups.dir`/ishizue, each on its own; keeps 30 days of Forgejo dumps; fails a store
-# whose export (LAST_RUN) is older than 13 h or lists a sealed file missing here. One line per run
+# jiban (`backup-pull`): a launchd job, twice a day, rsyncs forgejo and hanko into
+# `sekkeizu.backups.dir`/ishizue, each on its own; keeps 30 days of Forgejo dumps. One line per run
 # with the failed sources; a failure also raises a notification.
 # The private key is in sops (secrets/jiban/secrets.yaml, `backup-pull-key`) rather than generated
 # on the Mac: it survives a reinstall through `rekey-host`, so its public key
@@ -31,7 +30,6 @@ let
   puller = "192.168.64.1";
   publicKey = config.sekkeizu.backupPullKey;
   keepDays = 30;
-  storeKeepDays = builtins.fromJSON (builtins.readFile ./observability-retention-days.json);
 in
 {
   flake.modules.nixos.backup-source =
@@ -165,20 +163,6 @@ in
                 archives $dest | where modified < ((date now) - ${toString keepDays}day) | each { |f| rm $f.name } | ignore
               }
 
-              for store in [masu nisshi] {
-                let into = $"${dir}/ishizue/($store)"
-                let r = pull $store $into
-                if $r != 0 {
-                  $failed = $failed | append $"($store)=($r)"
-                  continue
-                }
-                # Retention only after a fresh, complete pull: the export ran less than 13 h ago
-                # (twice a day) and every sealed file it lists is here. Manifests keep nisshi's chain.
-                let checked = ^${pkgs.python3}/bin/python3 ${./observability-archives.py} pulled $into ${toString storeKeepDays} 13 | complete
-                print --stderr --no-newline $checked.stderr
-                if $checked.exit_code != 0 { $failed = $failed | append $"($store)=check" }
-              }
-
               # Account identities have no time-based expiry: CAA may still pin an older one.
               let hanko = "${dir}/ishizue/hanko"
               let h = pull hanko $hanko
@@ -201,7 +185,7 @@ in
             UserName = owner.name;
             # Appended to by launchd, which nu can't redirect its own stderr to.
             StandardErrorPath = log;
-            # 30 min after each of ishizue's exports (observability/stores.nix).
+            # After ishizue's Forgejo dump (04:31), and again in the afternoon.
             StartCalendarInterval = [
               {
                 Hour = 5;

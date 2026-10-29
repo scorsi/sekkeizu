@@ -12,13 +12,11 @@
 # caFile. No reminder before expiry: hanshou will alert on it. Replaced by hanko certificates
 # later (masu ADR 0007, nisshi ADR 0008).
 #
-# RPO: 12 h on jiban (ishizue exports at 04:45 and 16:45, the open day as a committed prefix;
-# jiban pulls 30 min later), 24 h off site (restic, daily). backup/pull.nix, observability/stores.nix.
+# Backups: the stores' host exports at 04:45 and 16:45 (the open day as a committed prefix) into
+# /persist/backups (observability/stores.nix); nothing copies that export off the host yet.
 #
 # Trust boundaries: an agent's token cannot read /v1/status, the reader token cannot push. Root
-# on ishizue reaches both stores and their export. Root on jiban (hikyaku runs as root there, the
-# pull as the owner) reaches the hypervisor, every pulled backup and the Mac's secrets: a
-# dedicated pull account is future work (backup/pull.nix).
+# on the stores' host reaches both stores and their export.
 #
 # /v1/status shows an agent's state as of its last successful push (nisshi keeps it in memory
 # only, lost at restart): read `paused` and the rest against the last receive time, never as a
