@@ -19,7 +19,8 @@ in
       nixos.secrets
       nixos.kekkai
       nixos.server
-      nixos.observability-agent
+      nixos.hikyaku
+      nixos.node-exporter
       nixos.hanko
       nixos.genkan
       nixos.forgejo-runner

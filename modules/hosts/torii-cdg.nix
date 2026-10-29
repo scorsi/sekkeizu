@@ -22,7 +22,8 @@ in
       nixos.kekkai-gate
       nixos.genkan-edge
       nixos.server
-      nixos.observability-agent
+      nixos.hikyaku
+      nixos.node-exporter
 
       # ─── Machine identity ─────────────────────────────────────────────
       {

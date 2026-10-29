@@ -13,7 +13,7 @@
 # later (masu ADR 0007, nisshi ADR 0008).
 #
 # Backups: the stores' host exports at 04:45 and 16:45 (the open day as a committed prefix) into
-# /persist/backups (observability/stores.nix); nothing copies that export off the host yet.
+# /persist/backups (masu-backup and nisshi-backup, observability/masu.nix and nisshi.nix); nothing copies that export off the host yet.
 #
 # Trust boundaries: an agent's token cannot read /v1/status, the reader token cannot push. Root
 # on the stores' host reaches both stores and their export.

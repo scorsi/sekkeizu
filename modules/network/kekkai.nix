@@ -49,7 +49,7 @@ let
   # replies always pass). ishizue: annai uchi and SSH from jiban, Forgejo's HTTP and SSH ports from
   # genkan's node. jiban: nothing, every flow between the two starts on jiban (deploys, backup pull,
   # hikyaku, the remote builder). The gate: SSH from jiban. The hashira: SSH from jiban (deploys);
-  # every node's hikyaku pushes to masu and nisshi on hashira-01 (observability/stores.nix);
+  # every node's hikyaku pushes to masu and nisshi on hashira-01 (observability/masu.nix, nisshi.nix);
   # hashira-02 runs genkan: the web port and Forgejo's git SSH (2222) for jiban and ishizue's runner,
   # the PROXY listener (8443, genkan.nix) for the gate's genkan.
   stores = [
@@ -175,6 +175,10 @@ in
       # kekkai's per-peer filter is the only one on the overlay (docs/migration.md, "not both"):
       # allowInbound above is the single place a port opens to a peer.
       networking.firewall.trustedInterfaces = [ "kekkai0" ];
+      # kekkai0 and its address exist only while kekkai-node runs (a non-persistent TUN): services
+      # listening on that address (genkan, masu, nisshi) must bind it whether or not it is up, and
+      # serve it whenever it is (re)added.
+      boot.kernel.sysctl."net.ipv4.ip_nonlocal_bind" = 1;
       # The tunnel's UDP port: on the bridge address only (like annai's port 53) on a VM, on every
       # interface of a public host (Vultr's firewall, infra/stacks/torii, opens the same port).
       networking.firewall.extraCommands = lib.mkIf (address != null) ''

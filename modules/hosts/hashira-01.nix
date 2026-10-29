@@ -19,8 +19,10 @@ in
       nixos.secrets
       nixos.kekkai
       nixos.server
-      nixos.observability-stores
-      nixos.observability-agent
+      nixos.masu
+      nixos.nisshi
+      nixos.hikyaku
+      nixos.node-exporter
       nixos.das
 
       # ─── Machine identity ─────────────────────────────────────────────

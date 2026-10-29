@@ -63,11 +63,11 @@
     # pins its own nixpkgs and Zig toolchain (zig2nix) and is built and tested against them.
     scorsi-annai.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/annai.git";
 
-    # The observability stores (modules/observability/stores.nix). Not following our nixpkgs either:
+    # The observability stores (modules/observability/masu.nix, nisshi.nix). Not following our nixpkgs either:
     # each pins its own and is tested against it.
     scorsi-masu.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/masu.git";
     scorsi-nisshi.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/nisshi.git";
-    # The node agent (modules/observability/agent.nix); its masu and nisshi inputs are test-only.
+    # The node agent (modules/observability/hikyaku.nix); its masu and nisshi inputs are test-only.
     scorsi-hikyaku.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/hikyaku.git";
 
     # The certificates (modules/network/hanko.nix). Not following our nixpkgs: tested against its

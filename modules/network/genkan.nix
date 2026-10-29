@@ -62,10 +62,6 @@ in
       };
       metrics.listen = metrics;
     };
-
-    # kekkai0 is a non-persistent TUN: binding its address must not depend on kekkai-node being up
-    # (observability/stores.nix sets the same for masu and nisshi; mkDefault lets both define it).
-    boot.kernel.sysctl."net.ipv4.ip_nonlocal_bind" = lib.mkDefault 1;
   };
 
   flake.modules.nixos.genkan-edge = {

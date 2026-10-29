@@ -23,7 +23,8 @@ in
       nixos.kekkai
       nixos.annai
       nixos.server
-      nixos.observability-agent
+      nixos.hikyaku
+      nixos.node-exporter
       nixos.forgejo
       nixos.forgejo-runner
       nixos.backup-source

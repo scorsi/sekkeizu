@@ -1,7 +1,7 @@
-# hikyaku, the node agent of the observability base (docs/observability.md), with node_exporter
-# as the host exporter until mihari exists. Pushes to masu and nisshi with the host's own token,
-# pinning the stores' CA (ca.pem). Targets follow what the host runs: node and hikyaku itself
-# everywhere, annai, genkan, kekkai-node, masu and nisshi wherever their loopback /metrics is on.
+# hikyaku, the node agent of the observability base (docs/observability.md). Pushes to masu and
+# nisshi with the host's own token, pinning the stores' CA (ca.pem). Targets follow what the host
+# runs: hikyaku itself everywhere, node_exporter (node-exporter.nix) and annai, genkan, kekkai-node,
+# masu and nisshi wherever their loopback /metrics is on.
 {
   config,
   inputs,
@@ -50,28 +50,25 @@ let
 
       sops.secrets.hikyaku-token.sopsFile = ../../secrets/${host}/hikyaku.yaml;
 
-      services.prometheus.exporters.node = {
-        enable = true;
-        listenAddress = "127.0.0.1";
-      };
-
       services.hikyaku = {
         enable = true;
         inherit (self) spoolLimit;
-        targets = serviceTargets // {
-          # node_exporter on Linux is well above the 2000 series meant for house services.
-          node = {
-            url = "http://127.0.0.1:${toString config.services.prometheus.exporters.node.port}/metrics";
-            maxSeries = 10000;
+        targets =
+          serviceTargets
+          // lib.optionalAttrs config.services.prometheus.exporters.node.enable {
+            # node_exporter on Linux is well above the 2000 series meant for house services.
+            node = {
+              url = "http://127.0.0.1:${toString config.services.prometheus.exporters.node.port}/metrics";
+              maxSeries = 10000;
+            };
           };
-        };
         masu = destination "masu";
         nisshi = destination "nisshi";
       };
     };
 in
 {
-  flake.modules.nixos.observability-agent =
+  flake.modules.nixos.hikyaku =
     { config, ... }:
     {
       imports = [
@@ -97,7 +94,7 @@ in
       ];
     };
 
-  flake.modules.darwin.observability-agent =
+  flake.modules.darwin.hikyaku =
     { config, ... }:
     {
       imports = [ (agent "darwinModules") ];
