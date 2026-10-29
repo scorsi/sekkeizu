@@ -56,6 +56,8 @@ let
     "tcp/9472"
     "tcp/9473"
   ];
+  # azukari's store (backup/azukari.nix), for the nodes that back up to it.
+  azukari = [ "tcp/5000" ];
   web = [
     "tcp/443"
     "tcp/2222"
@@ -88,9 +90,9 @@ let
     // lib.genAttrs hashira (_: [ ]);
     hashira-01 = {
       jiban = [ "tcp/22" ] ++ stores;
-      ishizue = stores;
+      ishizue = stores ++ azukari;
       ${gate} = stores;
-      hashira-02 = stores;
+      hashira-02 = stores ++ azukari;
     };
     hashira-02 = {
       jiban = [ "tcp/22" ] ++ web;

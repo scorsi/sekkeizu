@@ -52,6 +52,8 @@ in
         isSystemUser = true;
         group = user;
         home = "/var/empty";
+        # /persist/backups is 0750 root:azukari-backup since azukari (backup/azukari.nix).
+        extraGroups = [ "azukari-backup" ];
         # sshd runs the forced command through the login shell.
         shell = pkgs.bash;
         openssh.authorizedKeys.keys = [

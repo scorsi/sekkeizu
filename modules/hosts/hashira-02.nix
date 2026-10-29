@@ -26,6 +26,7 @@ in
       nixos.genkan
       nixos.forgejo-runner
       nixos.rirekisho
+      nixos.azukari-backup
 
       # ─── Machine identity ─────────────────────────────────────────────
       {

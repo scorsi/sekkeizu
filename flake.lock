@@ -2,9 +2,9 @@
   "nodes": {
     "annai": {
       "inputs": {
-        "masu": "masu_3",
-        "nisshi": "nisshi_3",
-        "nixpkgs": "nixpkgs_4",
+        "masu": "masu_4",
+        "nisshi": "nisshi_4",
+        "nixpkgs": "nixpkgs_5",
         "zig2nix": "zig2nix_2"
       },
       "locked": {
@@ -164,6 +164,21 @@
         "type": "github"
       }
     },
+    "crane_8": {
+      "locked": {
+        "lastModified": 1791754810,
+        "narHash": "sha256-cN0Mgk+sQtCJcGWs9H4M0CnLRAuC4I8aCwiBTcBJs6E=",
+        "owner": "ipetkov",
+        "repo": "crane",
+        "rev": "bd63bf1d0a0f6dcacd7549c714a671ee63b0db6a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ipetkov",
+        "repo": "crane",
+        "type": "github"
+      }
+    },
     "disko": {
       "inputs": {
         "nixpkgs": [
@@ -207,7 +222,9 @@
     "flake-parts_10": {
       "inputs": {
         "nixpkgs-lib": [
-          "scorsi-kekkai",
+          "scorsi-hanko",
+          "annai",
+          "nisshi",
           "nixpkgs"
         ]
       },
@@ -226,6 +243,70 @@
       }
     },
     "flake-parts_11": {
+      "inputs": {
+        "nixpkgs-lib": [
+          "scorsi-hanko",
+          "nisshi",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790898470,
+        "narHash": "sha256-zTwuwezD0w3hpga6a6P8emidzAZFyWqlNeRBlpWOOl8=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "024633cd702b10285db5cb19b40ad48d2399ba60",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "flake-parts_12": {
+      "inputs": {
+        "nixpkgs-lib": [
+          "scorsi-hikyaku",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790898470,
+        "narHash": "sha256-zTwuwezD0w3hpga6a6P8emidzAZFyWqlNeRBlpWOOl8=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "024633cd702b10285db5cb19b40ad48d2399ba60",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "flake-parts_13": {
+      "inputs": {
+        "nixpkgs-lib": [
+          "scorsi-kekkai",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790898470,
+        "narHash": "sha256-zTwuwezD0w3hpga6a6P8emidzAZFyWqlNeRBlpWOOl8=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "024633cd702b10285db5cb19b40ad48d2399ba60",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "flake-parts_14": {
       "inputs": {
         "nixpkgs-lib": [
           "scorsi-kekkai",
@@ -247,7 +328,7 @@
         "type": "github"
       }
     },
-    "flake-parts_12": {
+    "flake-parts_15": {
       "inputs": {
         "nixpkgs-lib": [
           "scorsi-kekkai",
@@ -269,7 +350,7 @@
         "type": "github"
       }
     },
-    "flake-parts_13": {
+    "flake-parts_16": {
       "inputs": {
         "nixpkgs-lib": [
           "scorsi-masu",
@@ -290,7 +371,7 @@
         "type": "github"
       }
     },
-    "flake-parts_14": {
+    "flake-parts_17": {
       "inputs": {
         "nixpkgs-lib": [
           "scorsi-nisshi",
@@ -358,8 +439,7 @@
     "flake-parts_4": {
       "inputs": {
         "nixpkgs-lib": [
-          "scorsi-genkan",
-          "masu",
+          "scorsi-azukari",
           "nixpkgs"
         ]
       },
@@ -380,8 +460,8 @@
     "flake-parts_5": {
       "inputs": {
         "nixpkgs-lib": [
-          "scorsi-genkan",
-          "nisshi",
+          "scorsi-azukari",
+          "masu",
           "nixpkgs"
         ]
       },
@@ -402,9 +482,8 @@
     "flake-parts_6": {
       "inputs": {
         "nixpkgs-lib": [
-          "scorsi-hanko",
-          "annai",
-          "masu",
+          "scorsi-azukari",
+          "nisshi",
           "nixpkgs"
         ]
       },
@@ -425,9 +504,8 @@
     "flake-parts_7": {
       "inputs": {
         "nixpkgs-lib": [
-          "scorsi-hanko",
-          "annai",
-          "nisshi",
+          "scorsi-genkan",
+          "masu",
           "nixpkgs"
         ]
       },
@@ -448,7 +526,7 @@
     "flake-parts_8": {
       "inputs": {
         "nixpkgs-lib": [
-          "scorsi-hanko",
+          "scorsi-genkan",
           "nisshi",
           "nixpkgs"
         ]
@@ -470,7 +548,9 @@
     "flake-parts_9": {
       "inputs": {
         "nixpkgs-lib": [
-          "scorsi-hikyaku",
+          "scorsi-hanko",
+          "annai",
+          "masu",
           "nixpkgs"
         ]
       },
@@ -587,9 +667,9 @@
     "masu_2": {
       "inputs": {
         "crane": "crane_2",
-        "flake-parts": "flake-parts_4",
+        "flake-parts": "flake-parts_5",
         "nixpkgs": [
-          "scorsi-genkan",
+          "scorsi-azukari",
           "nixpkgs"
         ],
         "treefmt-nix": "treefmt-nix_3"
@@ -611,13 +691,37 @@
     "masu_3": {
       "inputs": {
         "crane": "crane_3",
-        "flake-parts": "flake-parts_6",
+        "flake-parts": "flake-parts_7",
+        "nixpkgs": [
+          "scorsi-genkan",
+          "nixpkgs"
+        ],
+        "treefmt-nix": "treefmt-nix_6"
+      },
+      "locked": {
+        "lastModified": 1792780075,
+        "narHash": "sha256-9jKsQiRGmw8jqUtG/ogPXxgw2vD0vAvAMtdKzbJcfA8=",
+        "ref": "refs/heads/main",
+        "rev": "2860f1950c16f140fa71a8386ff49ffa70f032b9",
+        "revCount": 41,
+        "type": "git",
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/masu.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/masu.git"
+      }
+    },
+    "masu_4": {
+      "inputs": {
+        "crane": "crane_4",
+        "flake-parts": "flake-parts_9",
         "nixpkgs": [
           "scorsi-hanko",
           "annai",
           "nixpkgs"
         ],
-        "treefmt-nix": "treefmt-nix_5"
+        "treefmt-nix": "treefmt-nix_8"
       },
       "locked": {
         "lastModified": 1792517232,
@@ -633,7 +737,7 @@
         "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/masu.git"
       }
     },
-    "masu_4": {
+    "masu_5": {
       "inputs": {
         "crane": [
           "scorsi-hikyaku",
@@ -666,15 +770,15 @@
         "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/masu.git"
       }
     },
-    "masu_5": {
+    "masu_6": {
       "inputs": {
-        "crane": "crane_6",
-        "flake-parts": "flake-parts_11",
+        "crane": "crane_7",
+        "flake-parts": "flake-parts_14",
         "nixpkgs": [
           "scorsi-kekkai",
           "nixpkgs"
         ],
-        "treefmt-nix": "treefmt-nix_9"
+        "treefmt-nix": "treefmt-nix_12"
       },
       "locked": {
         "lastModified": 1792780075,
@@ -715,9 +819,9 @@
     },
     "nisshi_2": {
       "inputs": {
-        "flake-parts": "flake-parts_5",
+        "flake-parts": "flake-parts_6",
         "nixpkgs": [
-          "scorsi-genkan",
+          "scorsi-azukari",
           "nixpkgs"
         ],
         "treefmt-nix": "treefmt-nix_4"
@@ -738,33 +842,9 @@
     },
     "nisshi_3": {
       "inputs": {
-        "flake-parts": "flake-parts_7",
-        "nixpkgs": [
-          "scorsi-hanko",
-          "annai",
-          "nixpkgs"
-        ],
-        "treefmt-nix": "treefmt-nix_6"
-      },
-      "locked": {
-        "lastModified": 1792517216,
-        "narHash": "sha256-R1KI2uD6uLqVSqeBsDW66OspOA7HoUrrVdLog+dG00Q=",
-        "ref": "refs/heads/main",
-        "rev": "ce1e1ac72ff0fe8d34b94d1e1339cf989a67a365",
-        "revCount": 14,
-        "type": "git",
-        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/nisshi.git"
-      },
-      "original": {
-        "type": "git",
-        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/nisshi.git"
-      }
-    },
-    "nisshi_4": {
-      "inputs": {
         "flake-parts": "flake-parts_8",
         "nixpkgs": [
-          "scorsi-hanko",
+          "scorsi-genkan",
           "nixpkgs"
         ],
         "treefmt-nix": "treefmt-nix_7"
@@ -783,7 +863,54 @@
         "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/nisshi.git"
       }
     },
+    "nisshi_4": {
+      "inputs": {
+        "flake-parts": "flake-parts_10",
+        "nixpkgs": [
+          "scorsi-hanko",
+          "annai",
+          "nixpkgs"
+        ],
+        "treefmt-nix": "treefmt-nix_9"
+      },
+      "locked": {
+        "lastModified": 1792517216,
+        "narHash": "sha256-R1KI2uD6uLqVSqeBsDW66OspOA7HoUrrVdLog+dG00Q=",
+        "ref": "refs/heads/main",
+        "rev": "ce1e1ac72ff0fe8d34b94d1e1339cf989a67a365",
+        "revCount": 14,
+        "type": "git",
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/nisshi.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/nisshi.git"
+      }
+    },
     "nisshi_5": {
+      "inputs": {
+        "flake-parts": "flake-parts_11",
+        "nixpkgs": [
+          "scorsi-hanko",
+          "nixpkgs"
+        ],
+        "treefmt-nix": "treefmt-nix_10"
+      },
+      "locked": {
+        "lastModified": 1792702252,
+        "narHash": "sha256-TsyLv2fKnqeclGKDnc2QgvGER+ZuHzaSOQ2jEa60IeE=",
+        "ref": "refs/heads/main",
+        "rev": "0577322fcde6a3c1abe2c33f2f65c6ce82c0454c",
+        "revCount": 42,
+        "type": "git",
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/nisshi.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/nisshi.git"
+      }
+    },
+    "nisshi_6": {
       "inputs": {
         "flake-parts": [
           "scorsi-hikyaku",
@@ -812,14 +939,14 @@
         "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/nisshi.git"
       }
     },
-    "nisshi_6": {
+    "nisshi_7": {
       "inputs": {
-        "flake-parts": "flake-parts_12",
+        "flake-parts": "flake-parts_15",
         "nixpkgs": [
           "scorsi-kekkai",
           "nixpkgs"
         ],
-        "treefmt-nix": "treefmt-nix_10"
+        "treefmt-nix": "treefmt-nix_13"
       },
       "locked": {
         "lastModified": 1792702252,
@@ -890,6 +1017,22 @@
         "type": "github"
       }
     },
+    "nixpkgs_10": {
+      "locked": {
+        "lastModified": 1792208400,
+        "narHash": "sha256-c+NgsnPFEfvGOLxJEQkxkpOESw7mPjnh/H9qDVEWFkQ=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "42966a9c76f2cdb95b108c9fac939a27b0b8f2c5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-26.05-darwin",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "nixpkgs_2": {
       "locked": {
         "lastModified": 1792208400,
@@ -908,11 +1051,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1791678325,
-        "narHash": "sha256-yH6Su6IXtj1DUC6/Fpl1rmGpOFH1vtozMGOqaA6Yknk=",
+        "lastModified": 1792208400,
+        "narHash": "sha256-c+NgsnPFEfvGOLxJEQkxkpOESw7mPjnh/H9qDVEWFkQ=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "240fddad86d7a0520319f21d8be1b43db426b18d",
+        "rev": "42966a9c76f2cdb95b108c9fac939a27b0b8f2c5",
         "type": "github"
       },
       "original": {
@@ -924,22 +1067,6 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1792208400,
-        "narHash": "sha256-c+NgsnPFEfvGOLxJEQkxkpOESw7mPjnh/H9qDVEWFkQ=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "42966a9c76f2cdb95b108c9fac939a27b0b8f2c5",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "ref": "nixpkgs-26.05-darwin",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs_5": {
-      "locked": {
         "lastModified": 1791678325,
         "narHash": "sha256-yH6Su6IXtj1DUC6/Fpl1rmGpOFH1vtozMGOqaA6Yknk=",
         "owner": "NixOS",
@@ -954,13 +1081,29 @@
         "type": "github"
       }
     },
-    "nixpkgs_6": {
+    "nixpkgs_5": {
       "locked": {
         "lastModified": 1792208400,
         "narHash": "sha256-c+NgsnPFEfvGOLxJEQkxkpOESw7mPjnh/H9qDVEWFkQ=",
         "owner": "NixOS",
         "repo": "nixpkgs",
         "rev": "42966a9c76f2cdb95b108c9fac939a27b0b8f2c5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-26.05-darwin",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_6": {
+      "locked": {
+        "lastModified": 1791678325,
+        "narHash": "sha256-yH6Su6IXtj1DUC6/Fpl1rmGpOFH1vtozMGOqaA6Yknk=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "240fddad86d7a0520319f21d8be1b43db426b18d",
         "type": "github"
       },
       "original": {
@@ -1045,6 +1188,7 @@
         "nixpkgs": "nixpkgs",
         "preservation": "preservation",
         "scorsi-annai": "scorsi-annai",
+        "scorsi-azukari": "scorsi-azukari",
         "scorsi-genkan": "scorsi-genkan",
         "scorsi-hanko": "scorsi-hanko",
         "scorsi-hikyaku": "scorsi-hikyaku",
@@ -1078,11 +1222,33 @@
         "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/annai.git"
       }
     },
-    "scorsi-genkan": {
+    "scorsi-azukari": {
       "inputs": {
+        "flake-parts": "flake-parts_4",
         "masu": "masu_2",
         "nisshi": "nisshi_2",
-        "nixpkgs": "nixpkgs_3"
+        "nixpkgs": "nixpkgs_3",
+        "treefmt-nix": "treefmt-nix_5"
+      },
+      "locked": {
+        "lastModified": 1793306299,
+        "narHash": "sha256-bCnU3QZifkxhIz3p6qZAPQkDO69fXKCLvBvF8N1XFnA=",
+        "ref": "refs/heads/main",
+        "rev": "6d792cd6f133a4204e92225ac259e1548c46bc52",
+        "revCount": 66,
+        "type": "git",
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/azukari.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/azukari.git"
+      }
+    },
+    "scorsi-genkan": {
+      "inputs": {
+        "masu": "masu_3",
+        "nisshi": "nisshi_3",
+        "nixpkgs": "nixpkgs_4"
       },
       "locked": {
         "lastModified": 1792842483,
@@ -1101,8 +1267,8 @@
     "scorsi-hanko": {
       "inputs": {
         "annai": "annai",
-        "nisshi": "nisshi_4",
-        "nixpkgs": "nixpkgs_5"
+        "nisshi": "nisshi_5",
+        "nixpkgs": "nixpkgs_6"
       },
       "locked": {
         "lastModified": 1793295774,
@@ -1120,12 +1286,12 @@
     },
     "scorsi-hikyaku": {
       "inputs": {
-        "crane": "crane_4",
-        "flake-parts": "flake-parts_9",
-        "masu": "masu_4",
-        "nisshi": "nisshi_5",
-        "nixpkgs": "nixpkgs_6",
-        "treefmt-nix": "treefmt-nix_8"
+        "crane": "crane_5",
+        "flake-parts": "flake-parts_12",
+        "masu": "masu_5",
+        "nisshi": "nisshi_6",
+        "nixpkgs": "nixpkgs_7",
+        "treefmt-nix": "treefmt-nix_11"
       },
       "locked": {
         "lastModified": 1792785450,
@@ -1163,12 +1329,12 @@
     },
     "scorsi-kekkai": {
       "inputs": {
-        "crane": "crane_5",
-        "flake-parts": "flake-parts_10",
-        "masu": "masu_5",
-        "nisshi": "nisshi_6",
-        "nixpkgs": "nixpkgs_7",
-        "treefmt-nix": "treefmt-nix_11"
+        "crane": "crane_6",
+        "flake-parts": "flake-parts_13",
+        "masu": "masu_6",
+        "nisshi": "nisshi_7",
+        "nixpkgs": "nixpkgs_8",
+        "treefmt-nix": "treefmt-nix_14"
       },
       "locked": {
         "lastModified": 1793294586,
@@ -1230,10 +1396,10 @@
     },
     "scorsi-masu": {
       "inputs": {
-        "crane": "crane_7",
-        "flake-parts": "flake-parts_13",
-        "nixpkgs": "nixpkgs_8",
-        "treefmt-nix": "treefmt-nix_12"
+        "crane": "crane_8",
+        "flake-parts": "flake-parts_16",
+        "nixpkgs": "nixpkgs_9",
+        "treefmt-nix": "treefmt-nix_15"
       },
       "locked": {
         "lastModified": 1792780075,
@@ -1251,9 +1417,9 @@
     },
     "scorsi-nisshi": {
       "inputs": {
-        "flake-parts": "flake-parts_14",
-        "nixpkgs": "nixpkgs_9",
-        "treefmt-nix": "treefmt-nix_13"
+        "flake-parts": "flake-parts_17",
+        "nixpkgs": "nixpkgs_10",
+        "treefmt-nix": "treefmt-nix_16"
       },
       "locked": {
         "lastModified": 1792702252,
@@ -1364,7 +1530,7 @@
     "treefmt-nix_10": {
       "inputs": {
         "nixpkgs": [
-          "scorsi-kekkai",
+          "scorsi-hanko",
           "nisshi",
           "nixpkgs"
         ]
@@ -1386,7 +1552,7 @@
     "treefmt-nix_11": {
       "inputs": {
         "nixpkgs": [
-          "scorsi-kekkai",
+          "scorsi-hikyaku",
           "nixpkgs"
         ]
       },
@@ -1407,7 +1573,8 @@
     "treefmt-nix_12": {
       "inputs": {
         "nixpkgs": [
-          "scorsi-masu",
+          "scorsi-kekkai",
+          "masu",
           "nixpkgs"
         ]
       },
@@ -1426,6 +1593,70 @@
       }
     },
     "treefmt-nix_13": {
+      "inputs": {
+        "nixpkgs": [
+          "scorsi-kekkai",
+          "nisshi",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791885023,
+        "narHash": "sha256-C3alQ2MEt0zVrUSho5NUDo3jmhbff72++bfwoqT9Omo=",
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "rev": "0d6d739a833ba9a9c93034862e4a7b061a062a1c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "treefmt-nix_14": {
+      "inputs": {
+        "nixpkgs": [
+          "scorsi-kekkai",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791885023,
+        "narHash": "sha256-C3alQ2MEt0zVrUSho5NUDo3jmhbff72++bfwoqT9Omo=",
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "rev": "0d6d739a833ba9a9c93034862e4a7b061a062a1c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "treefmt-nix_15": {
+      "inputs": {
+        "nixpkgs": [
+          "scorsi-masu",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791885023,
+        "narHash": "sha256-C3alQ2MEt0zVrUSho5NUDo3jmhbff72++bfwoqT9Omo=",
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "rev": "0d6d739a833ba9a9c93034862e4a7b061a062a1c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "treefmt-nix_16": {
       "inputs": {
         "nixpkgs": [
           "scorsi-nisshi",
@@ -1471,7 +1702,7 @@
     "treefmt-nix_3": {
       "inputs": {
         "nixpkgs": [
-          "scorsi-genkan",
+          "scorsi-azukari",
           "masu",
           "nixpkgs"
         ]
@@ -1493,7 +1724,7 @@
     "treefmt-nix_4": {
       "inputs": {
         "nixpkgs": [
-          "scorsi-genkan",
+          "scorsi-azukari",
           "nisshi",
           "nixpkgs"
         ]
@@ -1515,9 +1746,7 @@
     "treefmt-nix_5": {
       "inputs": {
         "nixpkgs": [
-          "scorsi-hanko",
-          "annai",
-          "masu",
+          "scorsi-azukari",
           "nixpkgs"
         ]
       },
@@ -1538,9 +1767,8 @@
     "treefmt-nix_6": {
       "inputs": {
         "nixpkgs": [
-          "scorsi-hanko",
-          "annai",
-          "nisshi",
+          "scorsi-genkan",
+          "masu",
           "nixpkgs"
         ]
       },
@@ -1561,7 +1789,7 @@
     "treefmt-nix_7": {
       "inputs": {
         "nixpkgs": [
-          "scorsi-hanko",
+          "scorsi-genkan",
           "nisshi",
           "nixpkgs"
         ]
@@ -1583,7 +1811,9 @@
     "treefmt-nix_8": {
       "inputs": {
         "nixpkgs": [
-          "scorsi-hikyaku",
+          "scorsi-hanko",
+          "annai",
+          "masu",
           "nixpkgs"
         ]
       },
@@ -1604,8 +1834,9 @@
     "treefmt-nix_9": {
       "inputs": {
         "nixpkgs": [
-          "scorsi-kekkai",
-          "masu",
+          "scorsi-hanko",
+          "annai",
+          "nisshi",
           "nixpkgs"
         ]
       },

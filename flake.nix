@@ -74,6 +74,10 @@
     # own; its annai and nisshi inputs are test-only.
     scorsi-hanko.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/hanko.git";
 
+    # The object store and the nodes' backups (modules/backup/azukari.nix). Not following our
+    # nixpkgs: tested against its own; its masu and nisshi inputs are test-only.
+    scorsi-azukari.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/azukari.git";
+
     # The overlay network (modules/network/kekkai.nix). Not following our nixpkgs: tested against
     # its own; its masu and nisshi inputs are test-only.
     scorsi-kekkai.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kekkai.git";
