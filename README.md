@@ -230,10 +230,10 @@ never crosses kekkai. No git SSH on a public port.
   restore with `azukari backup restore <config> <snapshot> <empty dir>` (as root to restore owners),
   or `restore --verify` to read everything back without writing. Without the store (azukari ADR
   0029), add `--from-dir <copy>/backup` (the USB replica, or the box's `azukari/backup` fetched with
-  rsync): only the node's config and data key are needed. The former restic repository on the Storage Box
-  keeps its last snapshots: `restic -r sftp://<user>@<box>:23/restic`, with `restic-password` and
-  `backup-pull-key` from `secrets/jiban/secrets.yaml` (the USB volume `ishizue-backup` is gone:
-  that disk is now the replica disk).
+  rsync): only the node's config and data key are needed. The former restic repository was deleted from the Storage Box
+  (2026-10-30) once a restore from both copies was checked; the box's weekly snapshots (`.zfs/`) keep it
+  for about 10 weeks, readable with `restic-password` and `backup-pull-key` from
+  `secrets/jiban/secrets.yaml`: drop both once the last snapshot holding it has expired.
 - **Observability retention**: masu and nisshi keep 400 days of data, configured from
   `modules/observability/retention-days.json`. The `masu-days` and `nisshi-days` exports mirror
   what the store holds: a day the store drops leaves the export too, and stays in earlier azukari
@@ -363,7 +363,7 @@ infra/
     dns-zone/       one Porkbun zone: records, optional null-mail (null MX, SPF -all, DMARC reject)
   stacks/
     torii/          Vultr, `torii-<region>`, region `cdg` (Paris) by default; ICMP, tcp/22, 53, 80, 443, udp/53, 4800-4802
-    storage/        Hetzner Storage Box BX11 (fsn1), weekly snapshots, subaccount `backup`: azukari's replica, jiban's last restic
+    storage/        Hetzner Storage Box BX11 (fsn1), weekly snapshots, subaccount `backup`: azukari's replica
     dns/            scorsi.dev and scorsi.me at Porkbun: the delegation to annai soto (NS, glue); reads torii's addresses
 ```
 

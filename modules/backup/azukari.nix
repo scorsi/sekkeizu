@@ -6,8 +6,8 @@
 #
 # The store replicates every 6 h (azukari ADR 0008): to the Storage Box's `backup` subaccount over
 # SSH (`offsite`, key azukari-offsite-key, the box's host key pinned) and to its own USB disk
-# (`local`, modules/nixos/replica-disk.nix). The earlier pull to jiban and its restic copies are gone;
-# the Storage Box's `restic/` stays readable with `restic-password` (README, Backups). The exports'
+# (`local`, modules/nixos/replica-disk.nix). The earlier pull to jiban and its restic copies are gone
+# (README, Backups: the box's snapshots keep the last restic repository for a few weeks). The exports'
 # names differ from the earlier directories under /persist/backups (forgejo, hanko, masu, nisshi),
 # left in place, never reused.
 #
