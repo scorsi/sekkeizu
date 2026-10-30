@@ -9,7 +9,7 @@
 # destroyed. Replacing a leaf (lost or compromised key) needs no flag day, with an overlapping CA:
 # a new CA; every agent's caFile holds both CAs (PEMs concatenated) and is deployed; the new CA signs new leaves
 # for both stores, deployed with their keys; once every agent pushes again, the old CA leaves
-# caFile. No reminder before expiry: hanshou will alert on it. Replaced by hanko certificates
+# caFile. No reminder before expiry: hansho will alert on it. Replaced by hanko certificates
 # later (masu ADR 0007, nisshi ADR 0008).
 #
 # Backups: azukari's daily run on the stores' host exports their closed days, the open day never

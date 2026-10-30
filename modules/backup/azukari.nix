@@ -18,7 +18,7 @@
 # Retention runs dry (`enabled = false`, owner, 2026-10-29): its daily `prune-completed` logs what it
 # would delete, every snapshot is kept. The owner administers the store with `azukari` (member of
 # `azukari-admin`, azukari ADR 0024). No alert on a stale
-# `azukari_last_snapshot_timestamp_seconds` either: the lab has no alerting yet (hanshou).
+# `azukari_last_snapshot_timestamp_seconds` either: the lab has no alerting yet (hansho).
 { config, inputs, ... }:
 let
   inherit (config.sekkeizu) domain kekkai;
