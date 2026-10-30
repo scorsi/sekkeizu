@@ -77,7 +77,9 @@ in
               nodes = map (host: idOf host "azukari-backup") backupHosts;
               retention = {
                 enabled = false;
-                keep = "365d";
+                # A week, dry, to see in the logs what a real prune would delete (owner, 2026-10-30);
+                # back to a long keep before enabling.
+                keep = "7d";
                 run_at = "03:30";
               };
             }
