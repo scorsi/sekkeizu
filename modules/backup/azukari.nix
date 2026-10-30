@@ -1,7 +1,7 @@
 # azukari, the lab's object store and its only backup (its own repo, consumed as `scorsi-azukari`):
 # the store on hashira-01 (`azukari-server`), one `backup` bucket on a single DAS disk, and on each
-# node a daily `azukari-backup` run (`azukari-backup`) that sends what the node's services export
-# under /persist/backups/<export> (azukari ADR 0020, 0021). Both sides authenticate with hanko-ca's
+# node one `azukari-backup-<export>` unit and timer per export (azukari ADR 0030: daily, the stores'
+# days just after their 00:10 UTC seal), each sending one service's export under /persist/backups/<export> (ADR 0020, 0021). Both sides authenticate with hanko-ca's
 # SVIDs (hanko-ca.nix): the store accepts the nodes' `azukari-backup` IDs, the nodes pin the store's ID.
 #
 # The store replicates every 6 h (azukari ADR 0008): to the Storage Box's `backup` subaccount over
@@ -204,6 +204,8 @@ in
           store:
           lib.nameValuePair "${store}-days" {
             user = store;
+            # Each store seals the previous UTC day at 00:10 UTC (their ADR 0006): daily, just after.
+            every = "*-*-* 01:00:00 UTC";
             writablePaths = [ "/persist" ];
             command = ''${exportDays} /persist/var/lib/${store} "$EXPORT_DIR" azukari-export-${store}-days'';
           }
@@ -215,8 +217,11 @@ in
       systemd.tmpfiles.rules = [ "z ${cfg.exportsDir} 0711 root root -" ];
 
       systemd.services = {
-        azukari-backup.unitConfig.RequiresMountsFor = [ cfg.exportsDir ];
       }
+      // lib.mapAttrs' (
+        name: _:
+        lib.nameValuePair "azukari-backup-${name}" { unitConfig.RequiresMountsFor = [ cfg.exportsDir ]; }
+      ) cfg.exports
       // lib.optionalAttrs forgejo.enable {
         azukari-export-forgejo-dump = {
           after = [ "forgejo.service" ];

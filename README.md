@@ -213,21 +213,22 @@ never crosses kekkai. No git SSH on a public port.
   the owner. kekkai's `allowInbound` opens tcp/2222 to jiban; the runners pin its host key for
   both names. No shared `git` account on the system, no `AllowUsers` change; the server only speaks
   git, with the keys stored in Forgejo (`owner.sshKeys`, added by the `forgejo-admin` unit).
-- **Backups**: azukari (`modules/backup/azukari.nix`). Each backed-up node runs `azukari-backup`
-  daily (timer with a 1 h random delay), which first runs the node's exports into
-  `/persist/backups/<export>`, then sends them to the store on hashira-01 (bucket `backup`, DAS disk
+- **Backups**: azukari (`modules/backup/azukari.nix`). Each export of a node has its own
+  `azukari-backup-<export>` unit and timer (1 h random delay): daily, `masu-days` and `nisshi-days`
+  at 01:00 UTC (after their stores seal the previous day at 00:10 UTC). A run first refreshes its export in `/persist/backups/<export>`, then sends it to the store on hashira-01 (bucket `backup`, DAS disk
   ZN1374ZM). Exports: `forgejo-dump` on ishizue (`forgejo dump`, one tar replaced each run),
   `hanko-account` on hashira-02 (hanko's ACME account key, `account.key`), `masu-days` and
   `nisshi-days` on hashira-01 (each store's closed days, hard-linked; the open day is never
-  exported, so the last day lags until it closes). Every snapshot is kept (no retention yet).
+  exported, so the last day lags until it closes). Retention runs dry (7-day keep, `enabled = false`).
   The store replicates the bucket every 6 h to two copies (azukari ADR 0008): `offsite`, the
   Storage Box's `backup` subaccount under `azukari/` (rsync over SSH, key `azukari-offsite-key` in
   `secrets/hashira-01/azukari-offsite.yaml`, the box's host key pinned; the directory was made once with that
   key from hashira-01, the owner having no SSH access to the box), and `local`, the USB disk 53RFWOD0T
   (`modules/nixos/replica-disk.nix`, its own LUKS key, `/mnt/replica/53RFWOD0T/azukari`; a run is
-  skipped while it is not mounted). Each copy is a restore source as it is. Run now: `systemctl start azukari-backup`;
-  list: `sudo -u azukari-backup azukari backup snapshots /etc/azukari/azukari-backup.toml`;
-  restore with `azukari backup restore <config> <snapshot> <empty dir>` (as root to restore owners),
+  skipped while it is not mounted). Each copy is a restore source as it is. Each export is its own snapshot (azukari ADR 0030). Run one now: `systemctl start
+  azukari-backup-<export>`; list: `sudo -u azukari-backup azukari backup snapshots
+  /etc/azukari/azukari-backup.toml <export>`; restore with `azukari backup restore <config> <export>
+  <snapshot> <empty dir>` (as root to restore owners),
   or `restore --verify` to read everything back without writing. Without the store (azukari ADR
   0029), add `--from-dir <copy>/backup` (the USB replica, or the box's `azukari/backup` fetched with
   rsync): only the node's config and data key are needed. The former restic repository was deleted from the Storage Box
