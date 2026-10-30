@@ -219,16 +219,21 @@ never crosses kekkai. No git SSH on a public port.
   ZN1374ZM). Exports: `forgejo-dump` on ishizue (`forgejo dump`, one tar replaced each run),
   `hanko-account` on hashira-02 (hanko's ACME account key, `account.key`), `masu-days` and
   `nisshi-days` on hashira-01 (each store's closed days, hard-linked; the open day is never
-  exported, so the last day lags until it closes). Every snapshot is kept (no retention yet), and
-  nothing leaves that disk until azukari replicates. Run now: `systemctl start azukari-backup`;
+  exported, so the last day lags until it closes). Every snapshot is kept (no retention yet).
+  The store replicates the bucket every 6 h to two copies (azukari ADR 0008): `offsite`, the
+  Storage Box's `backup` subaccount under `azukari/` (rsync over SSH, key `azukari-offsite-key` in
+  `secrets/hashira-01/azukari-offsite.yaml`, the box's host key pinned; the directory is made once:
+  `sftp -P 23 <login>@<box>` then `mkdir azukari`), and `local`, the USB disk 53RFWOD0T
+  (`modules/nixos/replica-disk.nix`, its own LUKS key, `/mnt/replica/53RFWOD0T/azukari`; a run is
+  skipped while it is not mounted). Each copy is a restore source as it is. Run now: `systemctl start azukari-backup`;
   list: `sudo -u azukari-backup <azukari-backup> snapshots /etc/azukari/azukari-backup.toml`
   (the binary is in the unit's `ExecStart`); restore with `restore <snapshot> <empty dir>`, or
   `restore --verify` to read everything back without writing. The earlier directories under
   `/persist/backups` (`forgejo`, `hanko`, `masu`, `nisshi`) are no longer written: remove them by
-  hand once a restore from azukari has been checked. The former restic repositories (Storage Box,
-  USB volume `ishizue-backup`) keep their last snapshots: `restic -r sftp://<user>@<box>:23/restic`
-  or `restic -r /Volumes/ishizue-backup/restic`, with `restic-password` and `backup-pull-key` from
-  `secrets/jiban/secrets.yaml`.
+  hand once a restore from azukari has been checked. The former restic repository on the Storage Box
+  keeps its last snapshots: `restic -r sftp://<user>@<box>:23/restic`, with `restic-password` and
+  `backup-pull-key` from `secrets/jiban/secrets.yaml` (the USB volume `ishizue-backup` is gone:
+  that disk is now the replica disk).
 - **Observability retention**: masu and nisshi keep 400 days of data, configured from
   `modules/observability/retention-days.json`. The `masu-days` and `nisshi-days` exports mirror
   what the store holds: a day the store drops leaves the export too, and stays in earlier azukari
@@ -358,7 +363,7 @@ infra/
     dns-zone/       one Porkbun zone: records, optional null-mail (null MX, SPF -all, DMARC reject)
   stacks/
     torii/          Vultr, `torii-<region>`, region `cdg` (Paris) by default; ICMP, tcp/22, 53, 80, 443, udp/53, 4800-4802
-    storage/        Hetzner Storage Box BX11 (fsn1) for restic, weekly snapshots, subaccount `backup` for jiban
+    storage/        Hetzner Storage Box BX11 (fsn1), weekly snapshots, subaccount `backup`: azukari's replica, jiban's last restic
     dns/            scorsi.dev and scorsi.me at Porkbun: the delegation to annai soto (NS, glue); reads torii's addresses
 ```
 
@@ -398,7 +403,7 @@ infra/
    has been verified; [Porkbun's DNSSEC form](https://kb.porkbun.com/article/93-how-to-install-dnssec)
    publishes that DS, it does not sign annai's zones.
 7. **restic's password**: `restic-password` in `secrets/jiban/secrets.yaml` (already set; a new one
-   means a new repository). jiban's key reaches the `backup` subaccount at apply (`terraform_data.backup_key`,
+   means a new repository). jiban's and azukari-server's keys reach the `backup` subaccount at apply (`terraform_data.backup_key`,
    the box's `install-ssh-key` over the subaccount's password), never through the box resource:
    changing its `ssh_keys` recreates the box, data included.
 

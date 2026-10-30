@@ -1231,11 +1231,11 @@
         "treefmt-nix": "treefmt-nix_5"
       },
       "locked": {
-        "lastModified": 1793356601,
-        "narHash": "sha256-bMy3mg27OL7Fu+LtyWgx0tw3b5G3pMnlMaYAq6QAP8c=",
+        "lastModified": 1793362901,
+        "narHash": "sha256-+zP5oqNIQGpzsi0FDnI22fsbI7ryK1Ykpeh3I12gxVg=",
         "ref": "refs/heads/main",
-        "rev": "48baa79f534d868e1be2bd5eea8a5dd5379a3a1b",
-        "revCount": 80,
+        "rev": "7be8eb28b1e2b87006d00f513f6a8020d8329485",
+        "revCount": 87,
         "type": "git",
         "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/azukari.git"
       },

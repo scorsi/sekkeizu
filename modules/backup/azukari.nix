@@ -4,10 +4,12 @@
 # under /persist/backups/<export> (azukari ADR 0020, 0021). Both sides authenticate with hanko-ca's
 # SVIDs (hanko-ca.nix): the store accepts the nodes' `azukari-backup` IDs, the nodes pin the store's ID.
 #
-# No copy leaves the store's disk until azukari replicates (owner, 2026-10-29): the earlier pull to
-# jiban and its restic copies (Storage Box, USB disk) are gone; their last repositories stay
-# readable with `restic-password` (README, Backups). The exports' names differ from the earlier
-# directories under /persist/backups (forgejo, hanko, masu, nisshi), left in place, never reused.
+# The store replicates every 6 h (azukari ADR 0008): to the Storage Box's `backup` subaccount over
+# SSH (`offsite`, key azukari-offsite-key, the box's host key pinned) and to its own USB disk
+# (`local`, modules/nixos/replica-disk.nix). The earlier pull to jiban and its restic copies are gone;
+# the Storage Box's `restic/` stays readable with `restic-password` (README, Backups). The exports'
+# names differ from the earlier directories under /persist/backups (forgejo, hanko, masu, nisshi),
+# left in place, never reused.
 #
 # Data keys: secrets/<host>/azukari.yaml (`azukari-data-key`, 32 random bytes as 64 hex, azukari
 # ADR 0006). Losing one loses that node's backups: it is in sops only, with the FIDO2 and admin
@@ -23,6 +25,9 @@ let
   inherit (config.kiso) owner;
   trustDomain = "uchi.${domain}";
   storeHost = "hashira-01";
+  box = config.sekkeizu.services.backup-offsite;
+  # A subaccount's login is the first label of its host name (u<id>-sub<n>.your-storagebox.de).
+  boxLogin = builtins.head (builtins.split "\\." box.host);
   # After kekkai (4800-4802) and hanko-ca (4900); kekkai.nix opens it to the backing-up nodes.
   # hashira-01's own run reaches its kekkai address over loopback, which neither kekkai's rules
   # nor the firewall filter.
@@ -47,14 +52,24 @@ let
 in
 {
   flake.modules.nixos.azukari-server =
-    { config, ... }:
+    { config, pkgs, ... }:
     let
       metrics = "127.0.0.1:9477";
+      knownHosts = pkgs.writeText "azukari-offsite-known-hosts" ''
+        [${box.host}]:${toString box.port} ${box.hostKey}
+      '';
     in
     {
       imports = [ inputs.scorsi-azukari.nixosModules.azukari-server ];
 
       users.users.${owner.name}.extraGroups = [ "azukari-admin" ];
+
+      # ssh refuses a private key others can read.
+      sops.secrets.azukari-offsite-key = {
+        sopsFile = ../../secrets/${config.networking.hostName}/azukari-offsite.yaml;
+        owner = "azukari";
+        mode = "0400";
+      };
 
       services.azukari-server = {
         enable = true;
@@ -62,7 +77,29 @@ in
           listen = [ "${kekkai.nodes.${config.networking.hostName}.ipv4}:${toString port}" ];
           listen_metrics = metrics;
           tls = tls "azukari-server";
-          classes.standard.replicas = [ ];
+          classes.standard.replicas = [
+            "offsite"
+            "local"
+          ];
+          replicas = [
+            {
+              name = "offsite";
+              kind = "ssh";
+              # Made once on the box (README, Backups): rsync creates the bucket's directory, not its parent.
+              destination = "${boxLogin}@${box.host}:azukari";
+              inherit (box) port;
+              ssh_key_file = config.sops.secrets.azukari-offsite-key.path;
+              known_hosts_file = "${knownHosts}";
+              every = "6h";
+            }
+            {
+              name = "local";
+              kind = "dir";
+              destination = "/mnt/replica/53RFWOD0T/azukari";
+              mount_point = "/mnt/replica/53RFWOD0T";
+              every = "6h";
+            }
+          ];
           buckets = [
             {
               name = "backup";

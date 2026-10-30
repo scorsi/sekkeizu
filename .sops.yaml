@@ -69,6 +69,14 @@ creation_rules:
           - *fido-thetis-102800549530
           - *fido-yubikey-34043456
           - *admin
+  # The replica disk's LUKS key, apart from the DAS's (modules/nixos/replica-disk.nix): moves with that disk.
+  - path_regex: secrets/replica/.*
+    key_groups:
+      - age:
+          - *hashira-01
+          - *fido-thetis-102800549530
+          - *fido-yubikey-34043456
+          - *admin
   # LUKS recovery passphrases of the hosts' disks: humans only, never the host itself.
   - path_regex: secrets/recovery/.*
     key_groups:

@@ -1,6 +1,6 @@
-# Off-site backups: a Hetzner Storage Box, restic over SFTP. jiban pushes everything (ishizue's
-# backups are pulled to it first) through the `backup` subaccount, confined to its directory; a
-# second host pushing directly would get a subaccount of its own.
+# Off-site backups: a Hetzner Storage Box. azukari-server (hashira-01) replicates its buckets to
+# `azukari/` over rsync/SSH through the `backup` subaccount, confined to its directory; jiban's
+# former key stays there to restore the last restic repository (`restic/`).
 # The box's weekly snapshots are read-only over SFTP (.zfs/) and managed through the API, whose
 # token never leaves secrets/infra/: a compromised host can delete files, not the last ten weeks.
 terraform {
@@ -70,7 +70,7 @@ resource "hcloud_storage_box" "backups" {
   }
 }
 
-# Its SSH key goes into backup/.ssh/authorized_keys on the box by hand: managing keys on the box
+# Its SSH keys go into backup/.ssh/authorized_keys outside the resource (terraform_data.backup_key): managing keys on the box
 # resource itself would recreate it, data included.
 resource "hcloud_storage_box_subaccount" "backup" {
   storage_box_id = hcloud_storage_box.backups.id
@@ -86,7 +86,12 @@ resource "hcloud_storage_box_subaccount" "backup" {
 
 variable "backup_key" {
   type        = string
-  description = "jiban's backup-pull public key; exported by the infra shell from modules-private."
+  description = "jiban's former backup-pull public key; exported by the infra shell from modules-private."
+}
+
+variable "azukari_offsite_key" {
+  type        = string
+  description = "azukari-server's public key on hashira-01; exported by the infra shell from modules-private."
 }
 
 variable "backup_host_key" {
@@ -96,9 +101,16 @@ variable "backup_host_key" {
 
 # The API has no SSH keys for a subaccount: the box's own `install-ssh-key` command adds it to
 # .ssh/authorized_keys, logged in with the subaccount's password. The host key is pinned, so the
-# password goes to the box only. Runs again when the key or the subaccount changes.
+# password goes to the box only. Runs again when its key or the subaccount changes. The command
+# keeps the keys already installed (Hetzner's docs), so a key dropped from this map stays on the
+# box until removed by hand.
 resource "terraform_data" "backup_key" {
-  triggers_replace = [var.backup_key, hcloud_storage_box_subaccount.backup.id]
+  for_each = {
+    backup-pull = var.backup_key
+    azukari     = var.azukari_offsite_key
+  }
+
+  triggers_replace = [each.value, hcloud_storage_box_subaccount.backup.id]
 
   provisioner "local-exec" {
     command = <<-EOT
@@ -116,10 +128,16 @@ resource "terraform_data" "backup_key" {
       HOST     = hcloud_storage_box_subaccount.backup.server
       LOGIN    = hcloud_storage_box_subaccount.backup.username
       HOST_KEY = var.backup_host_key
-      KEY      = var.backup_key
+      KEY      = each.value
       SSHPASS  = random_password.this["backup"].result
     }
   }
+}
+
+# jiban's key, already installed, becomes the map's first entry without running again.
+moved {
+  from = terraform_data.backup_key
+  to   = terraform_data.backup_key["backup-pull"]
 }
 
 output "backup_server" {

@@ -81,6 +81,11 @@ in
       description = "Public half of jiban's former backup-pull key (private half: backup-pull-key in sops): the Storage Box subaccount still trusts it, for restoring the last restic repository (README, Backups).";
     };
 
+    azukariOffsiteKey = mkOption {
+      type = types.str;
+      description = "Public half of azukari-server's key to the Storage Box `backup` subaccount (private half: azukari-offsite-key in secrets/hashira-01/azukari-offsite.yaml), installed by infra/stacks/storage.";
+    };
+
     forgejoCi = {
       readKey = mkOption {
         type = types.str;

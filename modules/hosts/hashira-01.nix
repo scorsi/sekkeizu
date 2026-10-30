@@ -24,6 +24,7 @@ in
       nixos.hikyaku
       nixos.node-exporter
       nixos.das
+      nixos.replica-disk
       nixos.forgejo-runner
       nixos.hanko-internal
       nixos.azukari-server
