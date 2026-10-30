@@ -222,15 +222,15 @@ never crosses kekkai. No git SSH on a public port.
   exported, so the last day lags until it closes). Every snapshot is kept (no retention yet).
   The store replicates the bucket every 6 h to two copies (azukari ADR 0008): `offsite`, the
   Storage Box's `backup` subaccount under `azukari/` (rsync over SSH, key `azukari-offsite-key` in
-  `secrets/hashira-01/azukari-offsite.yaml`, the box's host key pinned; the directory is made once:
-  `sftp -P 23 <login>@<box>` then `mkdir azukari`), and `local`, the USB disk 53RFWOD0T
+  `secrets/hashira-01/azukari-offsite.yaml`, the box's host key pinned; the directory was made once with that
+  key from hashira-01, the owner having no SSH access to the box), and `local`, the USB disk 53RFWOD0T
   (`modules/nixos/replica-disk.nix`, its own LUKS key, `/mnt/replica/53RFWOD0T/azukari`; a run is
   skipped while it is not mounted). Each copy is a restore source as it is. Run now: `systemctl start azukari-backup`;
-  list: `sudo -u azukari-backup <azukari-backup> snapshots /etc/azukari/azukari-backup.toml`
-  (the binary is in the unit's `ExecStart`); restore with `restore <snapshot> <empty dir>`, or
-  `restore --verify` to read everything back without writing. The earlier directories under
-  `/persist/backups` (`forgejo`, `hanko`, `masu`, `nisshi`) are no longer written: remove them by
-  hand once a restore from azukari has been checked. The former restic repository on the Storage Box
+  list: `sudo -u azukari-backup azukari backup snapshots /etc/azukari/azukari-backup.toml`;
+  restore with `azukari backup restore <config> <snapshot> <empty dir>` (as root to restore owners),
+  or `restore --verify` to read everything back without writing. Without the store (azukari ADR
+  0029), add `--from-dir <copy>/backup` (the USB replica, or the box's `azukari/backup` fetched with
+  rsync): only the node's config and data key are needed. The former restic repository on the Storage Box
   keeps its last snapshots: `restic -r sftp://<user>@<box>:23/restic`, with `restic-password` and
   `backup-pull-key` from `secrets/jiban/secrets.yaml` (the USB volume `ishizue-backup` is gone:
   that disk is now the replica disk).
