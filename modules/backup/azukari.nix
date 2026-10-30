@@ -13,11 +13,14 @@
 # ADR 0006). Losing one loses that node's backups: it is in sops only, with the FIDO2 and admin
 # recipients as its copies.
 #
-# No retention yet (owner, 2026-10-29): every snapshot is kept. No alert on a stale
+# Retention runs dry (`enabled = false`, owner, 2026-10-29): its daily `prune-completed` logs what it
+# would delete, every snapshot is kept. The owner administers the store with `azukari` (member of
+# `azukari-admin`, azukari ADR 0024). No alert on a stale
 # `azukari_last_snapshot_timestamp_seconds` either: the lab has no alerting yet (hanshou).
 { config, inputs, ... }:
 let
   inherit (config.sekkeizu) domain kekkai;
+  inherit (config.kiso) owner;
   trustDomain = "uchi.${domain}";
   storeHost = "hashira-01";
   # After kekkai (4800-4802) and hanko-ca (4900); kekkai.nix opens it to the backing-up nodes.
@@ -50,6 +53,8 @@ in
     in
     {
       imports = [ inputs.scorsi-azukari.nixosModules.azukari-server ];
+
+      users.users.${owner.name}.extraGroups = [ "azukari-admin" ];
 
       services.azukari-server = {
         enable = true;
