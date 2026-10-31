@@ -70,6 +70,9 @@
     # The node agent (modules/observability/hikyaku.nix); its masu and nisshi inputs are test-only.
     scorsi-hikyaku.url = "git+https://kajiba.uchi.scorsi.dev/scorsi/hikyaku.git";
 
+    # The observability UI (modules/observability/yagura.nix), tested against its own nixpkgs.
+    scorsi-yagura.url = "git+https://kajiba.uchi.scorsi.dev/scorsi/yagura.git";
+
     # The certificates (modules/network/hanko.nix). Not following our nixpkgs: tested against its
     # own; its annai and nisshi inputs are test-only.
     scorsi-hanko.url = "git+https://kajiba.uchi.scorsi.dev/scorsi/hanko.git";

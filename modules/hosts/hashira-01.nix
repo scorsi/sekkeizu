@@ -22,6 +22,7 @@ in
       nixos.server
       nixos.masu
       nixos.nisshi
+      nixos.yagura
       nixos.hikyaku
       nixos.node-exporter
       nixos.das
