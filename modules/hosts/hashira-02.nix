@@ -24,10 +24,10 @@ in
       nixos.hanko
       nixos.hanko-internal
       nixos.genkan
-      nixos.forgejo-runner
       nixos.rirekisho
       nixos.azukari-backup
       nixos.oroshi-reader
+      nixos.kajiba-runner
 
       # ─── Machine identity ─────────────────────────────────────────────
       {

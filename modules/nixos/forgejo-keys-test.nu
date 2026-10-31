@@ -47,9 +47,6 @@ def fault [method: string, path: string, status: int, body: any = null] {
 }
 def clear-faults [] { open $env.KEY_TEST_API | update faults [] | to json | save --force $env.KEY_TEST_API }
 def owner [wanted: list] { reconcile-owner-keys { |m, p, b| fake-request $m $p $b } $wanted $env.KEY_TEST_STATE }
-def deploy [repos: list<string>, key: string = 'ssh-ed25519 NEW'] {
-  reconcile-deploy-keys { |m, p, b| fake-request $m $p $b } owner $repos $key $env.KEY_TEST_STATE
-}
 
 def run-tests [] {
   let old = {id: 1, title: yubikey, key: 'ssh-ed25519 OLD'}
@@ -127,48 +124,6 @@ def run-tests [] {
   assert equal ((writes) | get method) [DELETE]
   assert equal ((keys) | get key) [$wanted.key]
 
-  let deploy_old = $old | update title forgejo-ci | insert read_only true
-  let deploy_manual = $manual | insert read_only false
-  fixture [
-    {path: users/owner/repos, rows: [{name: alpha} {name: beta}]}
-    {path: repos/owner/alpha/keys, rows: [$deploy_old $deploy_manual]}
-    {path: repos/owner/beta/keys, rows: []}
-  ]
-  deploy [alpha] $old.key
-  assert equal (writes) []
-  deploy [beta]
-  assert equal ((keys repos/owner/alpha/keys) | get key) [$manual.key]
-  assert equal ((keys repos/owner/beta/keys) | get read_only) [true]
-  clear-calls
-  deploy [beta]
-  assert equal (writes) []
-  deploy [beta] 'ssh-ed25519 ROTATED'
-  assert equal ((writes) | get method) [POST DELETE]
-  assert equal ((keys repos/owner/beta/keys) | get key) ['ssh-ed25519 ROTATED']
-  # The marker survives a lost state file, including withdrawal of the repository.
-  rm $env.KEY_TEST_STATE
-  deploy []
-  assert equal (keys repos/owner/beta/keys) []
-  assert equal (keys repos/owner/alpha/keys) [$deploy_manual]
-
-  deploy [beta]
-  clear-calls
-  fault GET 'users/owner/repos?limit=50&page=2' 500
-  assert error { deploy [] }
-  assert equal (writes) []
-  clear-faults
-  assert error { deploy [missing] }
-  assert equal (writes) []
-  assert equal ((keys repos/owner/beta/keys) | length) 1
-
-  # Permission drift of a managed deploy key must not leave write access behind.
-  open $env.KEY_TEST_API | update resources {|db|
-    $db.resources | each {|r|
-      if $r.path == 'repos/owner/beta/keys' { $r | update rows ($r.rows | update read_only false) } else { $r }
-    }
-  } | to json | save --force $env.KEY_TEST_API
-  deploy [beta]
-  assert equal ((keys repos/owner/beta/keys) | get read_only) [true]
   print 'Forgejo key reconciliation: all assertions passed'
 }
 

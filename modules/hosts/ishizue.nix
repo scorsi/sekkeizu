@@ -28,9 +28,9 @@ in
       nixos.hikyaku
       nixos.node-exporter
       nixos.forgejo
-      nixos.forgejo-runner
       nixos.azukari-backup
       nixos.oroshi-reader
+      nixos.kajiba-runner
 
       # ─── User features ────────────────────────────────────────────────
       {
@@ -56,6 +56,9 @@ in
         system.stateVersion = stateVersions.nixos;
 
         sops.defaultSopsFile = ../../secrets/${hostName}/secrets.yaml;
+
+        # Inside ci.slice (kajiba.nix), capped so an evaluation cannot starve its builds.
+        systemd.services.kajiba-runner.serviceConfig.MemoryMax = "2G";
       }
     ];
   };

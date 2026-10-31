@@ -24,7 +24,6 @@ in
       darwin.annai
       darwin.server
       darwin.vfkit-host
-      darwin.forgejo-runner
       darwin.hikyaku
       darwin.node-exporter
       darwin.masu-reader

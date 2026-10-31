@@ -100,17 +100,3 @@ def reconcile-keys [request: closure, targets: list, prefix: string, state: stri
 def reconcile-owner-keys [request: closure, keys: list, state: string] {
   reconcile-keys $request [{path: user/keys, keys: $keys, deploy: false}] 'sekkeizu:owner:' $state
 }
-
-def reconcile-deploy-keys [request: closure, owner: string, repos: list<string>, key: string, state: string] {
-  let user = $owner | url encode --all
-  # Include repositories removed from readRepos, even after a failed POST or lost local state.
-  let all = (api-list $request $"users/($user)/repos" | each {|repo| $repo.name }) | append $repos | uniq
-  let targets = $all | each {|repo|
-    {
-      path: $"repos/($user)/($repo | url encode --all)/keys",
-      keys: (if $repo in $repos { [{title: forgejo-ci, key: $key}] } else { [] }),
-      deploy: true
-    }
-  }
-  reconcile-keys $request $targets 'sekkeizu:ci:' $state
-}

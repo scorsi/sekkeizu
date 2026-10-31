@@ -1,8 +1,8 @@
 # Ephemeral root: / is a tmpfs rebuilt empty at every boot, only what is declared survives, on the
 # ext4 disk mounted at /persist (which also carries /nix).
 #
-# Each feature declares its own state in `sekkeizu.persist.{directories,files}` (e.g. forgejo-runner.nix
-# keeps the runner's state directory); this file only aggregates them and lists what is true of any machine.
+# Each feature declares its own state in `sekkeizu.persist.{directories,files}` (e.g. kajiba.nix
+# keeps the runner's source cache); this file only aggregates them and lists what is true of any machine.
 #
 # preservation rather than impermanence: bind mounts and symlinks are systemd mount/tmpfiles units,
 # no activation script, and it is built for the systemd initrd this repo already uses. Root on tmpfs

@@ -8,7 +8,7 @@ in
     { pkgs, ... }:
     {
       checks.ci-resources =
-        assert runner.systemd.services.forgejo-runner.serviceConfig.Slice == "ci.slice";
+        assert runner.systemd.services.kajiba-runner.serviceConfig.Slice == "ci.slice";
         assert runner.systemd.services.nix-daemon.serviceConfig.Slice == "ci.slice";
         assert (runner.systemd.services.forgejo.serviceConfig.Slice or "system.slice") != "ci.slice";
         assert !(torii.systemd.slices ? ci);

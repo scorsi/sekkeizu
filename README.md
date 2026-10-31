@@ -28,7 +28,6 @@ modules/
   home/    home-manager features of this repo (ssh-hosts, gh, Claude Code); the generic ones are kiso's
   macos/   nix-darwin-only features (headless server, auto-login, VM host, linux builder, reminders)
   nixos/   NixOS-only features (server, Forgejo, rirekisho)
-  ci/      Forgejo Actions runners (NixOS and macOS)
   backup/  azukari: the object store on hashira-01 and each node's backup exports
   cache/   oroshi: the Nix binary cache on hashira-01, its readers and jiban's uploader
   network/ kekkai, annai, hanko, genkan
@@ -130,8 +129,8 @@ State, in `~/.local/state/vm/ishizue/`:
 
 `/` is a 1 GB tmpfs, rebuilt empty at every boot. The disk (ext4, label `nixos`) is mounted on
 `/persist` and carries `/nix` (bind of `/persist/nix`) and everything declared to survive. Each
-feature adds its own state to `sekkeizu.persist.directories` / `.files` (forgejo-runner keeps
-its state directory…); `modules/nixos/impermanence.nix` aggregates them (via
+feature adds its own state to `sekkeizu.persist.directories` / `.files` (the kajiba runner keeps
+its source cache…); `modules/nixos/impermanence.nix` aggregates them (via
 [preservation](https://github.com/nix-community/preservation)) and keeps the machine-id, the
 uid/gid map, `/var/lib/systemd`, `/var/log` and the owner's whole home. The SSH host key lives
 directly at `/persist/etc/ssh/ssh_host_ed25519_key` (sops decrypts before the bind mounts exist).
@@ -187,8 +186,7 @@ Day to day:
 The web services are `<service>.uchi.<domain>` names, which only annai resolves (CNAME to
 `genkan.uchi`, which has both hashira's kekkai addresses): genkan on 443 on each of them, the same
 sites, each with the `*.uchi` wildcard of its own hanko, reached over kekkai (its `allowInbound`
-opens tcp/443 to jiban); the LAN keeps 443 closed. The nodes' runners pin Forgejo to hashira-02's
-address (`forgejo.address` in endpoints.nix), outside DNS. The nodes' hikyaku and azukari-backup pin `genkan.uchi` and
+opens tcp/443 to jiban); the LAN keeps 443 closed. The nodes' hikyaku and azukari-backup pin `genkan.uchi` and
 `azukari.uchi` to both genkan addresses in /etc/hosts (the nodes resolve through Quad9) and reach
 genkan's `services` listener on 9443: SNI passthrough only, no web site, so kekkai opens it to torii-cdg's
 hikyaku without opening the web sites. Git over
@@ -212,13 +210,13 @@ genkan's TLS ports all end in 443, the prefix gives the role:
 | --------- | -------------------------------------- | --------------------------------------------- |
 | Forgejo   | `https://forgejo.uchi.<domain>`        | genkan → ishizue:3000 over kekkai             |
 | Git (SSH) | `ssh://git@forgejo.uchi.<domain>:2222` | genkan passthrough → Forgejo's SSH server     |
-| Résumé    | `https://rirekisho.uchi.<domain>`      | genkan, static files (built by hashira-02's runner); hashira-01's genkan relays the name by SNI to hashira-02's `relay` (7443) |
+| Résumé    | `https://rirekisho.uchi.<domain>`      | genkan, static files (no publisher since the Forgejo runners were removed); hashira-01's genkan relays the name by SNI to hashira-02's `relay` (7443) |
 | Nix cache | `https://oroshi.uchi.<domain>/nix`     | hashira-01's genkan → oroshi on loopback; hashira-02's genkan relays the name by SNI to hashira-01's `relay` (7443) |
 | Backups   | `https://azukari.uchi.<domain>:9443`   | genkan passthrough by SNI → azukari-server (hashira-01:5000), mTLS end to end |
 | Metrics, logs | `https://genkan.uchi.<domain>:9443`, TLS name `masu.internal` / `nisshi.internal` | genkan passthrough by SNI → masu / nisshi (hashira-01:9472, 9473), the nodes' hikyaku |
 
 Addresses are declared once, in `modules-private/meta/endpoints.nix` (`sekkeizu.services.*`);
-genkan's sites, annai's records, Forgejo's `ROOT_URL` and the runners read them from there.
+genkan's sites, annai's records and Forgejo's `ROOT_URL` read them from there.
 
 **Public exposure**: only the résumé. Its public names (`rirekisho.public` in endpoints.nix:
 `rirekisho.soto.<domain>`, with `rirekisho.<domain>` and `cv.scorsi.me` as CNAMEs to it, records in
@@ -233,8 +231,7 @@ Only sites that name the `edge` listener are served there (genkan ADR 0013): For
 never crosses kekkai. No git SSH on a public port.
 
 - **Git over SSH on 2222**: Forgejo's own SSH server, not the system sshd, which stays key-only for
-  the owner. kekkai's `allowInbound` opens tcp/2222 to jiban; the runners pin its host key for
-  both names. No shared `git` account on the system, no `AllowUsers` change; the server only speaks
+  the owner. kekkai's `allowInbound` opens tcp/2222 to jiban. No shared `git` account on the system, no `AllowUsers` change; the server only speaks
   git, with the keys stored in Forgejo (`owner.sshKeys`, added by the `forgejo-admin` unit).
 - **Backups**: azukari (`modules/backup/azukari.nix`). Each export of a node has its own
   `azukari-backup-<export>` unit and timer (1 h random delay): daily, `masu-days` and `nisshi-days`
@@ -274,39 +271,24 @@ never crosses kekkai. No git SSH on a public port.
   the key from a trusted backup, never by creating an ACME account as a recovery test.
   A missing key fails the export, hence the backup run, including at first boot before
   restoration. This also reports a lost identity on an existing host instead of silently skipping it.
-- **Runners** (host executor, no containers): one label per Nix system plus the machine's name:
-  `aarch64-linux` on ishizue, `x86_64-linux` on hashira-01 and hashira-02 (Nix, git, node, rsync;
-  systemd sandbox, writes only to its state directory), `aarch64-darwin` on jiban (LaunchDaemon,
-  hidden non-admin `_forgejo-runner` account). Rationale in `modules/ci/forgejo-runner.nix`.
-  Registration is declarative: a shared secret per runner in sops, pre-registered by Forgejo.
-  On ishizue, the runner and nix-daemon share a 5 GiB / 2 CPU budget (plus up to 2 GiB of swap,
-  OOM kill beyond), with one Nix build at a time and two build cores. This also limits manual
-  builds using that daemon; Forgejo stays outside the budget. Finish existing builds before
-  deploying the slice change, or reboot: a daemon restart alone can leave old build processes in
-  their previous cgroup. Check the new runner and daemon's `ControlGroup` under `ci.slice` after
-  deployment.
-- **Résumé**: repository `rirekisho` (Astro, its own flake); a push to `main` runs
-  `.forgejo/workflows/build.yml`: build and PDFs in its dev shell, then `rsync` into
-  `/var/lib/rirekisho`, served by genkan, on the overlay and publicly through torii-cdg (above).
+- **CI**: kajiba runners (`modules/nixos/kajiba.nix`, feature `kajiba-runner`) on hashira-01,
+  hashira-02 and ishizue. On each, the runner and nix-daemon share `ci.slice` (OOM kill beyond),
+  with per-host values in `runnerHosts`: 2 jobs × 4 cores in 9 GiB / 8 CPUs on the hashira, 1 job ×
+  2 cores in 5 GiB / 2 CPUs (plus up to 2 GiB of swap) on ishizue. This also limits manual builds
+  using that daemon. Finish existing builds before deploying a slice change, or reboot: a daemon
+  restart alone can leave old build processes in their previous cgroup.
+- **Résumé**: repository `rirekisho` (Astro, its own flake), served by genkan from
+  `/var/lib/rirekisho`, on the overlay and publicly through torii-cdg (above). Its Forgejo Actions
+  workflow no longer has a runner: nothing publishes there until kajiba's CI does.
 
 ### Manual steps, in order
 
 1. **Certificate**: hanko (`modules/network/hanko.nix`) issues `*.uchi.<domain>` before genkan
    needs it; until then genkan runs and fails the handshakes (`certificate-not-ready`).
 2. **Deploy ishizue**: `nix run .#deploy-ishizue`.
-3. **Switch jiban**: `nix run .#switch` (creates the `_forgejo-runner` account and the daemon).
-   Check in Forgejo → Site administration → Actions → Runners that `ishizue` and `jiban` are idle.
-4. **Log in**: user = `owner.name`, password:
+3. **Log in**: user = `owner.name`, password:
    `sops -d --extract '["forgejo-admin-password"]' secrets/ishizue/secrets.yaml`
    (the `forgejo-admin` unit resets the account to that password at each Forgejo start).
-5. **Renew a runner secret**: keep its first 16 ASCII characters (the runner UUID), replace the
-   last 24 with fresh `openssl rand -hex 12`, and update `secrets/ishizue/secrets.yaml` (also
-   `secrets/jiban/secrets.yaml` for jiban's). Deploy Forgejo before restarting that runner: updating
-   the same UUID invalidates its previous secret. Changing the first 16 characters creates a new
-   runner; **the old registration remains valid**. After the replacement connects, explicitly
-   delete the old registration in Site administration → Actions → Runners to revoke it.
-
-Test the macOS runner with a workflow containing `runs-on: macos` and `run: sw_vers`.
 
 ### Home of the repositories
 
@@ -320,17 +302,9 @@ commit. Which repositories exist, their settings and their mirrors are declared 
   to the mirrors through git's environment; Nix still checks the revs and hashes of `flake.lock`
   (identical either way: checked). The bootstrap clones sekkeizu from GitHub and fetches the
   inputs that way by itself.
-- **CI reads them** with a read-only deploy key (`forgejo-ci-key` in sops, public half and repo
-  list in `sekkeizu.forgejoCi`, `modules-private/meta/endpoints.nix`), registered on each repo by the
-  `forgejo-runners` oneshot; Forgejo's SSH host key is pinned there too. A new private flake for
-  CI = create the repository in Forgejo first, then add it to `forgejoCi.readRepos` and deploy.
-  Provisioning reconciles only keys it manages (`sekkeizu:owner:` / `sekkeizu:ci:` titles, or
-  legacy keys adopted by exact title and content and recorded in Forgejo's state directory).
-  On the first deployment, review old owner/deploy keys already removed from configuration:
-  they cannot be identified safely and are preserved. Deploy adoption before removing more
-  legacy keys. A failed API request fails provisioning and is retried on the next run; changing
-  a managed deploy key from write access to read-only requires deletion before recreation, so
-  an API failure between those steps leaves access unavailable until a successful retry.
+- **Owner keys**: the `forgejo-admin` unit reconciles only the keys it manages (`sekkeizu:owner:`
+  titles, or legacy keys adopted by exact title and content and recorded in Forgejo's state
+  directory); a failed API request fails provisioning and is retried on the next run.
 - **`switch` as root**: kiso's `switch` fetches the inputs as the user (SSH agent, a touch) before
   `sudo darwin-rebuild`, which then finds them in the store.
 
@@ -340,8 +314,6 @@ commit. Which repositories exist, their settings and their mirrors are declared 
 - **Verified commits**: each FIDO2 key must be verified once in Forgejo (Settings → SSH / GPG keys →
   Verify, then the `ssh-keygen -Y sign` command it shows, with that key plugged in). Forgejo only
   offers this through the web form; redo it for a new key or a reinstalled Forgejo.
-- **CI**: `.forgejo/workflows/check.yml`, `nix fmt -- --ci` and `nix flake check` on `linux`,
-  `darwinConfigurations.jiban` built on `macos`, after `git-crypt unlock`. Nothing is switched.
 
 ## Encrypted trees
 
@@ -350,14 +322,13 @@ commit. Which repositories exist, their settings and their mirrors are declared 
 stay sops files underneath: whatever Nix reads ends up in the world-readable store, so `modules-private/`
 holds values only, never a secret.
 
-- **Key**: one symmetric key, in the password manager (base64) and in sops for the runners
-  (`secrets/<host>/git-crypt-key`, `/run/secrets/git-crypt-key`). From an unlocked clone:
+- **Key**: one symmetric key, in the password manager (base64) and in sops
+  (`secrets/<host>/git-crypt-key`). From an unlocked clone:
   `sops -d secrets/jiban/git-crypt-key | base64`.
 - **Unlock a clone**: `base64 -d > key`, `git-crypt unlock key`, delete `key`, then
   `git config core.hooksPath scripts/hooks` (the bootstrap does all of it with `--git-crypt-key`).
 - **The leak to avoid**: in a clone that was never unlocked, git skips the filter and would commit a
-  new file of these trees in clear. `scripts/hooks/pre-commit` refuses that commit; CI runs it
-  too, but after the push (and the GitHub mirror), so the hook is what counts.
+  new file of these trees in clear. `scripts/hooks/pre-commit` refuses that commit.
 - A locked clone does not evaluate: the modules of `modules-private/` are ciphertext.
 - **sops keys** (`.sops.yaml`): every file is encrypted to its host (activation, unattended), the
   two FIDO2 keys and the admin key. No private key on disk: `keys.txt` only holds the FIDO2
@@ -372,8 +343,8 @@ holds values only, never a secret.
   run `sops rotate` on the affected current files and rotate the credentials themselves. Old Git
   ciphertext remains decryptable with the compromised key; re-encryption cannot revoke that history.
 
-On macOS, the first switch without saved ciphertext fingerprints restarts `hikyaku`,
-`kekkai-node` and `forgejo-runner` once. A failed restart aborts activation and skips subsequent
+On macOS, the first switch without saved ciphertext fingerprints restarts `hikyaku`
+and `kekkai-node` once. A failed restart aborts activation and skips subsequent
 steps. Its fingerprint is not saved, so rerunning the switch retries it; successful earlier
 restarts are already recorded.
 

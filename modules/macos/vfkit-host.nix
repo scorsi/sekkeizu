@@ -102,7 +102,8 @@ in
       config.launchd.user.agents = lib.mapAttrs' (
         name: vm:
         lib.nameValuePair (agentName name) {
-          # Waits for /nix/store (see forgejo-runner.nix); `exec` keeps launchd's SIGTERM on vfkit.
+          # `command`, not ProgramArguments: nix-darwin waits for /nix/store, mounted after launchd starts
+          # boot jobs (a missing program exits 78 and is never retried); `exec` keeps launchd's SIGTERM on vfkit.
           command = lib.escapeShellArgs [
             "${nimProgram pkgs "vm-start" ""}/bin/vm-start"
             (stateDir name)

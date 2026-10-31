@@ -31,14 +31,6 @@ let
             by SNI to ishizue's PROXY listener (genkan.nix). Empty: overlay only.
           '';
         };
-        address = mkOption {
-          type = types.nullOr types.str;
-          default = null;
-          description = ''
-            IP to pin the name to where DNS cannot be trusted: jiban's runner (a Go program) would
-            otherwise depend on annai answering before the resolver's fallback.
-          '';
-        };
         hostKey = mkOption {
           type = types.nullOr types.str;
           default = null;
@@ -84,37 +76,6 @@ in
     azukariOffsiteKey = mkOption {
       type = types.str;
       description = "Public half of azukari-server's key to the Storage Box `backup` subaccount (private half: azukari-offsite-key in secrets/hashira-01/azukari-offsite.yaml), installed by infra/stacks/storage.";
-    };
-
-    forgejoCi = {
-      readKey = mkOption {
-        type = types.str;
-        description = "Public half of the runners' read-only deploy key (private half: forgejo-ci-key in sops).";
-      };
-      readRepos = mkOption {
-        type = types.listOf types.str;
-        default = [ ];
-        description = ''
-          The owner's Forgejo repositories the runners may read with that key: the private flakes
-          this repo depends on, fetched over SSH by `nix flake check` and builds in CI.
-        '';
-      };
-    };
-
-    forgejoRunners = mkOption {
-      description = ''
-        Forgejo Actions runners, named after the machine they run on. Forgejo (ishizue) pre-registers
-        each of them, which is why the registry is shared between hosts.
-      '';
-      default = { };
-      type = types.attrsOf (
-        types.submodule {
-          options.labels = mkOption {
-            type = types.listOf types.str;
-            description = "Runner labels (`name:host`: jobs run directly on the machine).";
-          };
-        }
-      );
     };
   };
 }

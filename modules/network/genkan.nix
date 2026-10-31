@@ -103,12 +103,7 @@ in
             trustedSources = [ "${kekkai.nodes.torii-cdg.ipv4}/32" ];
           };
         };
-        sites.${services.forgejo.host} = {
-          backend = "http://${forgejo}:3000";
-          # The runners poll FetchTask every ~2 s each: 96 % of genkan's request lines. Successful
-          # polls are counted in metrics, not logged; failed ones and every other call still are (genkan ADR 0011).
-          quietPaths = [ "/api/actions/runner.v1.RunnerService/FetchTask" ];
-        };
+        sites.${services.forgejo.host}.backend = "http://${forgejo}:3000";
         passthrough.forgejo-ssh = {
           listener = "forgejo-ssh";
           backend = "${forgejo}:${toString services.forgejo-ssh.port}";

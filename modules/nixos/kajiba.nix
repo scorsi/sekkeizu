@@ -1,5 +1,5 @@
-# kajiba, the owner's own forge (its own repo, consumed as `scorsi-kajiba`), on hashira-01 with one
-# runner there, next to Forgejo until the switch.
+# kajiba, the owner's own forge (its own repo, consumed as `scorsi-kajiba`), on hashira-01 next to
+# Forgejo until the switch, with a runner (feature `kajiba-runner`) on each host of `runnerHosts`.
 #
 # Three ways in, all through genkan on both hashira (kekkai.nix opens the backend ports to
 # hashira-02's genkan; hashira-01's reaches its own kekkai address locally):
@@ -47,6 +47,47 @@ let
   };
   ownerKeys = map (k: k.key) owner.sshKeys;
 
+  # Runner hosts and what each announces, declared on the forge under the host's name. kvm where the
+  # host loads it (m75q.nix: nixosTests on KVM); ishizue is a vfkit guest, without nested KVM.
+  # `ci` is the `ci.slice` envelope shared by the runner and nix-daemon (kajiba-runner below), and
+  # `cores` nix's per-build cores: maxJobs × cores stays within the slice's CPUQuota.
+  runnerHosts = {
+    # 12 cores, 15 GB each: ~6 GB and 4 cores left to their services.
+    hashira-01 = {
+      arch = "x86_64";
+      tags = [ "kvm" ];
+      maxJobs = 2;
+      cores = 4;
+      ci = {
+        MemoryMax = "9G";
+        CPUQuota = "800%";
+      };
+    };
+    hashira-02 = {
+      arch = "x86_64";
+      tags = [ "kvm" ];
+      maxJobs = 2;
+      cores = 4;
+      ci = {
+        MemoryMax = "9G";
+        CPUQuota = "800%";
+      };
+    };
+    # aarch64 CI. A nixosTest boots 2-3 VMs of ~400 MB each; on this 4 vCPU / 8 GiB VM, parallel
+    # builds starve them into timeouts: one build at a time, ~3 GiB and 2 vCPUs left to its services.
+    ishizue = {
+      arch = "aarch64";
+      tags = [ ];
+      maxJobs = 1;
+      cores = 2;
+      ci = {
+        MemoryMax = "5G";
+        MemorySwapMax = "2G";
+        CPUQuota = "200%";
+      };
+    };
+  };
+
   # The owner's repositories on Forgejo (descriptions from koseki), imported after the first deploy.
   # CI only on kajiba itself for now.
   repos = {
@@ -84,11 +125,12 @@ in
       listener = "services";
       sni = [ services.kajiba-runners.host ];
       backend = "${address}:${toString ports.runners}";
-      # The only runner is on hashira-01; the forge checks its SPIFFE ID, not this.
-      allow = [
-        kekkai.nodes.${host}.ipv4
-        kekkai.nodes.${host}.ipv6
-      ];
+      # The forge checks each runner's SPIFFE ID, not this. kekkai.nix already opens the `services`
+      # port to every runner host.
+      allow = lib.concatMap (h: [
+        kekkai.nodes.${h}.ipv4
+        kekkai.nodes.${h}.ipv6
+      ]) (lib.attrNames runnerHosts);
     };
   };
 
@@ -97,13 +139,9 @@ in
     let
       packages = inputs.scorsi-kajiba.packages.${pkgs.stdenv.hostPlatform.system};
       server = config.services.kajiba-server;
-      runner = config.services.kajiba-runner;
     in
     {
-      imports = [
-        inputs.scorsi-kajiba.nixosModules.server
-        inputs.scorsi-kajiba.nixosModules.runner
-      ];
+      imports = [ inputs.scorsi-kajiba.nixosModules.server ];
 
       # The module generates a host key when none is there; on the tmpfs root that would be a new one
       # at every boot. Read by sshd as root.
@@ -149,40 +187,20 @@ in
           inherit trustDomain;
         }
         // svid "kajiba-server";
-        runners.${host} = {
-          spiffeId = idOf "kajiba-runner";
+        runners = lib.mapAttrs (h: r: {
+          spiffeId = "spiffe://${trustDomain}/${h}/kajiba-runner";
           capabilities = {
-            arch = "x86_64";
+            inherit (r) arch tags maxJobs;
             os = "linux";
-            # m75q.nix loads kvm-amd: nixosTests run on KVM.
-            tags = [ "kvm" ];
-            maxJobs = 1;
           };
-        };
+        }) runnerHosts;
         repos = lib.mapAttrs (name: description: {
           owner = owner.name;
           inherit description;
-          ciEnabled = name == "kajiba";
+          # Push-triggered CI only where it pays off; elsewhere `kajiba ci run --worktree` on demand.
+          ci = if name == "kajiba" then "push" else "manual";
         }) repos;
       };
-
-      services.kajiba-runner = {
-        enable = true;
-        package = packages.kajiba-runner;
-        name = host;
-        url = services.kajiba-runners.url;
-        tags = [ "kvm" ];
-        maxJobs = 1;
-        tls = svid "kajiba-runner" // {
-          inherit trustDomain;
-          serverId = idOf "kajiba-server";
-        };
-      };
-
-      # The runner asks Quad9, not annai (annai.nix), like azukari-backup.
-      networking.hosts = lib.genAttrs (map (h: kekkai.nodes.${h}.ipv4) genkanHosts) (_: [
-        services.kajiba-runners.host
-      ]);
 
       sekkeizu.persist.directories =
         map
@@ -203,13 +221,6 @@ in
             group = "kajiba-git";
             mode = "0750";
           }
-          # Its source cache, kept to spare a full fetch after a reboot.
-          {
-            directory = runner.stateDir;
-            user = "kajiba-runner";
-            group = "kajiba-runner";
-            mode = "0700";
-          }
         ];
 
       systemd.services = {
@@ -222,7 +233,58 @@ in
           ];
         };
         kajiba-git.unitConfig.RequiresMountsFor = [ config.services.kajiba-git.stateDir ];
-        kajiba-runner.unitConfig.RequiresMountsFor = [ runner.stateDir ];
       };
+    };
+
+  # A runner of the forge, importable without it; hanko-ca.nix issues its host a `kajiba-runner` SVID.
+  flake.modules.nixos.kajiba-runner =
+    { config, pkgs, ... }:
+    let
+      host = config.networking.hostName;
+      runner = config.services.kajiba-runner;
+      self = runnerHosts.${host};
+    in
+    {
+      imports = [ inputs.scorsi-kajiba.nixosModules.runner ];
+
+      services.kajiba-runner = {
+        enable = true;
+        package = inputs.scorsi-kajiba.packages.${pkgs.stdenv.hostPlatform.system}.kajiba-runner;
+        name = host;
+        url = services.kajiba-runners.url;
+        inherit (self) tags maxJobs;
+        tls = svid "kajiba-runner" // {
+          inherit trustDomain;
+          serverId = idOf "kajiba-server";
+        };
+      };
+
+      # The runner asks Quad9, not annai (annai.nix), like azukari-backup.
+      networking.hosts = lib.genAttrs (map (h: kekkai.nodes.${h}.ipv4) genkanHosts) (_: [
+        services.kajiba-runners.host
+      ]);
+
+      # Its source cache, kept to spare a full fetch after a reboot.
+      sekkeizu.persist.directories = [
+        {
+          directory = runner.stateDir;
+          user = "kajiba-runner";
+          group = "kajiba-runner";
+          mode = "0700";
+        }
+      ];
+      systemd.services.kajiba-runner.unitConfig.RequiresMountsFor = [ runner.stateDir ];
+
+      nix.settings = {
+        max-jobs = self.maxJobs;
+        inherit (self) cores;
+      };
+
+      # Builds run under nix-daemon, outside the runner's cgroup, and the runner evaluates in its own
+      # process: one budget for both, manual daemon builds included. No MemoryHigh: past it,
+      # unswappable memory throttles forever; a breach must OOM-kill, visibly.
+      systemd.slices.ci.sliceConfig = self.ci;
+      systemd.services.nix-daemon.serviceConfig.Slice = "ci.slice";
+      systemd.services.kajiba-runner.serviceConfig.Slice = "ci.slice";
     };
 }

@@ -25,7 +25,6 @@ in
       nixos.node-exporter
       nixos.das
       nixos.replica-disk
-      nixos.forgejo-runner
       nixos.hanko
       nixos.hanko-internal
       nixos.genkan
@@ -34,6 +33,7 @@ in
       nixos.oroshi
       nixos.oroshi-reader
       nixos.kajiba
+      nixos.kajiba-runner
 
       # ─── Machine identity ─────────────────────────────────────────────
       {

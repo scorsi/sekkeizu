@@ -31,7 +31,7 @@ in
       '';
     in
     {
-      # `command` waits for /nix/store (see forgejo-runner.nix).
+      # `command` waits for /nix/store (see vfkit-host.nix).
       launchd.user.agents.secret-reminders.command = "${check} notify";
       launchd.user.agents.secret-reminders.serviceConfig = {
         StartCalendarInterval = [

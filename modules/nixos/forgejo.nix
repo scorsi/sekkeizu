@@ -1,18 +1,16 @@
 # Forgejo: Git forge, SQLite, behind genkan. Closed registrations; the owner's account is created
 # by a oneshot (password in sops, set through a temporary API token so it never reaches a
-# command line; SSH keys = owner.sshKeys), and Actions runners are pre-registered
-# with secrets from sops, so a rebuilt machine needs no click in the web UI.
+# command line; SSH keys = owner.sshKeys), so a rebuilt machine needs no click in the web UI.
 #
 # Git over SSH uses Forgejo's built-in server on its own port, not the system sshd: that one stays
 # key-only for the owner (AllowUsers) and never learns about a shared `git` account or about
 # Forgejo's authorized_keys; Forgejo's server only speaks git, with the keys stored in Forgejo.
 #
-# Secrets (secrets/<host>/secrets.yaml): forgejo-admin-password, forgejo-runner-<name> per runner
-# (40 hex chars: `openssl rand -hex 20`).
+# Secrets (secrets/<host>/secrets.yaml): forgejo-admin-password.
 { config, ... }:
 let
   inherit (config.kiso) owner;
-  inherit (config.sekkeizu) services forgejoRunners forgejoCi;
+  inherit (config.sekkeizu) services;
   web = services.forgejo;
   ssh = services.forgejo-ssh;
   internalPort = 3000;
@@ -92,10 +90,6 @@ in
         requires = [ "forgejo-state-dir.service" ];
         after = [ "forgejo-state-dir.service" ];
       };
-      secretNames = [
-        "forgejo-admin-password"
-      ]
-      ++ map (n: "forgejo-runner-${n}") (builtins.attrNames forgejoRunners);
     in
     {
       services.forgejo = {
@@ -183,13 +177,8 @@ in
         };
       };
 
-      # Read as root by the units below (LoadCredential); the runner's own file also gets an owner in forgejo-runner.nix.
-      sops.secrets = lib.genAttrs secretNames (name: {
-        restartUnits = [
-          "forgejo-runners.service"
-        ]
-        ++ lib.optional (name == "forgejo-admin-password") "forgejo-admin.service";
-      });
+      # Read as root by forgejo-admin (LoadCredential).
+      sops.secrets.forgejo-admin-password.restartUnits = [ "forgejo-admin.service" ];
 
       systemd.services.forgejo-admin = {
         description = "Forgejo: owner account and SSH keys";
@@ -231,65 +220,6 @@ in
                   error make {msg: $"Forgejo PATCH admin/users/($user): HTTP ($response.status)"}
                 }
                 reconcile-owner-keys { |method, path, body| api-request $token $method $path $body } (open ${keysFile}) ${cfg.stateDir}/sekkeizu-owner-keys.json
-              }
-            }
-          '';
-        };
-      };
-
-      systemd.services.forgejo-runners = {
-        description = "Forgejo: pre-register the Actions runners, give them read access to the private flakes";
-        wantedBy = [
-          "multi-user.target"
-          "forgejo.service"
-        ];
-        requires = [ "forgejo-admin.service" ];
-        after = [
-          "forgejo.service"
-          "forgejo-admin.service"
-        ];
-        partOf = [ "forgejo.service" ];
-        environment = env;
-        path = [
-          pkgs.coreutils
-          pkgs.sqlite
-        ];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          User = cfg.user;
-          Group = cfg.group;
-          UMask = "0077";
-          LoadCredential = map (n: "${n}:${config.sops.secrets."forgejo-runner-${n}".path}") (
-            builtins.attrNames forgejoRunners
-          );
-          ExecStart = pkgs.writers.writeNu "forgejo-runners" ''
-            ${helpers}
-            def main [] {
-              wait-for-forgejo
-              # Global scope (empty): usable by every repository. Already registered → nothing to do.
-              # Label names only, the way the runner declares them when it connects: this unit runs
-              # again at every Forgejo restart and overwrites the stored labels, and a stored
-              # `linux:host` matches no `runs-on: linux`, so jobs would wait until the runner restarts.
-              for r in (open ${
-                pkgs.writeText "forgejo-runners.json" (
-                  builtins.toJSON (
-                    lib.mapAttrsToList (name: runner: {
-                      inherit name;
-                      labels = lib.concatMapStringsSep "," (l: builtins.head (lib.splitString ":" l)) runner.labels;
-                    }) forgejoRunners
-                  )
-                )
-              }) {
-                # Forgejo 15 LTS declares secret-stdin as a string flag; its value is ignored.
-                credential $r.name | ^${exe} forgejo-cli actions register --scope "" --name $r.name --labels $r.labels --secret-stdin=true
-              }
-
-              # CI fetches the private flakes this repo depends on over SSH: one read-only deploy key on
-              # each (forgejo-ci-key in sops, written for the runners in forgejo-runner.nix).
-              # users/<u>/repos sits under the user scope as well as the repository one.
-              provision-token forgejo-runners read:user,write:repository {|token|
-                reconcile-deploy-keys { |method, path, body| api-request $token $method $path $body } ${builtins.toJSON adminUser} ${builtins.toJSON forgejoCi.readRepos} ${builtins.toJSON forgejoCi.readKey} ${cfg.stateDir}/sekkeizu-deploy-keys.json
               }
             }
           '';

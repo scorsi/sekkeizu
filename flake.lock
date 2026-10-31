@@ -1610,11 +1610,11 @@
         "treefmt-nix": "treefmt-nix_12"
       },
       "locked": {
-        "lastModified": 1793461390,
-        "narHash": "sha256-X/tbxNb1dkcbYfpAYl3YE0HvCV1H2Zd7egxQwCNlzTw=",
+        "lastModified": 1793470430,
+        "narHash": "sha256-lpePHnBg8wt6dU7BiB6Vxr5B+jj3Of0CK+0bF3mEk54=",
         "ref": "refs/heads/main",
-        "rev": "aad029281ce0e38e1de1b7ffd248f00055976075",
-        "revCount": 296,
+        "rev": "9edc6d328ade69a2f38c659c34fed9655b3d38ca",
+        "revCount": 302,
         "type": "git",
         "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kajiba.git"
       },

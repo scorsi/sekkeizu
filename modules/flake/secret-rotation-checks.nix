@@ -24,11 +24,6 @@
                 fragment = "kekkai-secrets";
                 secret = "kekkai-key";
               }
-              {
-                name = "forgejo-runner";
-                fragment = "forgejo-runner-secrets";
-                secret = "forgejo-runner-jiban";
-              }
             ];
             fakeLaunchctl = pkgs.writeShellScript "launchctl-test" ''
               set -eu
@@ -151,23 +146,6 @@
                     cp "$CREDENTIALS_DIRECTORY/password" /run/admin-password
                   '';
                 };
-                forgejo-runners = {
-                  inherit (cfg.systemd.services.forgejo-runners)
-                    after
-                    requires
-                    wantedBy
-                    partOf
-                    ;
-                  serviceConfig = {
-                    Type = "oneshot";
-                    RemainAfterExit = true;
-                    LoadCredential = "password:/run/secrets/forgejo-admin-password";
-                  };
-                  script = ''
-                    ${pkgs.diffutils}/bin/cmp "$CREDENTIALS_DIRECTORY/password" /run/admin-password
-                    cp /run/admin-password /run/runner-password
-                  '';
-                };
               };
             };
             # The NixOS test driver only runs Python: it boots the VM and hands over to Nushell.
@@ -188,28 +166,25 @@
                   def starts [] { open --raw /run/reader-starts | lines | length }
 
                   expect /run/loaded-token before-token
-                  expect /run/runner-password before-password
+                  expect /run/admin-password before-password
                   let switch = $"(^readlink -f /run/current-system/specialisation/rotated | str trim)/bin/switch-to-configuration"
                   ^$switch test
-                  wait-active forgejo-runners.service
+                  wait-active forgejo-admin.service
                   expect /run/loaded-token after-token
-                  expect /run/runner-password after-password
+                  expect /run/admin-password after-password
                   if (starts) != 2 { error make {msg: "hikyaku did not restart exactly once"} }
                   ^$switch test
                   if (starts) != 2 { error make {msg: "an unchanged secret restarted hikyaku"} }
                   touch /run/fail-admin
-                  if (do { ^systemctl restart forgejo-admin.service forgejo-runners.service } | complete).exit_code == 0 {
+                  if (do { ^systemctl restart forgejo-admin.service } | complete).exit_code == 0 {
                     error make {msg: "a failing forgejo-admin did not fail the restart"}
-                  }
-                  if (do { ^systemctl is-active --quiet forgejo-runners.service } | complete).exit_code == 0 {
-                    error make {msg: "forgejo-runners stayed active without its admin"}
                   }
                 '';
               in
               ''
                 machine.start()
                 machine.wait_for_unit("hikyaku.service")
-                machine.wait_for_unit("forgejo-runners.service")
+                machine.wait_for_unit("forgejo-admin.service")
                 machine.succeed("${pkgs.nushell}/bin/nu --no-config-file ${check}")
               '';
           };
