@@ -42,10 +42,6 @@ in
 
         sops.defaultSopsFile = ../../secrets/${hostName}/secrets.yaml;
 
-        # TODO(owner): the first run only creates this host's ACME account (hanko ADR 0003, 0008);
-        # turn it off once /var/lib/hanko/account.key exists and its `acme-account` URI is in
-        # sekkeizu.acmeAccounts (CAA refuses the wildcard until then).
-        services.hanko-node.acme.createAccount = true;
 
         # Deploy fallback when kekkai is down: root from the home LAN too (FIDO2 keys only).
         services.openssh.settings.AllowUsers = [ "root@192.168.1.0/24" ];
