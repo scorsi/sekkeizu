@@ -3,7 +3,7 @@
 # kekkai exists. The zone is generated from kekkai's node allocation and the services of
 # services.nix (annai ADR 0005); kekkai addresses answer before kekkai runs, on purpose.
 #
-# nixos.annai: the server. darwin.annai: points the Mac's resolver at it — ALL its DNS, so jiban
+# nixos.annai: the server. nixos.annai-resolver: overlay clients. darwin.annai: ALL the Mac's DNS, so jiban
 # resolves nothing but *.local while ishizue is down.
 {
   config,
@@ -125,13 +125,22 @@ in
 
       # ishizue itself keeps systemd-resolved, but asks the upstreams directly instead of macOS's
       # NAT DNS proxy, which follows jiban's resolver, i.e. annai: a broken annai must not take
-      # away the DNS that rebuilding ishizue needs. Its own resolver moves to annai with kekkai
-      # (annai's nixosModules.resolver on kekkai0).
+      # away the DNS that rebuilding ishizue needs. This bootstrap exception is local to the DNS host.
       systemd.network.networks."10-uplink" = {
         dhcpV4Config.UseDNS = false;
         networkConfig.DNS = config.services.annai.forwarding.upstreams;
       };
     };
+
+  flake.modules.nixos.annai-resolver = {
+    imports = [ inputs.scorsi-annai.nixosModules.resolver ];
+    services.annai.resolver = {
+      enable = true;
+      address = kekkai.nodes.ishizue.ipv4;
+      domain = "uchi.${domain}";
+      interface = "kekkai0";
+    };
+  };
 
   flake.modules.darwin.annai = {
     imports = [ inputs.scorsi-annai.darwinModules.resolver ];

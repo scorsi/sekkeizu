@@ -18,6 +18,7 @@ in
       nixos.fish
       nixos.secrets
       nixos.kekkai
+      nixos.annai-resolver
       nixos.server
       nixos.masu
       nixos.nisshi

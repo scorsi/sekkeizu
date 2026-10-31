@@ -51,7 +51,7 @@ let
       lib.optional (bridge ? ${host} && bridge ? ${peer}) "${bridge.${peer}}:${toString ports.node}";
 
   # The peers of each node and what each may open on it (kekkai ADR 0011: default deny, ICMP and
-  # replies always pass). ishizue: annai uchi and SSH from jiban, Forgejo's HTTP and SSH ports from
+  # replies always pass). ishizue: annai uchi from jiban and the hashira, SSH from jiban, Forgejo's HTTP and SSH ports from
   # genkan's node. jiban: nothing, every flow between the two starts on jiban (deploys,
   # hikyaku, the remote builder). The gate: SSH from jiban. The hashira: SSH from jiban (deploys);
   # both hashira run genkan: the web port, Forgejo's git SSH (2222) and kajiba's (2223) for jiban,
@@ -93,6 +93,8 @@ let
     }
     # Forgejo's HTTP and SSH ports for genkan, hanko-ca (hanko-ca.nix) for the hosts it issues SVIDs to.
     // lib.genAttrs hashira (_: [
+      "udp/53"
+      "tcp/53"
       "tcp/3000"
       "tcp/2222"
       "tcp/4900"

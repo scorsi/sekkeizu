@@ -260,10 +260,9 @@ in
         };
       };
 
-      # The runner asks Quad9, not annai; Nix also needs the forge's web name to fetch flake inputs.
+      # Keep the runner gateway reachable during DNS bootstrap, including on annai's own host.
       networking.hosts = lib.genAttrs (map (h: kekkai.nodes.${h}.ipv4) genkanHosts) (_: [
         services.kajiba-runners.host
-        services.kajiba.host
       ]);
 
       # Its source cache, kept to spare a full fetch after a reboot.
