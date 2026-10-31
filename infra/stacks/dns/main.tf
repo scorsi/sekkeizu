@@ -7,20 +7,26 @@ terraform {
       source  = "jianyuan/porkbun"
       version = "0.3.3"
     }
-    sops = {
-      source  = "carlpett/sops"
-      version = "1.4.1"
-    }
   }
 }
 
-ephemeral "sops_file" "secrets" {
-  source_file = "${path.module}/../../../secrets/infra/tofu.yaml"
+# From secrets/infra/tofu.yaml through the infra shell's `tofu` (modules/flake/infra.nix); ephemeral:
+# never written to the state or the plan.
+variable "porkbun_api_key" {
+  type      = string
+  sensitive = true
+  ephemeral = true
+}
+
+variable "porkbun_secret_key" {
+  type      = string
+  sensitive = true
+  ephemeral = true
 }
 
 provider "porkbun" {
-  api_key    = ephemeral.sops_file.secrets.data["porkbun_api_key"]
-  secret_key = ephemeral.sops_file.secrets.data["porkbun_secret_key"]
+  api_key    = var.porkbun_api_key
+  secret_key = var.porkbun_secret_key
 }
 
 # Apply torii first: its addresses come from its state.

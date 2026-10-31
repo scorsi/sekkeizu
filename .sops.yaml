@@ -1,6 +1,9 @@
 # Recipients per rule: the host's own key (decrypts at activation, unattended), the two FIDO2 keys
 # (every human edit: a touch per decryption) and the admin key, a break-glass kept only in the
 # password manager, never on disk.
+# Order matters: sops tries the recipients in this order, and the FIDO2 plugin needs a touch for every
+# native stanza it tries, its own or not. The daily key first (and first in keys.txt) makes a
+# decryption one touch; the hosts never decrypt interactively, so they go after the humans.
 # jiban: `ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub`
 # Remote hosts: copy the ed25519 public host key from a trusted console, then use
 # `nix run .#rekey-host -- <host> --public-key <verified-key.pub>`; never trust ssh-keyscan alone.
@@ -20,74 +23,74 @@ creation_rules:
   - path_regex: secrets/jiban/.*
     key_groups:
       - age:
-          - *jiban
-          - *fido-thetis-102800549530
           - *fido-yubikey-34043456
+          - *fido-thetis-102800549530
+          - *jiban
           - *admin
   - path_regex: secrets/ishizue/.*
     key_groups:
       - age:
-          - *ishizue
-          - *fido-thetis-102800549530
           - *fido-yubikey-34043456
+          - *fido-thetis-102800549530
+          - *ishizue
           - *admin
   - path_regex: secrets/torii-cdg/.*
     key_groups:
       - age:
-          - *torii-cdg
-          - *fido-thetis-102800549530
           - *fido-yubikey-34043456
+          - *fido-thetis-102800549530
+          - *torii-cdg
           - *admin
   - path_regex: secrets/hashira-01/.*
     key_groups:
       - age:
-          - *hashira-01
-          - *fido-thetis-102800549530
           - *fido-yubikey-34043456
+          - *fido-thetis-102800549530
+          - *hashira-01
           - *admin
   - path_regex: secrets/hashira-02/.*
     key_groups:
       - age:
-          - *hashira-02
-          - *fido-thetis-102800549530
           - *fido-yubikey-34043456
+          - *fido-thetis-102800549530
+          - *hashira-02
           - *admin
   # hanko's TSIG key: annai `soto` on torii checks it, hanko on each genkan host signs with it.
   - path_regex: secrets/hanko/.*
     key_groups:
       - age:
+          - *fido-yubikey-34043456
+          - *fido-thetis-102800549530
           - *torii-cdg
           - *hashira-01
           - *hashira-02
-          - *fido-thetis-102800549530
-          - *fido-yubikey-34043456
           - *admin
   # The DAS's LUKS key: the storage's, readable by whichever host carries the DAS (modules/nixos/das.nix).
   - path_regex: secrets/das/.*
     key_groups:
       - age:
-          - *hashira-01
-          - *fido-thetis-102800549530
           - *fido-yubikey-34043456
+          - *fido-thetis-102800549530
+          - *hashira-01
           - *admin
   # The replica disk's LUKS key, apart from the DAS's (modules/nixos/replica-disk.nix): moves with that disk.
   - path_regex: secrets/replica/.*
     key_groups:
       - age:
-          - *hashira-01
-          - *fido-thetis-102800549530
           - *fido-yubikey-34043456
+          - *fido-thetis-102800549530
+          - *hashira-01
           - *admin
   # LUKS recovery passphrases of the hosts' disks: humans only, never the host itself.
   - path_regex: secrets/recovery/.*
     key_groups:
       - age:
-          - *fido-thetis-102800549530
           - *fido-yubikey-34043456
+          - *fido-thetis-102800549530
           - *admin
   - path_regex: secrets/infra/.*
     key_groups:
       - age:
-          - *fido-thetis-102800549530
           - *fido-yubikey-34043456
+          - *fido-thetis-102800549530
           - *admin

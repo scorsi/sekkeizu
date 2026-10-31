@@ -5,20 +5,19 @@ terraform {
       source  = "vultr/vultr"
       version = "2.33.1"
     }
-    sops = {
-      source  = "carlpett/sops"
-      version = "1.4.1"
-    }
   }
 }
 
-# Ephemeral: the API key is decrypted for the run only, never written to the state or the plan.
-ephemeral "sops_file" "secrets" {
-  source_file = "${path.module}/../../../secrets/infra/tofu.yaml"
+# From secrets/infra/tofu.yaml through the infra shell's `tofu` (modules/flake/infra.nix); ephemeral:
+# never written to the state or the plan.
+variable "vultr_api_key" {
+  type      = string
+  sensitive = true
+  ephemeral = true
 }
 
 provider "vultr" {
-  api_key = ephemeral.sops_file.secrets.data["vultr_api_key"]
+  api_key = var.vultr_api_key
 }
 
 variable "region" {

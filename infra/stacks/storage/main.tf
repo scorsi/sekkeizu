@@ -13,19 +13,19 @@ terraform {
       source  = "hashicorp/random"
       version = "3.9.1"
     }
-    sops = {
-      source  = "carlpett/sops"
-      version = "1.4.1"
-    }
   }
 }
 
-ephemeral "sops_file" "secrets" {
-  source_file = "${path.module}/../../../secrets/infra/tofu.yaml"
+# From secrets/infra/tofu.yaml through the infra shell's `tofu` (modules/flake/infra.nix); ephemeral:
+# never written to the state or the plan.
+variable "hcloud_token" {
+  type      = string
+  sensitive = true
+  ephemeral = true
 }
 
 provider "hcloud" {
-  token = ephemeral.sops_file.secrets.data["hcloud_token"]
+  token = var.hcloud_token
 }
 
 # Password login cannot be disabled on a Storage Box: long random ones, kept in the encrypted state.

@@ -365,6 +365,9 @@ holds values only, never a secret.
   physical key), so any human decryption takes a touch. The admin key is the break-glass, kept only
   in the password manager. A new FIDO2 key: generate it, add its classic `age1…` recipient to
   `.sops.yaml` (the anchor names the serial number printed on the key), `sops updatekeys` every file.
+  Recipient order is the touch count: sops tries them in order and the plugin needs a touch for each
+  stanza it tries, its own or not. The daily key comes first in every rule and first in `keys.txt`,
+  so one touch per decryption (`updatekeys` keeps a file's existing order).
   `rekey-host` changes recipients, not data keys. For a compromised host key, remove its recipient,
   run `sops rotate` on the affected current files and rotate the credentials themselves. Old Git
   ciphertext remains decryptable with the compromised key; re-encryption cannot revoke that history.
@@ -391,9 +394,9 @@ infra/
     dns/            scorsi.dev and scorsi.me at Porkbun: the delegation to annai soto (NS, glue); reads torii's addresses
 ```
 
-- **Tooling**: the `infra` shell (OpenTofu, sops, the FIDO2 age plugin, `tofu-state-key`), loaded by
-  direnv under `infra/` (`direnv allow infra` once), or `nix develop .#infra`. Run tofu from a stack
-  directory.
+- **Tooling**: the `infra` shell (OpenTofu behind a `tofu` wrapper, sops, the FIDO2 age plugin,
+  `tofu-state-key`), loaded by direnv under `infra/` (`direnv allow infra` once), or
+  `nix develop .#infra`. Run tofu from a stack directory.
 - **Providers**: exact versions in each stack, `.terraform.lock.hcl` committed with the hashes of
   `darwin_arm64`, `linux_amd64` and `linux_arm64`. After a version bump:
   `tofu providers lock -platform=darwin_arm64 -platform=linux_amd64 -platform=linux_arm64`.
@@ -402,9 +405,12 @@ infra/
 - **Secrets**: `secrets/infra/tofu.yaml` (sops, keys as in "Encrypted trees", no host key):
   decrypting takes a touch.
   Keys: `vultr_api_key`, `porkbun_api_key`, `porkbun_secret_key`, `hcloud_token`,
-  `state_passphrase`, `install_password` (the NixOS ISO's `nixos` user while installing a Vultr host, see `modules/nixos/vultr-guest.nix`). API keys reach the providers through an ephemeral `sops_file` (never in the
-  state, the plan or the environment); the passphrase through the external key provider
-  `tofu-state-key` (`modules/flake/infra.nix`). Plan for a few touches per command.
+  `state_passphrase`, `install_password` (the NixOS ISO's `nixos` user while installing a Vultr host, see `modules/nixos/vultr-guest.nix`). The shell's `tofu` decrypts the file once per `plan`, `apply`,
+  `destroy`, `refresh`, `import` or `console` (one touch) and passes the run the API keys the stack declares as
+  ephemeral variables (`TF_VAR_*`, never in the state or the plan) and the state passphrase, which
+  the external key provider `tofu-state-key` hands to OpenTofu (`modules/flake/infra.nix`). For that
+  run they sit in the environment of tofu and its providers. A bare OpenTofu still works for the
+  state (`tofu-state-key` then calls sops each time) but asks for the keys.
 - **Order**: `storage` and `torii` are independent; `dns` needs torii applied (its state holds the
   addresses).
 
