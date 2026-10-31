@@ -49,8 +49,9 @@ let
   # genkan's node. jiban: nothing, every flow between the two starts on jiban (deploys,
   # hikyaku, the remote builder). The gate: SSH from jiban. The hashira: SSH from jiban (deploys);
   # every node's hikyaku pushes to masu and nisshi on hashira-01 (observability/masu.nix, nisshi.nix);
-  # hashira-02 runs genkan: the web port and Forgejo's git SSH (2222) for jiban and ishizue's runner,
-  # the PROXY listener (8443, genkan.nix) for the gate's genkan.
+  # both hashira run genkan: the web port and Forgejo's git SSH (2222) for jiban, ishizue's runner
+  # and each other (their runners, hashira-01's résumé relay to hashira-02); hashira-02 alone has
+  # the PROXY listener (8443, genkan.nix) for the gate's genkan. ishizue opens Forgejo to both.
   stores = [
     "tcp/9472"
     "tcp/9473"
@@ -69,14 +70,13 @@ let
         "tcp/22"
       ];
       ${gate} = [ ];
-      # hanko-ca (hanko-ca.nix): the hosts it issues SVIDs to.
-      hashira-01 = [ "tcp/4900" ];
-      hashira-02 = [
-        "tcp/3000"
-        "tcp/2222"
-        "tcp/4900"
-      ];
-    };
+    }
+    # Forgejo's HTTP and SSH ports for genkan, hanko-ca (hanko-ca.nix) for the hosts it issues SVIDs to.
+    // lib.genAttrs hashira (_: [
+      "tcp/3000"
+      "tcp/2222"
+      "tcp/4900"
+    ]);
     jiban = {
       ishizue = [ ];
       ${gate} = [ ];
@@ -88,10 +88,10 @@ let
     }
     // lib.genAttrs hashira (_: [ ]);
     hashira-01 = {
-      jiban = [ "tcp/22" ] ++ stores;
-      ishizue = stores ++ azukari;
+      jiban = [ "tcp/22" ] ++ stores ++ web;
+      ishizue = stores ++ azukari ++ web;
       ${gate} = stores;
-      hashira-02 = stores ++ azukari;
+      hashira-02 = stores ++ azukari ++ web;
     };
     hashira-02 = {
       jiban = [ "tcp/22" ] ++ web;

@@ -184,8 +184,10 @@ Day to day:
 ## Forge and web
 
 The web services are `<service>.uchi.<domain>` names, which only annai resolves (CNAME to
-`genkan.uchi`, then to hashira-02's kekkai address): genkan on 443 with hanko's `*.uchi` wildcard,
-reached over kekkai (its `allowInbound` opens tcp/443 to jiban); the LAN keeps 443 closed. Git over
+`genkan.uchi`, which has both hashira's kekkai addresses): genkan on 443 on each of them, the same
+sites, each with the `*.uchi` wildcard of its own hanko, reached over kekkai (its `allowInbound`
+opens tcp/443 to jiban); the LAN keeps 443 closed. The nodes' runners pin Forgejo to hashira-02's
+address (`forgejo.address` in endpoints.nix), outside DNS. Git over
 SSH uses the same Forgejo name: genkan's tcp passthrough on 2222 forwards it raw, with a PROXY v2
 header, to Forgejo's own SSH server on ishizue over kekkai:
 
@@ -193,7 +195,7 @@ header, to Forgejo's own SSH server on ishizue over kekkai:
 | --------- | -------------------------------------- | --------------------------------------------- |
 | Forgejo   | `https://forgejo.uchi.<domain>`        | genkan → ishizue:3000 over kekkai             |
 | Git (SSH) | `ssh://git@forgejo.uchi.<domain>:2222` | genkan passthrough → Forgejo's SSH server     |
-| Résumé    | `https://rirekisho.uchi.<domain>`      | genkan, static files (built by hashira-02's runner) |
+| Résumé    | `https://rirekisho.uchi.<domain>`      | genkan, static files (built by hashira-02's runner); hashira-01's genkan relays the name by SNI to hashira-02's |
 
 Addresses are declared once, in `modules-private/meta/endpoints.nix` (`sekkeizu.services.*`);
 genkan's sites, annai's records, Forgejo's `ROOT_URL` and the runners read them from there.
@@ -201,9 +203,10 @@ genkan's sites, annai's records, Forgejo's `ROOT_URL` and the runners read them 
 **Public exposure**: only the résumé. Its public names (`rirekisho.public` in endpoints.nix:
 `rirekisho.soto.<domain>`, with `rirekisho.<domain>` and `cv.scorsi.me` as CNAMEs to it, records in
 `modules-private/meta/public.nix`) point at torii-cdg, where genkan v1.0 listens on tcp/443 and
-forwards them by SNI, TLS untouched, behind a PROXY v2 header, to ishizue's `edge` listener
-(`<ishizue kekkai IPv4>:8443`, kekkai `allowInbound` from torii-cdg only, PROXY headers trusted from
-torii-cdg's kekkai address only). ishizue terminates TLS with hanko's `rirekisho-public` certificate.
+forwards them by SNI, TLS untouched, behind a PROXY v2 header, to hashira-02's `edge` listener
+(`<hashira-02 kekkai IPv4>:8443`, kekkai `allowInbound` from torii-cdg only, PROXY headers trusted from
+torii-cdg's kekkai address only), hashira-02 alone: a genkan tcp route has one backend.
+hashira-02 terminates TLS with hanko's `rirekisho-public` certificate.
 Only sites that name the `edge` listener are served there (genkan ADR 0013): Forgejo and every other
 `*.uchi` name answer 404 through a public SNI. tcp/80 on torii-cdg is genkan's redirect listener
 (v1.1): every request gets a 301 to `https://` on the same host and path, answered on torii; port 80
@@ -217,7 +220,7 @@ never crosses kekkai. No git SSH on a public port.
   `azukari-backup-<export>` unit and timer (1 h random delay): daily, `masu-days` and `nisshi-days`
   at 01:00 UTC (after their stores seal the previous day at 00:10 UTC). A run first refreshes its export in `/persist/backups/<export>`, then sends it to the store on hashira-01 (bucket `backup`, DAS disk
   ZN1374ZM). Exports: `forgejo-dump` on ishizue (`forgejo dump`, one tar replaced each run),
-  `hanko-account` on hashira-02 (hanko's ACME account key, `account.key`), `masu-days` and
+  `hanko-account` on hashira-01 and hashira-02 (each one's ACME account key, `account.key`), `masu-days` and
   `nisshi-days` on hashira-01 (each store's closed days, hard-linked; the open day is never
   exported, so the last day lags until it closes). Retention runs dry (7-day keep, `enabled = false`).
   The store replicates the bucket every 6 h to two copies (azukari ADR 0008): `offsite`, the

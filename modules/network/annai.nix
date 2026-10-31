@@ -15,6 +15,7 @@ let
   inherit (config.sekkeizu)
     domain
     bridgeAddresses
+    genkanHosts
     kekkai
     services
     ;
@@ -30,7 +31,7 @@ let
     }
   ) kekkai.nodes;
 
-  # A web service in the zone → genkan (genkan.nix, on hashira-02); any other service → the node its
+  # A web service in the zone → genkan (genkan.nix, on both hashira); any other service → the node its
   # endpoint names (first label of `host`), when that is a kekkai node (Forgejo's SSH).
   inZone = host: lib.hasSuffix ".${lib.removeSuffix "." zone}" host;
   serviceNames = lib.concatMapAttrs (
@@ -86,7 +87,11 @@ in
               a = [ kekkai.nodes.ishizue.ipv4 ];
               aaaa = [ kekkai.nodes.ishizue.ipv6 ];
             };
-            genkan.cname = "hashira-02.kekkai";
+            # Both genkan hosts (genkan.nix): a client picks either, each serves every site.
+            genkan = {
+              a = map (host: kekkai.nodes.${host}.ipv4) genkanHosts;
+              aaaa = map (host: kekkai.nodes.${host}.ipv6) genkanHosts;
+            };
           }
           // nodeNames
           // serviceNames;

@@ -21,6 +21,11 @@ in
       '';
     };
 
+    genkanHosts = mkOption {
+      type = types.listOf types.str;
+      description = "The hosts running the overlay's genkan (genkan.nix): `genkan` in the uchi zone has all their kekkai addresses.";
+    };
+
     lanAddresses = mkOption {
       type = types.attrsOf types.str;
       default = { };

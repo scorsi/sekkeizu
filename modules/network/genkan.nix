@@ -3,13 +3,17 @@
 # hanko's `*.uchi` wildcard (hanko.nix: group genkan, reloads genkan.service after a renewal;
 # genkan's module orders it after hanko).
 #
-# hashira-02 (`genkan`): `:443` on every address, the `default` listener: clients come over kekkai,
-# where kekkai's allowInbound is the only filter (kekkai0 is trusted). The LAN keeps the web port
-# closed (no firewall opening). The `edge` listener takes what torii-cdg forwards, behind a PROXY
-# v2 header: only the sites that name it are served there (genkan ADR 0013), the ones with public
-# names (services.nix). Forgejo's name points here for both its ports: the web site goes to
-# Forgejo's HTTP port, and the `forgejo-ssh` listener (`:2222`, mode tcp: a passthrough without
-# SNI, genkan ADR 0012) forwards git over SSH raw to Forgejo's own SSH server, both over kekkai.
+# hashira-01 and hashira-02 (`genkan`, both addresses in annai): the same sites on each, each host
+# with its own wildcard from its own hanko. `:443` on every address, the `default` listener: clients
+# come over kekkai, where kekkai's allowInbound is the only filter (kekkai0 is trusted). The LAN
+# keeps the web port closed (no firewall opening). Forgejo's name points here for both its ports:
+# the web site goes to Forgejo's HTTP port, and the `forgejo-ssh` listener (`:2222`, mode tcp: a
+# passthrough without SNI, genkan ADR 0012) forwards git over SSH raw to Forgejo's own SSH server,
+# both over kekkai.
+# hashira-02 alone (`edgeHost`) has the `edge` listener: it takes what torii-cdg forwards, behind a
+# PROXY v2 header, and serves only the sites that name it (genkan ADR 0013), the ones with public
+# names (services.nix). torii's tcp route has one backend: failing over to hashira-01 there waits
+# for a genkan feature.
 #
 # torii-cdg (`genkan-edge`): public `:443`, the public names forwarded raw by SNI to the `edge`
 # listener over kekkai; no TLS termination, so no certificate. Anything else is closed.
@@ -24,47 +28,57 @@
 let
   inherit (config.sekkeizu) domain kekkai services;
   # Also opened from the gate in kekkai.nix's allowInbound.
-  edge = "${kekkai.nodes.hashira-02.ipv4}:8443";
+  edgeHost = "hashira-02";
+  edge = "${kekkai.nodes.${edgeHost}.ipv4}:8443";
   # Forgejo's node; its HTTP and SSH ports are opened to genkan's node in kekkai.nix.
   forgejo = kekkai.nodes.ishizue.ipv4;
   # Scraped by the local hikyaku only (masu metric convention: loopback).
   metrics = "127.0.0.1:9476";
 in
 {
-  flake.modules.nixos.genkan = {
-    imports = [ inputs.scorsi-genkan.nixosModules.default ];
+  sekkeizu.genkanHosts = [
+    "hashira-01"
+    edgeHost
+  ];
 
-    services.genkan = {
-      enable = true;
-      listeners = {
-        default.address = ":443";
-        edge = {
-          address = edge;
-          acceptProxy = true;
-          trustedSources = [ "${kekkai.nodes.torii-cdg.ipv4}/32" ];
+  flake.modules.nixos.genkan =
+    { config, ... }:
+    {
+      imports = [ inputs.scorsi-genkan.nixosModules.default ];
+
+      services.genkan = {
+        enable = true;
+        listeners = {
+          default.address = ":443";
+          forgejo-ssh.address = ":${toString services.forgejo-ssh.port}";
+        }
+        // lib.optionalAttrs (config.networking.hostName == edgeHost) {
+          edge = {
+            address = edge;
+            acceptProxy = true;
+            trustedSources = [ "${kekkai.nodes.torii-cdg.ipv4}/32" ];
+          };
         };
-        forgejo-ssh.address = ":${toString services.forgejo-ssh.port}";
+        sites.${services.forgejo.host} = {
+          backend = "http://${forgejo}:3000";
+          # The runners poll FetchTask every ~2 s each: 96 % of genkan's request lines. Successful
+          # polls are counted in metrics, not logged; failed ones and every other call still are (genkan ADR 0011).
+          quietPaths = [ "/api/actions/runner.v1.RunnerService/FetchTask" ];
+        };
+        passthrough.forgejo-ssh = {
+          listener = "forgejo-ssh";
+          backend = "${forgejo}:${toString services.forgejo-ssh.port}";
+          # Forgejo's SSH server expects it (SSH_SERVER_USE_PROXY_PROTOCOL): its logs show the client.
+          sendProxy = true;
+        };
+        certificates.uchi = {
+          hosts = [ "*.uchi.${domain}" ];
+          cert = "/var/lib/hanko/uchi/fullchain.pem";
+          key = "/var/lib/hanko/uchi/key.pem";
+        };
+        metrics.listen = metrics;
       };
-      sites.${services.forgejo.host} = {
-        backend = "http://${forgejo}:3000";
-        # The runners poll FetchTask every ~2 s each: 96 % of genkan's request lines. Successful
-        # polls are counted in metrics, not logged; failed ones and every other call still are (genkan ADR 0011).
-        quietPaths = [ "/api/actions/runner.v1.RunnerService/FetchTask" ];
-      };
-      passthrough.forgejo-ssh = {
-        listener = "forgejo-ssh";
-        backend = "${forgejo}:${toString services.forgejo-ssh.port}";
-        # Forgejo's SSH server expects it (SSH_SERVER_USE_PROXY_PROTOCOL): its logs show the client.
-        sendProxy = true;
-      };
-      certificates.uchi = {
-        hosts = [ "*.uchi.${domain}" ];
-        cert = "/var/lib/hanko/uchi/fullchain.pem";
-        key = "/var/lib/hanko/uchi/key.pem";
-      };
-      metrics.listen = metrics;
     };
-  };
 
   flake.modules.nixos.genkan-edge = {
     imports = [ inputs.scorsi-genkan.nixosModules.default ];

@@ -52,11 +52,12 @@ creation_rules:
           - *fido-thetis-102800549530
           - *fido-yubikey-34043456
           - *admin
-  # hanko's TSIG key: annai `soto` on torii checks it, hanko on ishizue signs with it.
+  # hanko's TSIG key: annai `soto` on torii checks it, hanko on each genkan host signs with it.
   - path_regex: secrets/hanko/.*
     key_groups:
       - age:
           - *torii-cdg
+          - *hashira-01
           - *hashira-02
           - *fido-thetis-102800549530
           - *fido-yubikey-34043456
