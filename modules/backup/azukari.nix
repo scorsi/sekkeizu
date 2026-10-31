@@ -21,7 +21,12 @@
 # would delete, every snapshot is kept. The owner administers the store with `azukari` (member of
 # `azukari-admin`, azukari ADR 0024). No alert on a stale
 # `azukari_last_snapshot_timestamp_seconds` either: the lab has no alerting yet (hansho).
-{ config, inputs, ... }:
+{
+  config,
+  inputs,
+  lib,
+  ...
+}:
 let
   inherit (config.sekkeizu)
     domain
@@ -63,6 +68,11 @@ in
     listener = "services";
     sni = [ services.azukari.host ];
     backend = "${kekkai.nodes.${storeHost}.ipv4}:${toString port}";
+    # Only the backing-up nodes reach the store's name; both families, as for masu (masu.nix).
+    allow = lib.concatMap (h: [
+      kekkai.nodes.${h}.ipv4
+      kekkai.nodes.${h}.ipv6
+    ]) backupHosts;
   };
 
   flake.modules.nixos.azukari-server =

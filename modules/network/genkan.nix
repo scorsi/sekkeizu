@@ -13,7 +13,10 @@
 # The `services` listener (`sekkeizu.genkanServicesPort`) carries machine-to-machine flows only:
 # passthrough by SNI to the stores (masu.nix, nisshi.nix, azukari.nix add the routes), TLS left to
 # them, any other name closed (genkan ADR 0012). No site is served there, so kekkai can open it to a
-# peer (the gate's hikyaku) without opening the web sites.
+# peer (the gate's hikyaku) without opening the web sites. Three layers there: kekkai's allowInbound
+# opens the port per peer, each route's `allow` (genkan ADR 0017) lets only its own clients' kekkai
+# addresses reach that name (the gate reaches masu and nisshi, never azukari), and the service
+# itself authenticates (the stores' tokens, azukari's mTLS).
 # The `relay` listener (`sekkeizu.genkanRelayPort`) serves the web sites again, for the other genkan
 # hosts only: a name served on one host only (oroshi.nix, rirekisho.nix) is forwarded raw by SNI
 # from the other host's web port to this one, behind a PROXY v2 header, so the owner host logs the

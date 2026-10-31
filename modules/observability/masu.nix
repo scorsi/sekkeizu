@@ -10,12 +10,19 @@
   ...
 }:
 let
-  inherit (config.sekkeizu) kekkai observability;
+  inherit (config.sekkeizu) genkanHosts kekkai observability;
   inherit (config.kiso) owner;
   tokens =
     lib.mapAttrs' (host: hash: lib.nameValuePair hash "node:${host}") observability.tokenHashes
     // lib.genAttrs observability.stores.masu.readerTokenHashes (_: "reader");
   retentionDays = builtins.fromJSON (builtins.readFile ./retention-days.json);
+  # The hosts whose hikyaku pushes here, and the genkan hosts themselves: a host's own genkan sees
+  # its own kekkai address as the peer (hairpin), the other's sees it over kekkai. Both families:
+  # the nodes pin genkan's IPv4, jiban resolves it through annai (A and AAAA).
+  allow = lib.concatMap (h: [
+    kekkai.nodes.${h}.ipv4
+    kekkai.nodes.${h}.ipv6
+  ]) (lib.unique (lib.attrNames observability.agents ++ genkanHosts));
   store = observability.stores.masu;
 in
 {
@@ -24,6 +31,7 @@ in
     listener = "services";
     sni = [ store.serverName ];
     backend = "${kekkai.nodes.${store.host}.ipv4}:${toString store.port}";
+    inherit allow;
   };
 
   flake.modules.nixos.masu =
