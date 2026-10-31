@@ -3,6 +3,8 @@
 # node one `azukari-backup-<export>` unit and timer per export (azukari ADR 0030: daily, the stores'
 # days just after their 00:10 UTC seal), each sending one service's export under /persist/backups/<export> (ADR 0020, 0021). Both sides authenticate with hanko-ca's
 # SVIDs (hanko-ca.nix): the store accepts the nodes' `azukari-backup` IDs, the nodes pin the store's ID.
+# The nodes dial `azukari.uchi` (endpoints.nix) on 443: either genkan host forwards that SNI raw to
+# the store (genkan ADR 0012), mTLS untouched; the SPIFFE ID is checked, not the name.
 #
 # The store replicates every 6 h (azukari ADR 0008): to the Storage Box's `backup` subaccount over
 # SSH (`offsite`, key azukari-offsite-key, the box's host key pinned) and to its own USB disk
@@ -21,15 +23,20 @@
 # `azukari_last_snapshot_timestamp_seconds` either: the lab has no alerting yet (hansho).
 { config, inputs, ... }:
 let
-  inherit (config.sekkeizu) domain kekkai;
+  inherit (config.sekkeizu)
+    domain
+    genkanHosts
+    kekkai
+    services
+    ;
   inherit (config.kiso) owner;
   trustDomain = "uchi.${domain}";
   storeHost = "hashira-01";
   box = config.sekkeizu.services.backup-offsite;
   # A subaccount's login is the first label of its host name (u<id>-sub<n>.your-storagebox.de).
   boxLogin = builtins.head (builtins.split "\\." box.host);
-  # After kekkai (4800-4802) and hanko-ca (4900); kekkai.nix opens it to the backing-up nodes.
-  # hashira-01's own run reaches its kekkai address over loopback, which neither kekkai's rules
+  # After kekkai (4800-4802) and hanko-ca (4900); kekkai.nix opens it to the genkan hosts.
+  # hashira-01's own genkan reaches its kekkai address over loopback, which neither kekkai's rules
   # nor the firewall filter.
   port = 5000;
   # The 1 TB disk (modules/nixos/das.nix), the healthiest; no service keeps live data on the DAS.
@@ -51,6 +58,12 @@ let
   };
 in
 {
+  flake.modules.nixos.genkan.services.genkan.passthrough.azukari = {
+    listener = "default";
+    sni = [ services.azukari.host ];
+    backend = "${kekkai.nodes.${storeHost}.ipv4}:${toString port}";
+  };
+
   flake.modules.nixos.azukari-server =
     { config, pkgs, ... }:
     let
@@ -171,7 +184,8 @@ in
       services.azukari-backup = {
         enable = true;
         settings = {
-          server = "https://${kekkai.nodes.${storeHost}.ipv4}:${toString port}";
+          # azukari wants the port spelled out; the name is also the SNI genkan routes on.
+          server = "https://${services.azukari.host}:443";
           bucket = "backup";
           data_key_file = config.sops.secrets.azukari-data-key.path;
           tls = tls "azukari-backup" // {
@@ -211,6 +225,11 @@ in
           }
         );
       };
+
+      # The nodes ask Quad9, not annai (annai.nix); Go tries each address in turn.
+      networking.hosts = lib.genAttrs (map (h: kekkai.nodes.${h}.ipv4) genkanHosts) (_: [
+        services.azukari.host
+      ]);
 
       # The module only creates the base (`d`); the old pull left it 0700 root:root, which export
       # users could not traverse.

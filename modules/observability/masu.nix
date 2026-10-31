@@ -1,6 +1,7 @@
 # masu (metrics), a store of the observability base (docs/observability.md). Persistent, not
-# exposed: it listens on the host's kekkai address only, where every agent pushes (network/kekkai.nix
-# opens the port to each peer), and accepts each host's token as `node:<host>` and the operator's
+# exposed: it listens on the host's kekkai address only, which genkan (both hosts) forwards the
+# store's TLS name to, raw (the agents push through genkan on 443; network/kekkai.nix opens the
+# port to the genkan hosts), and accepts each host's token as `node:<host>` and the operator's
 # as `reader`. Its own /metrics stays on loopback, for the host's hikyaku.
 {
   config,
@@ -15,8 +16,16 @@ let
     lib.mapAttrs' (host: hash: lib.nameValuePair hash "node:${host}") observability.tokenHashes
     // lib.genAttrs observability.stores.masu.readerTokenHashes (_: "reader");
   retentionDays = builtins.fromJSON (builtins.readFile ./retention-days.json);
+  store = observability.stores.masu;
 in
 {
+  # TLS end to end: genkan forwards the certificate's name by SNI (genkan ADR 0012).
+  flake.modules.nixos.genkan.services.genkan.passthrough.masu = {
+    listener = "default";
+    sni = [ store.serverName ];
+    backend = "${kekkai.nodes.${store.host}.ipv4}:${toString store.port}";
+  };
+
   flake.modules.nixos.masu =
     { config, ... }:
     let
@@ -35,7 +44,7 @@ in
         # Binding the kekkai address needs kekkai.nix's ip_nonlocal_bind: at boot systemd-sysctl
         # precedes sysinit.target; at a switch that sets it, only this orders them.
         after = [ "systemd-sysctl.service" ];
-        # Only the agents talk to it (kekkai), and hikyaku scrapes it on loopback.
+        # Only genkan pushes to it (over kekkai, or locally on its own host), hikyaku scrapes loopback.
         serviceConfig = {
           IPAddressDeny = "any";
           IPAddressAllow = [
@@ -66,7 +75,7 @@ in
       ];
 
       # Trusted interfaces are accepted before any rule, so the port is refused on them
-      # first, except loopback (the host's own hikyaku) and kekkai0, where kekkai's own allowInbound
+      # first, except loopback (the host's own hikyaku and genkan) and kekkai0, where kekkai's allowInbound
       # (network/kekkai.nix) already limits which peer reaches it.
       networking.firewall.extraCommands = lib.concatMapStrings (iface: ''
         iptables -I nixos-fw -i ${iface} -p tcp --dport ${toString port} -j nixos-fw-refuse
@@ -76,9 +85,9 @@ in
   # The operator's reader token on jiban, for the manual silence check (/v1/status: last receive
   # time per agent, refreshed by a successful push only):
   #   curl --cacert modules-private/observability/ca.pem \
-  #     --resolve masu.internal:9472:<masu's host kekkai address> \
+  #     --resolve masu.internal:443:<a genkan host's kekkai address> \
   #     -H "Authorization: Bearer $(cat /run/secrets/masu-reader-token)" \
-  #     https://masu.internal:9472/v1/status | jq
+  #     https://masu.internal/v1/status | jq
   flake.modules.darwin.masu-reader =
     { config, ... }:
     {

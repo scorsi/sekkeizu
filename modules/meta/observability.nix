@@ -45,13 +45,10 @@ in
       );
     };
     agents = mkOption {
-      description = "Each host running hikyaku: its spool limit, and the address it reaches the stores' host on.";
+      description = "Each host running hikyaku: its spool limit (it reaches the stores through genkan, hikyaku.nix).";
       type = types.attrsOf (
         types.submodule {
-          options = {
-            spoolLimit = mkOption { type = types.ints.positive; };
-            storeAddress = mkOption { type = types.str; };
-          };
+          options.spoolLimit = mkOption { type = types.ints.positive; };
         }
       );
     };
