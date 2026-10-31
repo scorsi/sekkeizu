@@ -49,6 +49,7 @@ in
           homeManager.cli
           homeManager.pay-respects
           homeManager.github
+          homeManager.kajiba-cli
           homeManager.claude-code
           homeManager.codex
           homeManager.tmux

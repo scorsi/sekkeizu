@@ -123,6 +123,7 @@ in
       services.kajiba-server = {
         enable = true;
         package = packages.kajiba-server;
+        ui.package = packages.kajiba-ui;
         http = {
           listen = "${address}:${toString ports.http}";
           publicUrl = services.kajiba.url;
@@ -133,8 +134,15 @@ in
           isAdmin = true;
           sshKeys = ownerKeys;
           signingKeys = ownerKeys;
-          # TODO(owner): the CLI's PAT, once generated (command in the module's `tokens.*.sha256`
-          # description): tokens.cli = { sha256 = "<hex>"; scopes = [ ... ]; };
+          # The CLI's PAT on jiban; only its hash is here (the token stays in the password manager).
+          tokens.cli = {
+            sha256 = "fbb180ccd47001656f74341deab5fbcc38b76aba0e2f14609bf56c0784471957";
+            scopes = [
+              "repo:read"
+              "repo:write"
+              "ci:trigger"
+            ];
+          };
         };
         runnerListener = {
           listen = "${address}:${toString ports.runners}";
