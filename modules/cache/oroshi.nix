@@ -96,12 +96,10 @@ in
           nix.trustedKeys = lib.attrValues oroshi.publicKeys ++ upstreamKeys;
         };
 
-        systemd.services.oroshi = {
-          # The DAS mounts with nofail: without the disk, oroshi must not start on the tmpfs root.
-          unitConfig.RequiresMountsFor = [ stateDir ];
-          # The module expects a custom stateDir to exist, owned by oroshi; `+` runs this as root.
-          serviceConfig.ExecStartPre = "+${pkgs.coreutils}/bin/install -d -m 0750 -o oroshi -g oroshi ${stateDir}";
-        };
+        # The DAS mounts with nofail: without the disk, oroshi must not start on the tmpfs root.
+        systemd.services.oroshi.unitConfig.RequiresMountsFor = [ stateDir ];
+        # ReadWritePaths needs the directory before any ExecStartPre runs, so tmpfiles creates it.
+        systemd.tmpfiles.rules = [ "d ${stateDir} 0750 oroshi oroshi -" ];
 
         services.genkan.sites.${services.oroshi.host}.backend = "http://${backend}";
 
