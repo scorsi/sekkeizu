@@ -123,17 +123,19 @@ in
             "tcp"
           ];
 
-      # ishizue itself keeps systemd-resolved, but asks the upstreams directly instead of macOS's
-      # NAT DNS proxy, which follows jiban's resolver, i.e. annai: a broken annai must not take
-      # away the DNS that rebuilding ishizue needs. This bootstrap exception is local to the DNS host.
+      # Before the overlay is ready, use upstream IPs rather than macOS's NAT DNS proxy,
+      # which follows jiban back to annai. Once kekkai0 is up, the resolver client uses annai.
       systemd.network.networks."10-uplink" = {
         dhcpV4Config.UseDNS = false;
         networkConfig.DNS = config.services.annai.forwarding.upstreams;
       };
+      systemd.services.annai-resolver.after = [ "annai.service" ];
     };
 
   flake.modules.nixos.annai-resolver = {
     imports = [ inputs.scorsi-annai.nixosModules.resolver ];
+    # Device activation alone does not start a newly installed service on an already active link.
+    systemd.services.annai-resolver.wantedBy = [ "multi-user.target" ];
     services.annai.resolver = {
       enable = true;
       address = kekkai.nodes.ishizue.ipv4;

@@ -22,6 +22,7 @@ in
       nixos.secrets
       nixos.kekkai
       nixos.annai
+      nixos.annai-resolver
       nixos.hanko-ca
       nixos.hanko-internal
       nixos.server
