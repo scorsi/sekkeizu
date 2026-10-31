@@ -107,6 +107,7 @@ let
     rirekisho = "履歴書 — my résumé (FR/EN), Astro + Svelte, data in TOML, PDF and site built with Nix";
     sekkeizu = "設計図 — my homelab blueprint: nix-darwin and NixOS hosts, services, networking and secrets in one Nix flake";
     shiori = "栞 — status line for Claude Code in Nim, configured like Starship, as a Nix flake with a Home Manager module";
+    yagura = "櫓 — my observability UI: node state, metrics and logs in one place, with views that cross signals";
   };
 in
 {
