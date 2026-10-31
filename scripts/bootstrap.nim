@@ -168,13 +168,15 @@ proc main() =
       warn "files untracked by git in " & dir & ": Nix will ignore them (git add?)"
       break
 
-  # The repo's own flakes (inputs scorsi-*) come from Forgejo, which a fresh machine can't reach yet
+  # The repo's own flakes (inputs scorsi-*) come from kajiba, which a fresh machine can't reach yet
   # (no kekkai or annai yet): take them from their GitHub mirrors, at the revisions locked in
   # flake.lock. Same rewrite as scripts/via-github.nu. Fetched now as the user, with the FIDO2 key; every
   # evaluation below, root's included, then finds them in the store.
-  putEnv("GIT_CONFIG_COUNT", "1")
+  putEnv("GIT_CONFIG_COUNT", "2")
   putEnv("GIT_CONFIG_KEY_0", "url.ssh://git@github.com/scorsi/.insteadOf")
-  putEnv("GIT_CONFIG_VALUE_0", "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/")
+  putEnv("GIT_CONFIG_VALUE_0", "https://kajiba.uchi.scorsi.dev/scorsi/")
+  putEnv("GIT_CONFIG_KEY_1", "url.ssh://git@github.com/scorsi/.insteadOf")
+  putEnv("GIT_CONFIG_VALUE_1", "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/")
   log "inputs: fetching (GitHub mirrors)"
   sh withNixSsh(nix("flake", "archive", dir))
 

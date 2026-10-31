@@ -55,55 +55,55 @@
     # Neovim and its config, a repo of its own (kiso's `kanna` feature). Pinned here so that
     # `--override-input scorsi-kanna path:…` keeps working from this repo.
     scorsi-kanna = {
-      url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kanna.git";
+      url = "git+https://kajiba.uchi.scorsi.dev/scorsi/kanna.git";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # The DNS server of the homelab (modules/network/annai.nix). Not following our nixpkgs: annai
     # pins its own nixpkgs and Zig toolchain (zig2nix) and is built and tested against them.
-    scorsi-annai.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/annai.git";
+    scorsi-annai.url = "git+https://kajiba.uchi.scorsi.dev/scorsi/annai.git";
 
     # The observability stores (modules/observability/masu.nix, nisshi.nix). Not following our nixpkgs either:
     # each pins its own and is tested against it.
-    scorsi-masu.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/masu.git";
-    scorsi-nisshi.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/nisshi.git";
+    scorsi-masu.url = "git+https://kajiba.uchi.scorsi.dev/scorsi/masu.git";
+    scorsi-nisshi.url = "git+https://kajiba.uchi.scorsi.dev/scorsi/nisshi.git";
     # The node agent (modules/observability/hikyaku.nix); its masu and nisshi inputs are test-only.
-    scorsi-hikyaku.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/hikyaku.git";
+    scorsi-hikyaku.url = "git+https://kajiba.uchi.scorsi.dev/scorsi/hikyaku.git";
 
     # The certificates (modules/network/hanko.nix). Not following our nixpkgs: tested against its
     # own; its annai and nisshi inputs are test-only.
-    scorsi-hanko.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/hanko.git";
+    scorsi-hanko.url = "git+https://kajiba.uchi.scorsi.dev/scorsi/hanko.git";
 
     # The object store and the nodes' backups (modules/backup/azukari.nix). Not following our
     # nixpkgs: tested against its own; its masu and nisshi inputs are test-only.
-    scorsi-azukari.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/azukari.git";
+    scorsi-azukari.url = "git+https://kajiba.uchi.scorsi.dev/scorsi/azukari.git";
 
     # The Nix binary cache (modules/cache/oroshi.nix). Not following our nixpkgs: tested against its
     # own; its masu and nisshi inputs are test-only.
-    scorsi-oroshi.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/oroshi.git";
+    scorsi-oroshi.url = "git+https://kajiba.uchi.scorsi.dev/scorsi/oroshi.git";
 
     # The overlay network (modules/network/kekkai.nix). Not following our nixpkgs: tested against
     # its own; its masu and nisshi inputs are test-only.
-    scorsi-kekkai.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kekkai.git";
+    scorsi-kekkai.url = "git+https://kajiba.uchi.scorsi.dev/scorsi/kekkai.git";
 
     # The reverse proxy (modules/network/genkan.nix). Not following our nixpkgs: tested against its
     # own; its masu and nisshi inputs are test-only.
-    scorsi-genkan.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/genkan.git";
+    scorsi-genkan.url = "git+https://kajiba.uchi.scorsi.dev/scorsi/genkan.git";
 
     # The forge (modules/nixos/kajiba.nix). Not following our nixpkgs: tested against its own; its
     # masu and nisshi inputs are test-only.
-    scorsi-kajiba.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kajiba.git";
+    scorsi-kajiba.url = "git+https://kajiba.uchi.scorsi.dev/scorsi/kajiba.git";
 
     # The Claude Code status line (modules/home/claude-code.nix).
     scorsi-shiori = {
-      url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/shiori.git";
+      url = "git+https://kajiba.uchi.scorsi.dev/scorsi/shiori.git";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # The common base (options `kiso.*`, generic features), a flake-parts module. Every input it
     # shares with this repo follows ours: one version of each.
     scorsi-kiso = {
-      url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kiso.git";
+      url = "git+https://kajiba.uchi.scorsi.dev/scorsi/kiso.git";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
