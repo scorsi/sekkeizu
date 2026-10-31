@@ -30,6 +30,7 @@ modules/
   nixos/   NixOS-only features (server, Forgejo, rirekisho)
   ci/      Forgejo Actions runners (NixOS and macOS)
   backup/  azukari: the object store on hashira-01 and each node's backup exports
+  cache/   oroshi: the Nix binary cache on hashira-01, its readers and jiban's uploader
   network/ kekkai, annai, hanko, genkan
   vm/      NixOS guest base for VMs on a Mac (vfkit, EFI)
   flake/   this repo's apps (rekey-host, set-autologin-password); the rest of the plumbing is kiso's
@@ -199,6 +200,7 @@ header, to Forgejo's own SSH server on ishizue over kekkai:
 | Forgejo   | `https://forgejo.uchi.<domain>`        | genkan → ishizue:3000 over kekkai             |
 | Git (SSH) | `ssh://git@forgejo.uchi.<domain>:2222` | genkan passthrough → Forgejo's SSH server     |
 | Résumé    | `https://rirekisho.uchi.<domain>`      | genkan, static files (built by hashira-02's runner); hashira-01's genkan relays the name by SNI to hashira-02's |
+| Nix cache | `https://oroshi.uchi.<domain>/nix`     | hashira-01's genkan → oroshi on loopback; hashira-02's genkan relays the name by SNI to hashira-01's |
 | Backups   | `https://azukari.uchi.<domain>:9443`   | genkan passthrough by SNI → azukari-server (hashira-01:5000), mTLS end to end |
 | Metrics, logs | `https://genkan.uchi.<domain>:9443`, TLS name `masu.internal` / `nisshi.internal` | genkan passthrough by SNI → masu / nisshi (hashira-01:9472, 9473), the nodes' hikyaku |
 

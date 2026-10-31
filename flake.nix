@@ -78,6 +78,10 @@
     # nixpkgs: tested against its own; its masu and nisshi inputs are test-only.
     scorsi-azukari.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/azukari.git";
 
+    # The Nix binary cache (modules/cache/oroshi.nix). Not following our nixpkgs: tested against its
+    # own; its masu and nisshi inputs are test-only.
+    scorsi-oroshi.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/oroshi.git";
+
     # The overlay network (modules/network/kekkai.nix). Not following our nixpkgs: tested against
     # its own; its masu and nisshi inputs are test-only.
     scorsi-kekkai.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kekkai.git";

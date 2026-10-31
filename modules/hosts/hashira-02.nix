@@ -27,6 +27,7 @@ in
       nixos.forgejo-runner
       nixos.rirekisho
       nixos.azukari-backup
+      nixos.oroshi-reader
 
       # ─── Machine identity ─────────────────────────────────────────────
       {

@@ -29,6 +29,8 @@ in
       darwin.node-exporter
       darwin.masu-reader
       darwin.nisshi-reader
+      darwin.oroshi-reader
+      darwin.oroshi-uploader
       darwin.secret-reminders
       # Only needed to build a VM image (`nix run .#install-<vm>`): QEMU VM, 3 GB RAM, 40 GB disk.
       # darwin.linux-builder

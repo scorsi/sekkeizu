@@ -30,6 +30,7 @@ in
       nixos.forgejo
       nixos.forgejo-runner
       nixos.azukari-backup
+      nixos.oroshi-reader
 
       # ─── User features ────────────────────────────────────────────────
       {

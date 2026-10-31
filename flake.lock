@@ -119,6 +119,21 @@
         "type": "github"
       }
     },
+    "crane_13": {
+      "locked": {
+        "lastModified": 1792350552,
+        "narHash": "sha256-292lvpvxTGKryKxh3/3tcIVi85CwYGdl4oOi113Sob8=",
+        "owner": "ipetkov",
+        "repo": "crane",
+        "rev": "e675a36b7377bebe41d548388a2501cbb16d380d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ipetkov",
+        "repo": "crane",
+        "type": "github"
+      }
+    },
     "crane_2": {
       "locked": {
         "lastModified": 1792350552,
@@ -435,6 +450,27 @@
       "inputs": {
         "nixpkgs-lib": [
           "scorsi-nisshi",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790898470,
+        "narHash": "sha256-zTwuwezD0w3hpga6a6P8emidzAZFyWqlNeRBlpWOOl8=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "024633cd702b10285db5cb19b40ad48d2399ba60",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "flake-parts_18": {
+      "inputs": {
+        "nixpkgs-lib": [
+          "scorsi-oroshi",
           "nixpkgs"
         ]
       },
@@ -854,6 +890,39 @@
         "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/masu.git"
       }
     },
+    "masu_7": {
+      "inputs": {
+        "crane": [
+          "scorsi-oroshi",
+          "crane"
+        ],
+        "flake-parts": [
+          "scorsi-oroshi",
+          "flake-parts"
+        ],
+        "nixpkgs": [
+          "scorsi-oroshi",
+          "nixpkgs"
+        ],
+        "treefmt-nix": [
+          "scorsi-oroshi",
+          "treefmt-nix"
+        ]
+      },
+      "locked": {
+        "lastModified": 1792780075,
+        "narHash": "sha256-9jKsQiRGmw8jqUtG/ogPXxgw2vD0vAvAMtdKzbJcfA8=",
+        "owner": "scorsi",
+        "repo": "masu",
+        "rev": "2860f1950c16f140fa71a8386ff49ffa70f032b9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "scorsi",
+        "repo": "masu",
+        "type": "github"
+      }
+    },
     "nisshi": {
       "inputs": {
         "crane": "crane_2",
@@ -1025,6 +1094,35 @@
         "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/nisshi.git"
       }
     },
+    "nisshi_8": {
+      "inputs": {
+        "flake-parts": [
+          "scorsi-oroshi",
+          "flake-parts"
+        ],
+        "nixpkgs": [
+          "scorsi-oroshi",
+          "nixpkgs"
+        ],
+        "treefmt-nix": [
+          "scorsi-oroshi",
+          "treefmt-nix"
+        ]
+      },
+      "locked": {
+        "lastModified": 1792702252,
+        "narHash": "sha256-TsyLv2fKnqeclGKDnc2QgvGER+ZuHzaSOQ2jEa60IeE=",
+        "owner": "scorsi",
+        "repo": "nisshi",
+        "rev": "0577322fcde6a3c1abe2c33f2f65c6ce82c0454c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "scorsi",
+        "repo": "nisshi",
+        "type": "github"
+      }
+    },
     "nix-darwin": {
       "inputs": {
         "nixpkgs": [
@@ -1087,6 +1185,22 @@
         "owner": "NixOS",
         "repo": "nixpkgs",
         "rev": "42966a9c76f2cdb95b108c9fac939a27b0b8f2c5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-26.05-darwin",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_11": {
+      "locked": {
+        "lastModified": 1792683697,
+        "narHash": "sha256-P4nss8/EUu51hOQDdkso+pCQBdt0DT/lrfXWaZEDnEA=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "752cbac9446602fbb78bdd1c3597455a3dd38432",
         "type": "github"
       },
       "original": {
@@ -1260,6 +1374,7 @@
         "scorsi-kiso": "scorsi-kiso",
         "scorsi-masu": "scorsi-masu",
         "scorsi-nisshi": "scorsi-nisshi",
+        "scorsi-oroshi": "scorsi-oroshi",
         "scorsi-shiori": "scorsi-shiori",
         "sops-nix": "sops-nix"
       }
@@ -1499,6 +1614,29 @@
         "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/nisshi.git"
       }
     },
+    "scorsi-oroshi": {
+      "inputs": {
+        "crane": "crane_13",
+        "flake-parts": "flake-parts_18",
+        "masu": "masu_7",
+        "nisshi": "nisshi_8",
+        "nixpkgs": "nixpkgs_11",
+        "treefmt-nix": "treefmt-nix_17"
+      },
+      "locked": {
+        "lastModified": 1792873564,
+        "narHash": "sha256-7VBduEp9JKdkp1sKe7z1Jr9hQ7eax3FcVEIyEabxYkQ=",
+        "ref": "refs/heads/main",
+        "rev": "df2287ce5daa1fcd76b9f59653a6f7ffb92654e0",
+        "revCount": 35,
+        "type": "git",
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/oroshi.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/oroshi.git"
+      }
+    },
     "scorsi-shiori": {
       "inputs": {
         "nixpkgs": [
@@ -1724,6 +1862,27 @@
       "inputs": {
         "nixpkgs": [
           "scorsi-nisshi",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791885023,
+        "narHash": "sha256-C3alQ2MEt0zVrUSho5NUDo3jmhbff72++bfwoqT9Omo=",
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "rev": "0d6d739a833ba9a9c93034862e4a7b061a062a1c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "treefmt-nix_17": {
+      "inputs": {
+        "nixpkgs": [
+          "scorsi-oroshi",
           "nixpkgs"
         ]
       },

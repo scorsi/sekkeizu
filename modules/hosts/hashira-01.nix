@@ -31,6 +31,8 @@ in
       nixos.genkan
       nixos.azukari-server
       nixos.azukari-backup
+      nixos.oroshi
+      nixos.oroshi-reader
 
       # ─── Machine identity ─────────────────────────────────────────────
       {
@@ -41,7 +43,6 @@ in
         system.stateVersion = stateVersions.nixos;
 
         sops.defaultSopsFile = ../../secrets/${hostName}/secrets.yaml;
-
 
         # Deploy fallback when kekkai is down: root from the home LAN too (FIDO2 keys only).
         services.openssh.settings.AllowUsers = [ "root@192.168.1.0/24" ];
