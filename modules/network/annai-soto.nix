@@ -80,7 +80,8 @@ in
 
       sops.secrets.hanko-tsig = {
         sopsFile = ../../secrets/hanko/tsig.yaml;
-        restartUnits = [ "annai.service" ];
+        # A rotated key reaches annai on reload (RefreshOnReload=credentials): no restart, dynamic records kept.
+        reloadUnits = [ "annai.service" ];
       };
 
       services.annai = {
