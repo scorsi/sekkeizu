@@ -7,12 +7,12 @@
 }:
 let
   inherit (config.sekkeizu)
-    genkanRelayPort
     kekkai
     observability
     services
     ;
   serverHost = "hashira-01";
+  address = kekkai.nodes.${serverHost}.ipv4;
   port = 9481;
   storeConfig =
     config: name:
@@ -26,16 +26,9 @@ let
     };
 in
 {
-  flake.modules.nixos.genkan =
-    { config, ... }:
-    lib.mkIf (!config.services.genkan.sites ? ${services.yagura.host}) {
-      services.genkan.passthrough.yagura = {
-        listener = "default";
-        sni = [ services.yagura.host ];
-        backend = "${kekkai.nodes.${serverHost}.ipv4}:${toString genkanRelayPort}";
-        sendProxy = true;
-      };
-    };
+  # Browsers can reuse a wildcard HTTP/2 connection whose original SNI named another site.
+  flake.modules.nixos.genkan.services.genkan.sites.${services.yagura.host}.backend =
+    "http://${address}:${toString port}";
 
   flake.modules.nixos.yagura =
     { config, ... }:
@@ -53,6 +46,7 @@ in
       services.yagura = {
         enable = true;
         origin = services.yagura.url;
+        host = address;
         inherit port;
         masu = storeConfig config "masu";
         nisshi = storeConfig config "nisshi";
@@ -65,8 +59,6 @@ in
         }) (lib.attrValues observability.stores)
       );
 
-      services.genkan.sites.${services.yagura.host}.backend = "http://127.0.0.1:${toString port}";
-
       sekkeizu.persist.directories = [
         {
           directory = cfg.dataDir;
@@ -75,6 +67,10 @@ in
           mode = "0700";
         }
       ];
-      systemd.services.yagura.unitConfig.RequiresMountsFor = [ cfg.dataDir ];
+      systemd.services.yagura = {
+        # The existing kekkai sysctl permits binding its address before the interface is ready.
+        after = [ "systemd-sysctl.service" ];
+        unitConfig.RequiresMountsFor = [ cfg.dataDir ];
+      };
     };
 }

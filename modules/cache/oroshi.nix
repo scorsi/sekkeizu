@@ -1,9 +1,9 @@
 # oroshi, the lab's Nix binary cache (its own repo, consumed as `scorsi-oroshi`; its docs/usage.md):
 # the server on hashira-01, the readers, jiban as the only uploader.
 #
-# The unit only accepts loopback peers (oroshi ADR 0010, 0014): hashira-01's genkan terminates
-# `oroshi.uchi` on the web port and proxies to it; the other genkan host forwards that SNI raw to
-# hashira-01's. State on one DAS disk, never the /srv/das mergerfs pool (ADR 0014 rules out union
+# The unit only accepts loopback peers (oroshi ADR 0010, 0014): both genkan hosts terminate TLS;
+# hashira-02 reaches loopback through hashira-01's peer-restricted TCP bridge. State on one DAS
+# disk, never the /srv/das mergerfs pool (ADR 0014 rules out union
 # filesystems). No garbage collector yet (oroshi O2): once full, uploads get 507 and builds go on
 # uncached.
 #
@@ -21,7 +21,6 @@ let
   inherit (lib) mkOption types;
   inherit (config.sekkeizu)
     genkanHosts
-    genkanRelayPort
     kekkai
     oroshi
     services
@@ -30,6 +29,8 @@ let
   stateDir = "/mnt/das/S3PNQ734/oroshi";
   # The module's default listen address.
   backend = "127.0.0.1:8080";
+  bridgePort = 8081;
+  bridge = "${kekkai.nodes.${serverHost}.ipv4}:${toString bridgePort}";
   # Scraped by the local hikyaku only (masu metric convention: loopback).
   metrics = "127.0.0.1:9478";
   url = "${services.oroshi.url}/nix";
@@ -59,18 +60,9 @@ in
   };
 
   config.flake.modules = {
-    # Every genkan host but the server's: forward the name raw by SNI to hashira-01's genkan relay.
-    nixos.genkan =
-      { config, ... }:
-      lib.mkIf (!config.services.genkan.sites ? ${services.oroshi.host}) {
-        services.genkan.passthrough.oroshi = {
-          listener = "default";
-          sni = [ services.oroshi.host ];
-          backend = "${kekkai.nodes.${serverHost}.ipv4}:${toString genkanRelayPort}";
-          # The owner host's `relay` listener logs the client, not this genkan (genkan.nix).
-          sendProxy = true;
-        };
-      };
+    # HTTP/2 origin coalescing can reach this host on a connection opened for another site.
+    nixos.genkan.services.genkan.sites.${services.oroshi.host}.backend =
+      lib.mkDefault "http://${bridge}";
 
     nixos.oroshi = {
       imports = [ inputs.scorsi-oroshi.nixosModules.default ];
@@ -94,7 +86,17 @@ in
       # ReadWritePaths needs the directory before any ExecStartPre runs, so tmpfiles creates it.
       systemd.tmpfiles.rules = [ "d ${stateDir} 0750 oroshi oroshi -" ];
 
-      services.genkan.sites.${services.oroshi.host}.backend = "http://${backend}";
+      services.genkan = {
+        sites.${services.oroshi.host}.backend = "http://${backend}";
+        listeners.oroshi-backend.address = bridge;
+        # Raw HTTP keeps the sanitized forwarding headers while Oroshi still sees loopback.
+        passthrough.oroshi-backend = {
+          listener = "oroshi-backend";
+          inherit backend;
+          allow = [ kekkai.nodes.hashira-02.ipv4 ];
+        };
+      };
+      systemd.services.genkan.after = [ "systemd-sysctl.service" ];
 
       # oroshi's loopback /metrics, for the host's hikyaku.
       services.hikyaku.targets.oroshi.url = "http://${metrics}/metrics";

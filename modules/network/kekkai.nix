@@ -74,6 +74,10 @@ let
     "tcp/5011"
     "tcp/5012"
   ];
+  # Yagura's HTTP backend, reached only by the other genkan (observability/yagura.nix).
+  yagura = [ "tcp/9481" ];
+  # The genkan bridge to Oroshi's loopback backend (cache/oroshi.nix).
+  oroshi = [ "tcp/8081" ];
   web = [
     "tcp/443"
     "tcp/2222"
@@ -113,7 +117,7 @@ let
       jiban = [ "tcp/22" ] ++ web ++ services;
       ishizue = web ++ services;
       ${gate} = services;
-      hashira-02 = stores ++ azukari ++ kajiba ++ web ++ services ++ genkanRelay;
+      hashira-02 = stores ++ azukari ++ kajiba ++ yagura ++ oroshi ++ web ++ services ++ genkanRelay;
     };
     hashira-02 = {
       jiban = [ "tcp/22" ] ++ web ++ services;
