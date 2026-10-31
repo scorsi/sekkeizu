@@ -1,6 +1,6 @@
 # hikyaku, the node agent of the observability base (docs/observability.md). Pushes to masu and
-# nisshi with the host's own token, pinning the stores' CA (ca.pem), through genkan on 443 (either
-# genkan host; masu.nix and nisshi.nix add the SNI routes): the name in the URL only picks genkan,
+# nisshi with the host's own token, pinning the stores' CA (ca.pem), through genkan's `services`
+# listener (either genkan host; masu.nix and nisshi.nix add the SNI routes): the name in the URL only picks genkan,
 # the TLS name stays the store's `serverName`. Targets follow what the host
 # runs: hikyaku itself everywhere, node_exporter (node-exporter.nix) and annai, genkan, kekkai-node,
 # masu and nisshi wherever their loopback /metrics is on.
@@ -14,6 +14,7 @@ let
   inherit (config.sekkeizu)
     domain
     genkanHosts
+    genkanServicesPort
     kekkai
     observability
     ;
@@ -27,7 +28,7 @@ let
       host = config.networking.hostName;
       self = observability.agents.${host};
       destination = name: {
-        url = "https://${genkan}";
+        url = "https://${genkan}:${toString genkanServicesPort}";
         inherit (observability.stores.${name}) serverName;
         caFile = "${../../modules-private/observability/ca.pem}";
         tokenFile = config.sops.secrets.hikyaku-token.path;

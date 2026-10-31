@@ -11,7 +11,12 @@
   ...
 }:
 let
-  inherit (config.sekkeizu) bridgeAddresses kekkai publicAddresses;
+  inherit (config.sekkeizu)
+    bridgeAddresses
+    genkanServicesPort
+    kekkai
+    publicAddresses
+    ;
   inherit (config.kiso) owner;
 
   gate = "torii-cdg";
@@ -49,11 +54,12 @@ let
   # genkan's node. jiban: nothing, every flow between the two starts on jiban (deploys,
   # hikyaku, the remote builder). The gate: SSH from jiban. The hashira: SSH from jiban (deploys);
   # both hashira run genkan: the web port and Forgejo's git SSH (2222) for jiban, ishizue's runner
-  # and each other (their runners, hashira-01's résumé relay to hashira-02); the web port also for
-  # the gate: every node's hikyaku and backups reach masu, nisshi and azukari (hashira-01) through
-  # genkan, so hashira-01 opens those ports to hashira-02's genkan only (its own is local);
-  # hashira-02 alone has the PROXY listener (8443, genkan.nix) for the gate's genkan. ishizue opens
-  # Forgejo to both.
+  # and each other (their runners, hashira-01's résumé relay to hashira-02); genkan's `services`
+  # port (passthrough only, no web site) for every node that pushes metrics and logs or backs up:
+  # they reach masu, nisshi and azukari (hashira-01) through either genkan, so hashira-01 opens
+  # those ports to hashira-02's genkan only (its own is local); the gate gets that port, never the
+  # web one. hashira-02 alone has the PROXY listener (8443, genkan.nix) for the gate's genkan.
+  # ishizue opens Forgejo to both.
   stores = [
     "tcp/9472"
     "tcp/9473"
@@ -64,6 +70,7 @@ let
     "tcp/443"
     "tcp/2222"
   ];
+  services = [ "tcp/${toString genkanServicesPort}" ];
   allowInbound = {
     ishizue = {
       jiban = [
@@ -90,20 +97,17 @@ let
     }
     // lib.genAttrs hashira (_: [ ]);
     hashira-01 = {
-      jiban = [ "tcp/22" ] ++ web;
-      ishizue = web;
-      ${gate} = [ "tcp/443" ];
-      hashira-02 = stores ++ azukari ++ web;
+      jiban = [ "tcp/22" ] ++ web ++ services;
+      ishizue = web ++ services;
+      ${gate} = services;
+      hashira-02 = stores ++ azukari ++ web ++ services;
     };
     hashira-02 = {
-      jiban = [ "tcp/22" ] ++ web;
-      ishizue = web;
-      ${gate} = [
-        "tcp/443"
-        "tcp/8443"
-      ];
+      jiban = [ "tcp/22" ] ++ web ++ services;
+      ishizue = web ++ services;
+      ${gate} = [ "tcp/8443" ] ++ services;
       # Its Forgejo runner reaches Forgejo through genkan (HTTPS and the SSH passthrough).
-      hashira-01 = web;
+      hashira-01 = web ++ services;
     };
   };
 

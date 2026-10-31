@@ -3,7 +3,7 @@
 # node one `azukari-backup-<export>` unit and timer per export (azukari ADR 0030: daily, the stores'
 # days just after their 00:10 UTC seal), each sending one service's export under /persist/backups/<export> (ADR 0020, 0021). Both sides authenticate with hanko-ca's
 # SVIDs (hanko-ca.nix): the store accepts the nodes' `azukari-backup` IDs, the nodes pin the store's ID.
-# The nodes dial `azukari.uchi` (endpoints.nix) on 443: either genkan host forwards that SNI raw to
+# The nodes dial `azukari.uchi` (endpoints.nix) on genkan's `services` port: either genkan host forwards that SNI raw to
 # the store (genkan ADR 0012), mTLS untouched; the SPIFFE ID is checked, not the name.
 #
 # The store replicates every 6 h (azukari ADR 0008): to the Storage Box's `backup` subaccount over
@@ -26,6 +26,7 @@ let
   inherit (config.sekkeizu)
     domain
     genkanHosts
+    genkanServicesPort
     kekkai
     services
     ;
@@ -59,7 +60,7 @@ let
 in
 {
   flake.modules.nixos.genkan.services.genkan.passthrough.azukari = {
-    listener = "default";
+    listener = "services";
     sni = [ services.azukari.host ];
     backend = "${kekkai.nodes.${storeHost}.ipv4}:${toString port}";
   };
@@ -185,7 +186,7 @@ in
         enable = true;
         settings = {
           # azukari wants the port spelled out; the name is also the SNI genkan routes on.
-          server = "https://${services.azukari.host}:443";
+          server = "https://${services.azukari.host}:${toString genkanServicesPort}";
           bucket = "backup";
           data_key_file = config.sops.secrets.azukari-data-key.path;
           tls = tls "azukari-backup" // {

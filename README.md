@@ -188,7 +188,9 @@ The web services are `<service>.uchi.<domain>` names, which only annai resolves 
 sites, each with the `*.uchi` wildcard of its own hanko, reached over kekkai (its `allowInbound`
 opens tcp/443 to jiban); the LAN keeps 443 closed. The nodes' runners pin Forgejo to hashira-02's
 address (`forgejo.address` in endpoints.nix), outside DNS. The nodes' hikyaku and azukari-backup pin `genkan.uchi` and
-`azukari.uchi` to both genkan addresses in /etc/hosts (the nodes resolve through Quad9). Git over
+`azukari.uchi` to both genkan addresses in /etc/hosts (the nodes resolve through Quad9) and reach
+genkan's `services` listener on 9443: SNI passthrough only, no web site, so kekkai opens it to torii-cdg's
+hikyaku without opening the web sites. Git over
 SSH uses the same Forgejo name: genkan's tcp passthrough on 2222 forwards it raw, with a PROXY v2
 header, to Forgejo's own SSH server on ishizue over kekkai:
 
@@ -197,8 +199,8 @@ header, to Forgejo's own SSH server on ishizue over kekkai:
 | Forgejo   | `https://forgejo.uchi.<domain>`        | genkan → ishizue:3000 over kekkai             |
 | Git (SSH) | `ssh://git@forgejo.uchi.<domain>:2222` | genkan passthrough → Forgejo's SSH server     |
 | Résumé    | `https://rirekisho.uchi.<domain>`      | genkan, static files (built by hashira-02's runner); hashira-01's genkan relays the name by SNI to hashira-02's |
-| Backups   | `https://azukari.uchi.<domain>:443`    | genkan passthrough by SNI → azukari-server (hashira-01:5000), mTLS end to end |
-| Metrics, logs | `https://genkan.uchi.<domain>`, TLS name `masu.internal` / `nisshi.internal` | genkan passthrough by SNI → masu / nisshi (hashira-01:9472, 9473), the nodes' hikyaku |
+| Backups   | `https://azukari.uchi.<domain>:9443`   | genkan passthrough by SNI → azukari-server (hashira-01:5000), mTLS end to end |
+| Metrics, logs | `https://genkan.uchi.<domain>:9443`, TLS name `masu.internal` / `nisshi.internal` | genkan passthrough by SNI → masu / nisshi (hashira-01:9472, 9473), the nodes' hikyaku |
 
 Addresses are declared once, in `modules-private/meta/endpoints.nix` (`sekkeizu.services.*`);
 genkan's sites, annai's records, Forgejo's `ROOT_URL` and the runners read them from there.

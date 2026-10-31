@@ -26,6 +26,14 @@ in
       description = "The hosts running the overlay's genkan (genkan.nix): `genkan` in the uchi zone has all their kekkai addresses.";
     };
 
+    genkanServicesPort = mkOption {
+      type = types.port;
+      description = ''
+        Port of the genkan hosts' `services` listener (genkan.nix): machine-to-machine services, raw
+        SNI passthrough only, apart from the web port so kekkai can open one without the other.
+      '';
+    };
+
     lanAddresses = mkOption {
       type = types.attrsOf types.str;
       default = { };

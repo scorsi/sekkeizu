@@ -10,6 +10,10 @@
 # the web site goes to Forgejo's HTTP port, and the `forgejo-ssh` listener (`:2222`, mode tcp: a
 # passthrough without SNI, genkan ADR 0012) forwards git over SSH raw to Forgejo's own SSH server,
 # both over kekkai.
+# The `services` listener (`sekkeizu.genkanServicesPort`) carries machine-to-machine flows only:
+# passthrough by SNI to the stores (masu.nix, nisshi.nix, azukari.nix add the routes), TLS left to
+# them, any other name closed (genkan ADR 0012). No site is served there, so kekkai can open it to a
+# peer (the gate's hikyaku) without opening the web sites.
 # hashira-02 alone (`edgeHost`) has the `edge` listener: it takes what torii-cdg forwards, behind a
 # PROXY v2 header, and serves only the sites that name it (genkan ADR 0013), the ones with public
 # names (services.nix). torii's tcp route has one backend: failing over to hashira-01 there waits
@@ -26,7 +30,12 @@
   ...
 }:
 let
-  inherit (config.sekkeizu) domain kekkai services;
+  inherit (config.sekkeizu)
+    domain
+    genkanServicesPort
+    kekkai
+    services
+    ;
   # Also opened from the gate in kekkai.nix's allowInbound.
   edgeHost = "hashira-02";
   edge = "${kekkai.nodes.${edgeHost}.ipv4}:8443";
@@ -40,16 +49,25 @@ in
     "hashira-01"
     edgeHost
   ];
+  # Also opened in kekkai.nix's allowInbound.
+  sekkeizu.genkanServicesPort = 9443;
 
   flake.modules.nixos.genkan =
     { config, ... }:
     {
       imports = [ inputs.scorsi-genkan.nixosModules.default ];
 
-      services.genkan = {
+      # A site without `listeners` would land on every TLS listener, `services` included: web sites
+      # stay on the web port unless they name another listener.
+      options.services.genkan.sites = lib.mkOption {
+        type = lib.types.attrsOf (lib.types.submodule { listeners = lib.mkDefault [ "default" ]; });
+      };
+
+      config.services.genkan = {
         enable = true;
         listeners = {
           default.address = ":443";
+          services.address = ":${toString genkanServicesPort}";
           forgejo-ssh.address = ":${toString services.forgejo-ssh.port}";
         }
         // lib.optionalAttrs (config.networking.hostName == edgeHost) {
