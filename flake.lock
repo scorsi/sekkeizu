@@ -1624,11 +1624,11 @@
         "treefmt-nix": "treefmt-nix_17"
       },
       "locked": {
-        "lastModified": 1792873564,
-        "narHash": "sha256-7VBduEp9JKdkp1sKe7z1Jr9hQ7eax3FcVEIyEabxYkQ=",
+        "lastModified": 1793454643,
+        "narHash": "sha256-mB4Om+7lgwRJ7DjLzbRYDD6SzRik2K05aIaZeVDgILE=",
         "ref": "refs/heads/main",
-        "rev": "df2287ce5daa1fcd76b9f59653a6f7ffb92654e0",
-        "revCount": 35,
+        "rev": "66b4ce8a7d60c2b00b767e7d93206566c5517c93",
+        "revCount": 53,
         "type": "git",
         "url": "ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/oroshi.git"
       },

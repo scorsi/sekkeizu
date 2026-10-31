@@ -72,43 +72,33 @@ in
         };
       };
 
-    nixos.oroshi =
-      { pkgs, ... }:
-      {
-        imports = [ inputs.scorsi-oroshi.nixosModules.default ];
+    nixos.oroshi = {
+      imports = [ inputs.scorsi-oroshi.nixosModules.default ];
 
-        services.oroshi = {
-          enable = true;
-          # shortcut: oroshi's flake only exports aarch64 systems, so x86_64 builds its package.nix the
-          # way the flake does (its own nixpkgs and crane); drop once it lists x86_64-linux.
-          package =
-            let
-              src = inputs.scorsi-oroshi;
-              own = src.inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system};
-            in
-            own.callPackage "${src}/nix/package.nix" { craneLib = src.inputs.crane.mkLib own; };
-          inherit stateDir;
-          metrics.listen = metrics;
-          # Half the 500 GB disk (decimal, as sold): the rest is headroom for SQLite's WAL, uploads in
-          # flight and mergerfs, which also creates files on this branch.
-          storage.maxBytes = 250 * 1000 * 1000 * 1000;
-          tokens = lib.mapAttrs (_: sha256: {
-            inherit sha256;
-            scopes = [ "nix:write" ];
-          }) oroshi.tokenHashes;
-          nix.trustedKeys = lib.attrValues oroshi.publicKeys ++ upstreamKeys;
-        };
-
-        # The DAS mounts with nofail: without the disk, oroshi must not start on the tmpfs root.
-        systemd.services.oroshi.unitConfig.RequiresMountsFor = [ stateDir ];
-        # ReadWritePaths needs the directory before any ExecStartPre runs, so tmpfiles creates it.
-        systemd.tmpfiles.rules = [ "d ${stateDir} 0750 oroshi oroshi -" ];
-
-        services.genkan.sites.${services.oroshi.host}.backend = "http://${backend}";
-
-        # oroshi's loopback /metrics, for the host's hikyaku.
-        services.hikyaku.targets.oroshi.url = "http://${metrics}/metrics";
+      services.oroshi = {
+        enable = true;
+        inherit stateDir;
+        metrics.listen = metrics;
+        # Half the 500 GB disk (decimal, as sold): the rest is headroom for SQLite's WAL, uploads in
+        # flight and mergerfs, which also creates files on this branch.
+        storage.maxBytes = 250 * 1000 * 1000 * 1000;
+        tokens = lib.mapAttrs (_: sha256: {
+          inherit sha256;
+          scopes = [ "nix:write" ];
+        }) oroshi.tokenHashes;
+        nix.trustedKeys = lib.attrValues oroshi.publicKeys ++ upstreamKeys;
       };
+
+      # The DAS mounts with nofail: without the disk, oroshi must not start on the tmpfs root.
+      systemd.services.oroshi.unitConfig.RequiresMountsFor = [ stateDir ];
+      # ReadWritePaths needs the directory before any ExecStartPre runs, so tmpfiles creates it.
+      systemd.tmpfiles.rules = [ "d ${stateDir} 0750 oroshi oroshi -" ];
+
+      services.genkan.sites.${services.oroshi.host}.backend = "http://${backend}";
+
+      # oroshi's loopback /metrics, for the host's hikyaku.
+      services.hikyaku.targets.oroshi.url = "http://${metrics}/metrics";
+    };
 
     nixos.oroshi-reader = {
       nix.settings = readerSettings;
