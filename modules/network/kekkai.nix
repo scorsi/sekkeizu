@@ -54,8 +54,8 @@ let
   # replies always pass). ishizue: annai uchi and SSH from jiban, Forgejo's HTTP and SSH ports from
   # genkan's node. jiban: nothing, every flow between the two starts on jiban (deploys,
   # hikyaku, the remote builder). The gate: SSH from jiban. The hashira: SSH from jiban (deploys);
-  # both hashira run genkan: the web port and Forgejo's git SSH (2222) for jiban, ishizue's runner
-  # and each other (their runners), and genkan's `relay` port to each other only (a name served on one
+  # both hashira run genkan: the web port, Forgejo's git SSH (2222) and kajiba's (2223) for jiban,
+  # ishizue's runner and each other (their runners), and genkan's `relay` port to each other only (a name served on one
   # of them, forwarded from the other's web port behind a PROXY header); genkan's `services`
   # port (passthrough only, no web site) for every node that pushes metrics and logs or backs up:
   # they reach masu, nisshi and azukari (hashira-01) through either genkan, so hashira-01 opens
@@ -68,9 +68,16 @@ let
   ];
   # azukari's store (backup/azukari.nix).
   azukari = [ "tcp/5000" ];
+  # kajiba's HTTP, runner mTLS and git SSH ports (nixos/kajiba.nix), for hashira-02's genkan.
+  kajiba = [
+    "tcp/5010"
+    "tcp/5011"
+    "tcp/5012"
+  ];
   web = [
     "tcp/443"
     "tcp/2222"
+    "tcp/2223"
   ];
   services = [ "tcp/${toString genkanServicesPort}" ];
   # genkan's `relay` listener, between the genkan hosts only (genkan.nix).
@@ -104,7 +111,7 @@ let
       jiban = [ "tcp/22" ] ++ web ++ services;
       ishizue = web ++ services;
       ${gate} = services;
-      hashira-02 = stores ++ azukari ++ web ++ services ++ genkanRelay;
+      hashira-02 = stores ++ azukari ++ kajiba ++ web ++ services ++ genkanRelay;
     };
     hashira-02 = {
       jiban = [ "tcp/22" ] ++ web ++ services;

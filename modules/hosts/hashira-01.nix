@@ -33,6 +33,7 @@ in
       nixos.azukari-backup
       nixos.oroshi
       nixos.oroshi-reader
+      nixos.kajiba
 
       # ─── Machine identity ─────────────────────────────────────────────
       {

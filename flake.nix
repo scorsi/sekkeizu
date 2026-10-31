@@ -90,6 +90,10 @@
     # own; its masu and nisshi inputs are test-only.
     scorsi-genkan.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/genkan.git";
 
+    # The forge (modules/nixos/kajiba.nix). Not following our nixpkgs: tested against its own; its
+    # masu and nisshi inputs are test-only.
+    scorsi-kajiba.url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/kajiba.git";
+
     # The Claude Code status line (modules/home/claude-code.nix).
     scorsi-shiori = {
       url = "git+ssh://git@forgejo.uchi.scorsi.dev:2222/scorsi/shiori.git";

@@ -11,12 +11,15 @@ let
 
   # host -> service -> group that reads the SVID (the unit's own static group, azukari ADR 0020).
   # azukari-backup runs on every host with an export under /persist/backups: Forgejo on ishizue,
-  # masu and nisshi on hashira-01, hanko's ACME account on hashira-02.
+  # masu and nisshi on hashira-01, hanko's ACME account on hashira-02. kajiba's forge and its
+  # runner authenticate each other with theirs (nixos/kajiba.nix, kajiba ADR 0124).
   services = {
     ishizue.azukari-backup = "azukari-backup";
     hashira-01 = {
       azukari-server = "azukari";
       azukari-backup = "azukari-backup";
+      kajiba-server = "kajiba-server";
+      kajiba-runner = "kajiba-runner";
     };
     hashira-02.azukari-backup = "azukari-backup";
   };
