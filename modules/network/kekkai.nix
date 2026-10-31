@@ -13,6 +13,7 @@
 let
   inherit (config.sekkeizu)
     bridgeAddresses
+    genkanRelayPort
     genkanServicesPort
     kekkai
     publicAddresses
@@ -54,7 +55,8 @@ let
   # genkan's node. jiban: nothing, every flow between the two starts on jiban (deploys,
   # hikyaku, the remote builder). The gate: SSH from jiban. The hashira: SSH from jiban (deploys);
   # both hashira run genkan: the web port and Forgejo's git SSH (2222) for jiban, ishizue's runner
-  # and each other (their runners, hashira-01's résumé relay to hashira-02); genkan's `services`
+  # and each other (their runners), and genkan's `relay` port to each other only (a name served on one
+  # of them, forwarded from the other's web port behind a PROXY header); genkan's `services`
   # port (passthrough only, no web site) for every node that pushes metrics and logs or backs up:
   # they reach masu, nisshi and azukari (hashira-01) through either genkan, so hashira-01 opens
   # those ports to hashira-02's genkan only (its own is local); the gate gets that port, never the
@@ -71,6 +73,8 @@ let
     "tcp/2222"
   ];
   services = [ "tcp/${toString genkanServicesPort}" ];
+  # genkan's `relay` listener, between the genkan hosts only (genkan.nix).
+  genkanRelay = [ "tcp/${toString genkanRelayPort}" ];
   allowInbound = {
     ishizue = {
       jiban = [
@@ -100,14 +104,14 @@ let
       jiban = [ "tcp/22" ] ++ web ++ services;
       ishizue = web ++ services;
       ${gate} = services;
-      hashira-02 = stores ++ azukari ++ web ++ services;
+      hashira-02 = stores ++ azukari ++ web ++ services ++ genkanRelay;
     };
     hashira-02 = {
       jiban = [ "tcp/22" ] ++ web ++ services;
       ishizue = web ++ services;
       ${gate} = [ "tcp/8443" ] ++ services;
       # Its Forgejo runner reaches Forgejo through genkan (HTTPS and the SSH passthrough).
-      hashira-01 = web ++ services;
+      hashira-01 = web ++ services ++ genkanRelay;
     };
   };
 

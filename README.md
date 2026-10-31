@@ -193,14 +193,27 @@ address (`forgejo.address` in endpoints.nix), outside DNS. The nodes' hikyaku an
 genkan's `services` listener on 9443: SNI passthrough only, no web site, so kekkai opens it to torii-cdg's
 hikyaku without opening the web sites. Git over
 SSH uses the same Forgejo name: genkan's tcp passthrough on 2222 forwards it raw, with a PROXY v2
-header, to Forgejo's own SSH server on ishizue over kekkai:
+header, to Forgejo's own SSH server on ishizue over kekkai. A name served on one hashira only
+(résumé, Nix cache) reaches the other's 443 and is relayed raw by SNI, behind a PROXY v2 header, to
+the owner's `relay` listener on 7443 (kekkai opens it between the two hashira only, PROXY headers
+trusted from the other hashira's kekkai address only), so the owner logs the real client.
+genkan's TLS ports all end in 443, the prefix gives the role:
+
+| Port | Listener | Role |
+| ---- | -------- | ---- |
+| 443  | `default`  | the web sites, over kekkai |
+| 7443 | `relay`    | the web sites, from the other hashira's genkan only, PROXY v2 |
+| 8443 | `edge`     | public names from torii-cdg's genkan, PROXY v2 (hashira-02 only) |
+| 9443 | `services` | machine-to-machine SNI passthrough, no web site |
+
+
 
 | Service   | Address                                | Behind                                        |
 | --------- | -------------------------------------- | --------------------------------------------- |
 | Forgejo   | `https://forgejo.uchi.<domain>`        | genkan → ishizue:3000 over kekkai             |
 | Git (SSH) | `ssh://git@forgejo.uchi.<domain>:2222` | genkan passthrough → Forgejo's SSH server     |
-| Résumé    | `https://rirekisho.uchi.<domain>`      | genkan, static files (built by hashira-02's runner); hashira-01's genkan relays the name by SNI to hashira-02's |
-| Nix cache | `https://oroshi.uchi.<domain>/nix`     | hashira-01's genkan → oroshi on loopback; hashira-02's genkan relays the name by SNI to hashira-01's |
+| Résumé    | `https://rirekisho.uchi.<domain>`      | genkan, static files (built by hashira-02's runner); hashira-01's genkan relays the name by SNI to hashira-02's `relay` (7443) |
+| Nix cache | `https://oroshi.uchi.<domain>/nix`     | hashira-01's genkan → oroshi on loopback; hashira-02's genkan relays the name by SNI to hashira-01's `relay` (7443) |
 | Backups   | `https://azukari.uchi.<domain>:9443`   | genkan passthrough by SNI → azukari-server (hashira-01:5000), mTLS end to end |
 | Metrics, logs | `https://genkan.uchi.<domain>:9443`, TLS name `masu.internal` / `nisshi.internal` | genkan passthrough by SNI → masu / nisshi (hashira-01:9472, 9473), the nodes' hikyaku |
 

@@ -14,6 +14,10 @@
 # passthrough by SNI to the stores (masu.nix, nisshi.nix, azukari.nix add the routes), TLS left to
 # them, any other name closed (genkan ADR 0012). No site is served there, so kekkai can open it to a
 # peer (the gate's hikyaku) without opening the web sites.
+# The `relay` listener (`sekkeizu.genkanRelayPort`) serves the web sites again, for the other genkan
+# hosts only: a name served on one host only (oroshi.nix, rirekisho.nix) is forwarded raw by SNI
+# from the other host's web port to this one, behind a PROXY v2 header, so the owner host logs the
+# real client rather than the relaying genkan.
 # hashira-02 alone (`edgeHost`) has the `edge` listener: it takes what torii-cdg forwards, behind a
 # PROXY v2 header, and serves only the sites that name it (genkan ADR 0013), the ones with public
 # names (services.nix). torii's tcp route has one backend: failing over to hashira-01 there waits
@@ -32,6 +36,8 @@
 let
   inherit (config.sekkeizu)
     domain
+    genkanHosts
+    genkanRelayPort
     genkanServicesPort
     kekkai
     services
@@ -51,16 +57,25 @@ in
   ];
   # Also opened in kekkai.nix's allowInbound.
   sekkeizu.genkanServicesPort = 9443;
+  # Also opened in kekkai.nix's allowInbound, between the genkan hosts only.
+  sekkeizu.genkanRelayPort = 7443;
 
   flake.modules.nixos.genkan =
     { config, ... }:
     {
       imports = [ inputs.scorsi-genkan.nixosModules.default ];
 
-      # A site without `listeners` would land on every TLS listener, `services` included: web sites
-      # stay on the web port unless they name another listener.
+      # A site without `listeners` would land on every TLS listener, `services` included, and never on
+      # a PROXY one (`relay`): web sites stay on the web port and the relay unless they name others.
       options.services.genkan.sites = lib.mkOption {
-        type = lib.types.attrsOf (lib.types.submodule { listeners = lib.mkDefault [ "default" ]; });
+        type = lib.types.attrsOf (
+          lib.types.submodule {
+            listeners = lib.mkDefault [
+              "default"
+              "relay"
+            ];
+          }
+        );
       };
 
       config.services.genkan = {
@@ -69,6 +84,14 @@ in
           default.address = ":443";
           services.address = ":${toString genkanServicesPort}";
           forgejo-ssh.address = ":${toString services.forgejo-ssh.port}";
+          relay = {
+            address = "${kekkai.nodes.${config.networking.hostName}.ipv4}:${toString genkanRelayPort}";
+            acceptProxy = true;
+            # The relaying genkan dials this host's kekkai IPv4, so its own IPv4 is the source.
+            trustedSources = map (h: "${kekkai.nodes.${h}.ipv4}/32") (
+              lib.remove config.networking.hostName genkanHosts
+            );
+          };
         }
         // lib.optionalAttrs (config.networking.hostName == edgeHost) {
           edge = {

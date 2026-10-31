@@ -11,20 +11,22 @@
 # PDF with them: `sops exec-env secrets/hashira-02/rirekisho.env 'pnpm build && pnpm pdf'`.
 { config, lib, ... }:
 let
-  inherit (config.sekkeizu) kekkai services;
+  inherit (config.sekkeizu) genkanRelayPort kekkai services;
   rirekisho = services.rirekisho;
   dir = "/var/lib/rirekisho";
 in
 {
   # The files exist on hashira-02 only (its runner writes them): another genkan host forwards the
-  # overlay name raw by SNI to hashira-02's genkan, which terminates it (genkan ADR 0012).
+  # overlay name raw by SNI to hashira-02's genkan `relay` listener, which terminates it (genkan ADR 0012).
   flake.modules.nixos.genkan =
     { config, ... }:
     lib.mkIf (!config.services.genkan.sites ? ${rirekisho.host}) {
       services.genkan.passthrough.rirekisho = {
         listener = "default";
         sni = [ rirekisho.host ];
-        backend = "${kekkai.nodes.hashira-02.ipv4}:443";
+        backend = "${kekkai.nodes.hashira-02.ipv4}:${toString genkanRelayPort}";
+        # The owner host's `relay` listener logs the client, not this genkan (genkan.nix).
+        sendProxy = true;
       };
     };
 

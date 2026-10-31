@@ -34,6 +34,14 @@ in
       '';
     };
 
+    genkanRelayPort = mkOption {
+      type = types.port;
+      description = ''
+        Port of the genkan hosts' `relay` listener (genkan.nix): a name served on one genkan host
+        only reaches it from another genkan host, behind a PROXY v2 header carrying the client.
+      '';
+    };
+
     lanAddresses = mkOption {
       type = types.attrsOf types.str;
       default = { };

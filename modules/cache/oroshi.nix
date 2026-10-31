@@ -21,6 +21,7 @@ let
   inherit (lib) mkOption types;
   inherit (config.sekkeizu)
     genkanHosts
+    genkanRelayPort
     kekkai
     oroshi
     services
@@ -58,14 +59,16 @@ in
   };
 
   config.flake.modules = {
-    # Every genkan host but the server's: forward the name raw by SNI to hashira-01's genkan.
+    # Every genkan host but the server's: forward the name raw by SNI to hashira-01's genkan relay.
     nixos.genkan =
       { config, ... }:
       lib.mkIf (!config.services.genkan.sites ? ${services.oroshi.host}) {
         services.genkan.passthrough.oroshi = {
           listener = "default";
           sni = [ services.oroshi.host ];
-          backend = "${kekkai.nodes.${serverHost}.ipv4}:443";
+          backend = "${kekkai.nodes.${serverHost}.ipv4}:${toString genkanRelayPort}";
+          # The owner host's `relay` listener logs the client, not this genkan (genkan.nix).
+          sendProxy = true;
         };
       };
 
