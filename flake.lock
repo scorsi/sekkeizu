@@ -1941,11 +1941,11 @@
         "nixpkgs": "nixpkgs_13"
       },
       "locked": {
-        "lastModified": 1793486575,
-        "narHash": "sha256-liinl5xkW1PWiFC5E1ZmoZT5sQQdAICu8CA4kA3LA1E=",
+        "lastModified": 1793524749,
+        "narHash": "sha256-N3VGrGNtysdfjC54wtqB275RpVL2ovUtx+3UGqnBpwg=",
         "ref": "refs/heads/main",
-        "rev": "2e8c78435841bf9bfeb5a3b6a68e87effc4c3329",
-        "revCount": 10,
+        "rev": "95438a366d0d31c5d101bd021945e7106c0fe1ae",
+        "revCount": 13,
         "type": "git",
         "url": "https://kajiba.uchi.scorsi.dev/scorsi/yagura.git"
       },
