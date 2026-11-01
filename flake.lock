@@ -1857,11 +1857,11 @@
         "treefmt-nix": "treefmt-nix_16"
       },
       "locked": {
-        "lastModified": 1793391129,
-        "narHash": "sha256-y79n5n3SfKotoKBmwZ9XYEFkwoRRQ+uWB+FsA3ZGKd8=",
+        "lastModified": 1793537777,
+        "narHash": "sha256-b93gCcMYK4+Vf7OcmzofXF2KWyefYIELi1Qc12apdRI=",
         "ref": "refs/heads/main",
-        "rev": "1e6167679b2396cd7d5280439554fe1b5293da20",
-        "revCount": 44,
+        "rev": "a060d17be1f8240cb2a88061c7bb571b9e58218b",
+        "revCount": 66,
         "type": "git",
         "url": "https://kajiba.uchi.scorsi.dev/scorsi/masu.git"
       },

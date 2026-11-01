@@ -21,6 +21,7 @@ in
       nixos.annai-resolver
       nixos.server
       nixos.masu
+      nixos.masu-query
       nixos.nisshi
       nixos.yagura
       nixos.hikyaku

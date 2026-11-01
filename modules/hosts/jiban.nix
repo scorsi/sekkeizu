@@ -27,6 +27,7 @@ in
       darwin.hikyaku
       darwin.node-exporter
       darwin.masu-reader
+      darwin.masu-query-client
       darwin.nisshi-reader
       darwin.oroshi-reader
       darwin.oroshi-uploader
@@ -49,6 +50,7 @@ in
           homeManager.pay-respects
           homeManager.github
           homeManager.kajiba-cli
+          homeManager.masu-cli
           homeManager.claude-code
           homeManager.codex
           homeManager.tmux

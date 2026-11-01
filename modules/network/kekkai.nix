@@ -114,7 +114,13 @@ let
     }
     // lib.genAttrs hashira (_: [ ]);
     hashira-01 = {
-      jiban = [ "tcp/22" ] ++ web ++ services;
+      # The operator alone reaches the direct Masu query listener (observability/masu-query.nix).
+      jiban = [
+        "tcp/22"
+        "tcp/9482"
+      ]
+      ++ web
+      ++ services;
       ishizue = web ++ services;
       ${gate} = services;
       hashira-02 = stores ++ azukari ++ kajiba ++ yagura ++ oroshi ++ web ++ services ++ genkanRelay;
