@@ -1749,11 +1749,11 @@
         "treefmt-nix": "treefmt-nix_12"
       },
       "locked": {
-        "lastModified": 1793528193,
-        "narHash": "sha256-PMIy8TC2ITH6TAQT8gIWfoHCFfWcwBH+XwmlL3AWqUc=",
+        "lastModified": 1793551512,
+        "narHash": "sha256-MnTBPBGx3MHZOvDDwuLHJDmSUyJp3IS8iXUZx4hxHcQ=",
         "ref": "refs/heads/main",
-        "rev": "2fbf8ba3dcd0f88c25712dd5927d00936fe04ce3",
-        "revCount": 366,
+        "rev": "24d4cec919424811e274bff5d0acaedc9671170d",
+        "revCount": 383,
         "type": "git",
         "url": "https://kajiba.uchi.scorsi.dev/scorsi/kajiba.git"
       },
