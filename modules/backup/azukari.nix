@@ -169,6 +169,8 @@ in
       cfg = config.services.azukari-backup;
       forgejo = config.services.forgejo;
       hanko = config.services.hanko-node;
+      # The forge runs on one host (hosts/hashira-01.nix); elsewhere the option set is absent.
+      kajiba = config.services.kajiba-server or { enable = false; };
       # The host's hanko-node holds an ACME account (hanko.nix): its key is exported.
       acme = lib.any (c: c.issuer == "acme") (lib.attrValues (hanko.certificates or { }));
       # The observability stores on this host (observability/masu.nix, nisshi.nix).
@@ -221,6 +223,25 @@ in
             user = "hanko";
             command = ''${exportHankoAccount} ${lib.escapeShellArg hanko.acme.accountKeyFile} "$EXPORT_DIR"'';
           };
+          # The newest verified dump of the forge (kajiba ADR 0167, 0174): `kajiba-dump.timer` publishes
+          # one daily at 00:00, this copies it at 00:30 under the lock that pauses the dump rotation.
+          # Copied, not linked: the dump's files are 0600 and carry the server's group.
+          kajiba-dump = lib.mkIf kajiba.enable {
+            user = "kajiba-server";
+            every = "*-*-* 00:30:00";
+            command = ''
+              cd ${lib.escapeShellArg kajiba.dump.dir}
+              # flock(2) works on a read-only descriptor; the file itself is never recreated (ADR 0174).
+              exec 9<.copy.lock
+              flock 9
+              newest=$(ls -d dump-* | sort | tail -n 1)
+              rm -rf "$EXPORT_DIR/dump"
+              mkdir "$EXPORT_DIR/dump"
+              # The dump's modes are 0600/0700; tar rewrites them on the way. Not cp: its final chmod of
+              # each directory re-applies the setgid bit inherited here, which RestrictSUIDSGID refuses.
+              tar -C "$newest" -cf - --mode=u=rwX,g=rX,o= . | tar -C "$EXPORT_DIR/dump" -xf -
+            '';
+          };
         }
         # The stores' closed days, hard-linked (azukari ADR 0022): from /persist itself, since a link
         # cannot cross the bind mount of /var/lib/<store>, and with /persist writable as a whole
@@ -264,6 +285,19 @@ in
           };
           # SQLite takes a write lock even to read (Forgejo's immediate transactions).
           serviceConfig.ReadWritePaths = [ forgejo.stateDir ];
+        };
+      }
+      // lib.optionalAttrs kajiba.enable {
+        azukari-export-kajiba-dump = {
+          after = [ "kajiba-dump.service" ];
+          path = [
+            pkgs.gnutar
+            pkgs.util-linux # flock
+          ];
+          unitConfig.RequiresMountsFor = [
+            cfg.exportsDir
+            kajiba.dump.dir
+          ];
         };
       }
       // lib.optionalAttrs acme {
