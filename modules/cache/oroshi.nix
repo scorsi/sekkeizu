@@ -83,6 +83,8 @@ in
 
       # The DAS mounts with nofail: without the disk, oroshi must not start on the tmpfs root.
       systemd.services.oroshi.unitConfig.RequiresMountsFor = [ stateDir ];
+      # The mount going away stops oroshi; its return (das-recover, das.nix) starts it again.
+      systemd.services.oroshi.wantedBy = [ "mnt-das-S3PNQ734.mount" ];
       # ReadWritePaths needs the directory before any ExecStartPre runs, so tmpfiles creates it.
       systemd.tmpfiles.rules = [ "d ${stateDir} 0750 oroshi oroshi -" ];
 

@@ -16,6 +16,7 @@
       config,
       lib,
       pkgs,
+      utils,
       ...
     }:
     let
@@ -27,6 +28,14 @@
       };
       # Outside /srv/das: a branch under the pool's own mount point makes an ordering cycle.
       mountOf = serial: "/mnt/das/${serial}";
+      cryptUnit = serial: "systemd-cryptsetup@${utils.escapeSystemdPath "das-${serial}"}";
+      # Removes the mapper $1 if its disk vanished (the kernel keeps a dangling slave link); fails when
+      # there is nothing to remove.
+      dropStale = pkgs.writeShellScript "das-drop-stale" ''
+        dm=$(${lib.getExe' pkgs.lvm2 "dmsetup"} info -c --noheadings -o blkdevname "$1" 2>/dev/null) || exit 1
+        ! [ -e /sys/class/block/$dm/slaves/* ] || exit 1
+        exec ${lib.getExe' pkgs.lvm2 "dmsetup"} remove "$1"
+      '';
     in
     {
       sops.secrets.das-luks-key.sopsFile = ../../secrets/das/luks.yaml;
@@ -70,6 +79,43 @@
           };
         };
       system.fsPackages = [ pkgs.mergerfs ];
+
+      # Re-plug after the DAS loses power: systemd stops the LUKS units while the ext4 above them is still
+      # tearing down, so they fail "busy" and leave mappers on the vanished disks, which a later attach
+      # takes as "already active"; and nothing (nofail) pulls the pool again when the disks come back.
+      # systemd-fsck then preens each disk before it mounts and refuses one that needs a manual fsck.
+      systemd.services =
+        lib.mapAttrs' (
+          serial: _:
+          lib.nameValuePair (cryptUnit serial) {
+            overrideStrategy = "asDropin";
+            serviceConfig.ExecStartPre = "-${dropStale} das-${serial}";
+          }
+        ) disks
+        // {
+          # Each disk's arrival, and every boot and switch (a deploy while the pool is down): idempotent.
+          das-recover = {
+            wantedBy = [
+              "multi-user.target"
+            ]
+            ++ lib.mapAttrsToList (
+              serial: model: "${utils.escapeSystemdPath "/dev/disk/by-id/ata-${model}_${serial}"}.device"
+            ) disks;
+            # A power supply that flaps: give up rather than remount into I/O errors forever.
+            startLimitIntervalSec = 600;
+            startLimitBurst = 5;
+            path = [ config.systemd.package ];
+            serviceConfig.Type = "oneshot";
+            # A unit still "active" over a stale mapper: restarting it reattaches the disk.
+            script =
+              lib.concatMapStrings (serial: ''
+                if ${dropStale} das-${serial}; then systemctl restart ${lib.escapeShellArg (cryptUnit serial)}; fi
+              '') (lib.attrNames disks)
+              + ''
+                systemctl start --no-block srv-das.mount
+              '';
+          };
+        };
 
       # Health in the journal (nisshi); the bridges pass SMART through without a -d flag.
       services.smartd.enable = true;
