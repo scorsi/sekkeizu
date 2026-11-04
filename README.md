@@ -19,6 +19,7 @@ repository with git-crypt (see [Encrypted trees](#encrypted-trees)).
 | `ishizue` | NixOS VM on jiban (vfkit) | NixOS |
 | `torii-cdg` | Vultr instance, Paris | NixOS |
 | `hashira-01`, `hashira-02` | Lenovo ThinkCentre M75q, home LAN | NixOS |
+| `naya-01` | Minisforum NAB6 Lite, home LAN (not installed yet) | NixOS |
 
 ## Layout
 

@@ -12,6 +12,7 @@ in
     modules = [
       # ─── System features ──────────────────────────────────────────────
       nixos.m75q
+      nixos.luks-nvme
       nixos.impermanence
       nixos.nix
       nixos.owner

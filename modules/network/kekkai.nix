@@ -94,6 +94,11 @@ let
         "tcp/22"
       ];
       ${gate} = [ ];
+      # annai uchi for its resolver; nothing else of ishizue's yet.
+      naya-01 = [
+        "udp/53"
+        "tcp/53"
+      ];
     }
     # Forgejo's HTTP and SSH ports for genkan, hanko-ca (hanko-ca.nix) for the hosts it issues SVIDs to.
     // lib.genAttrs hashira (_: [
@@ -106,11 +111,13 @@ let
     jiban = {
       ishizue = [ ];
       ${gate} = [ ];
+      naya-01 = [ ];
     }
     // lib.genAttrs hashira (_: [ ]);
     ${gate} = {
       jiban = [ "tcp/22" ];
       ishizue = [ ];
+      naya-01 = [ ];
     }
     // lib.genAttrs hashira (_: [ ]);
     hashira-01 = {
@@ -123,6 +130,7 @@ let
       ++ services;
       ishizue = web ++ services;
       ${gate} = services;
+      naya-01 = services;
       hashira-02 = stores ++ azukari ++ kajiba ++ yagura ++ oroshi ++ web ++ services ++ genkanRelay;
     };
     hashira-02 = {
@@ -131,7 +139,16 @@ let
       ${gate} = [ "tcp/8443" ] ++ services;
       # Its Forgejo runner reaches Forgejo through genkan (HTTPS and the SSH passthrough).
       hashira-01 = web ++ services ++ genkanRelay;
+      naya-01 = services;
     };
+    # naya-01: the storage node until the NAS. For now only SSH from jiban (deploys); it reaches
+    # annai uchi and genkan's `services` port (hikyaku) on the others.
+    naya-01 = {
+      jiban = [ "tcp/22" ];
+      ishizue = [ ];
+      ${gate} = [ ];
+    }
+    // lib.genAttrs hashira (_: [ ]);
   };
 
   # The lighthouse's and relay's peer list: every node with a key.

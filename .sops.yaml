@@ -19,6 +19,7 @@ keys:
   - &torii-cdg age1s0ujqtcptk2n5kdcfldrmx8zqjyz9nztpycg7ym9fqc4gfefhs9sph8ln9
   - &hashira-01 age1g37areklf58ggn7vylxg2spmc888vm3h288np6uwy68m6jm3gy9syxyzm3
   - &hashira-02 age1yrpud8759cpx7ppv4aq9ypcj5au5t3kjhnn5n3zarf293qph9fzqn32hyk
+  - &naya-01 age10pjphj8lf88yw4z6nj55zccsxmt482wxdcahpkhw6veepw62yc9q7q3z4q
 creation_rules:
   - path_regex: secrets/jiban/.*
     key_groups:
@@ -54,6 +55,13 @@ creation_rules:
           - *fido-yubikey-34043456
           - *fido-thetis-102800549530
           - *hashira-02
+          - *admin
+  - path_regex: secrets/naya-01/.*
+    key_groups:
+      - age:
+          - *fido-yubikey-34043456
+          - *fido-thetis-102800549530
+          - *naya-01
           - *admin
   # hanko's TSIG key: annai `soto` on torii checks it, hanko on each genkan host signs with it.
   - path_regex: secrets/hanko/.*
